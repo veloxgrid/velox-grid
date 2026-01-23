@@ -1,8 +1,9 @@
-fix: removeRow/updateRow bug fix and examples improvement
+docs: Add ROADMAP.md with feature planning
 
-- VeloxGrid.ts: Use shallow copy instead of deepClone to maintain object reference
-- VeloxGrid.ts: Use indexOf for displayData-data reference comparison
-- VeloxGrid.ts: Remove duplicate code and organize Public API section
-- examples/advanced.html: Fix callback error with let grid = null initialization
-- examples/index.html: Use function declaration for global scope exposure
-- README.md: Add v0.2.1 Changelog
+- Add comprehensive feature roadmap document
+- Include Phase 7-15 planned features
+- Add Selection enhancement features (RealGrid style)
+- Add Excel Export/Import, Clipboard, Keyboard features
+- Add priority classification (High/Medium/Low)
+- Add recommended implementation order
+- Add competitor comparison table

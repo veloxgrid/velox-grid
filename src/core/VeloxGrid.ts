@@ -1,6 +1,11 @@
 /**
  * VeloxGrid - Core Grid Class
  * A fast, lightweight, and framework-agnostic data grid
+ * 
+ * Features:
+ * - Virtual Scroll (Phase 5)
+ * - Fixed Columns (Phase 6)
+ * - Header Filter UI (Phase 6)
  */
 
 import type {
@@ -16,6 +21,7 @@ import type {
   VeloxGridInstance,
   GridEvents,
   ValueType,
+  FilterOperator,
 } from '../types';
 import { createElement, addClass, removeClass, throttle } from '../utils/dom';
 import { deepClone, formatValue, sortData, filterData, generateId } from '../utils/data';
@@ -41,7 +47,6 @@ const DEFAULT_OPTIONS: Partial<GridOptions> = {
 };
 
 export class VeloxGrid implements VeloxGridInstance {
-  // Private properties
   private container: HTMLElement;
   private options: GridOptions;
   private state: GridState;
@@ -53,16 +58,29 @@ export class VeloxGrid implements VeloxGridInstance {
   private headerElement!: HTMLElement;
   private bodyElement!: HTMLElement;
   private bodyInner!: HTMLElement;
+  private filterPopup: HTMLElement | null = null;
+
+  // Fixed column elements
+  private fixedLeftContainer: HTMLElement | null = null;
+  private fixedLeftHeader: HTMLElement | null = null;
+  private fixedLeftBody: HTMLElement | null = null;
 
   // Resize tracking
   private resizing: { field: string; startX: number; startWidth: number } | null = null;
+
+  // Virtual scroll state
+  private virtualState = {
+    startIndex: 0,
+    endIndex: 0,
+    visibleCount: 0,
+    totalHeight: 0,
+  };
 
   constructor(
     container: HTMLElement | string,
     options: GridOptions,
     events: GridEvents = {}
   ) {
-    // Get container element
     if (typeof container === 'string') {
       const el = document.querySelector(container);
       if (!el) throw new Error(`Container not found: ${container}`);
@@ -71,12 +89,10 @@ export class VeloxGrid implements VeloxGridInstance {
       this.container = container;
     }
 
-    // Merge options with defaults
     this.options = { ...DEFAULT_OPTIONS, ...options } as GridOptions;
     this.events = events;
     this.gridId = generateId('velox-grid');
 
-    // Initialize state
     this.state = {
       data: [],
       displayData: [],
@@ -97,19 +113,33 @@ export class VeloxGrid implements VeloxGridInstance {
       scroll: { top: 0, left: 0 },
     };
 
-    // Set initial data
     if (this.options.data) {
       this.state.data = deepClone(this.options.data);
       this.state.displayData = [...this.state.data];
     }
 
-    // Build and render
     this.build();
     this.render();
     this.attachEvents();
-
-    // Fire ready event
     this.events.onReady?.(this);
+  }
+
+  // ============================================
+  // Column Helpers
+  // ============================================
+
+  private getFixedLeftColumns(): ColumnDefinition[] {
+    return this.state.columns.filter(col => col.fixed === 'left' && col.visible !== false);
+  }
+
+  private getScrollableColumns(): ColumnDefinition[] {
+    return this.state.columns.filter(col => col.fixed !== 'left' && col.visible !== false);
+  }
+
+  private hasFixedLeft(): boolean {
+    return this.getFixedLeftColumns().length > 0 || 
+           this.options.showCheckbox === true || 
+           this.options.showRowNumbers === true;
   }
 
   // ============================================
@@ -117,7 +147,6 @@ export class VeloxGrid implements VeloxGridInstance {
   // ============================================
 
   private build(): void {
-    // Create root element
     this.rootElement = createElement('div', 'velox-grid');
     this.rootElement.id = this.gridId;
     
@@ -125,31 +154,76 @@ export class VeloxGrid implements VeloxGridInstance {
       addClass(this.rootElement, this.options.className);
     }
 
-    // Set dimensions
     if (this.options.width) {
       this.rootElement.style.width = typeof this.options.width === 'number' 
-        ? `${this.options.width}px` 
-        : this.options.width;
+        ? `${this.options.width}px` : this.options.width;
     }
     if (this.options.height) {
       this.rootElement.style.height = typeof this.options.height === 'number'
-        ? `${this.options.height}px`
-        : this.options.height;
+        ? `${this.options.height}px` : this.options.height;
     }
 
-    // Create header
-    this.headerElement = createElement('div', 'velox-header');
-    this.rootElement.appendChild(this.headerElement);
+    const wrapper = createElement('div', 'velox-wrapper');
 
-    // Create body
+    // Fixed left section
+    if (this.hasFixedLeft()) {
+      this.fixedLeftContainer = createElement('div', 'velox-fixed-left');
+      this.fixedLeftHeader = createElement('div', 'velox-header velox-header--fixed');
+      this.fixedLeftBody = createElement('div', 'velox-body velox-body--fixed');
+      this.fixedLeftContainer.appendChild(this.fixedLeftHeader);
+      this.fixedLeftContainer.appendChild(this.fixedLeftBody);
+      wrapper.appendChild(this.fixedLeftContainer);
+    }
+
+    // Main scrollable section
+    const mainSection = createElement('div', 'velox-main');
+    this.headerElement = createElement('div', 'velox-header');
     this.bodyElement = createElement('div', 'velox-body');
     this.bodyInner = createElement('div', 'velox-body-inner');
     this.bodyElement.appendChild(this.bodyInner);
-    this.rootElement.appendChild(this.bodyElement);
+    mainSection.appendChild(this.headerElement);
+    mainSection.appendChild(this.bodyElement);
+    wrapper.appendChild(mainSection);
 
-    // Append to container
+    this.rootElement.appendChild(wrapper);
     this.container.innerHTML = '';
     this.container.appendChild(this.rootElement);
+  }
+
+  // ============================================
+  // Virtual Scroll
+  // ============================================
+
+  private calculateVirtualState(): void {
+    if (!this.options.virtualScroll) return;
+
+    const rowHeight = this.options.rowHeight || 40;
+    const containerHeight = this.bodyElement.clientHeight;
+    const scrollTop = this.bodyElement.scrollTop;
+    const bufferSize = this.options.bufferSize || 5;
+
+    this.virtualState.visibleCount = Math.ceil(containerHeight / rowHeight);
+    this.virtualState.startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - bufferSize);
+    this.virtualState.endIndex = Math.min(
+      this.state.displayData.length,
+      this.virtualState.startIndex + this.virtualState.visibleCount + bufferSize * 2
+    );
+    this.virtualState.totalHeight = this.state.displayData.length * rowHeight;
+  }
+
+  private getVisibleRows(): { data: RowData; index: number }[] {
+    if (!this.options.virtualScroll) {
+      return this.state.displayData.map((data, index) => ({ data, index }));
+    }
+
+    this.calculateVirtualState();
+    const rows: { data: RowData; index: number }[] = [];
+    for (let i = this.virtualState.startIndex; i < this.virtualState.endIndex; i++) {
+      if (this.state.displayData[i]) {
+        rows.push({ data: this.state.displayData[i], index: i });
+      }
+    }
+    return rows;
   }
 
   // ============================================
@@ -162,28 +236,31 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   private renderHeader(): void {
+    // Render fixed left header
+    if (this.fixedLeftHeader) {
+      this.fixedLeftHeader.innerHTML = '';
+      const headerRow = createElement('div', 'velox-header-row');
+
+      if (this.options.showCheckbox) {
+        headerRow.appendChild(this.createHeaderCheckboxCell());
+      }
+      if (this.options.showRowNumbers) {
+        const rowNumCell = createElement('div', 'velox-header-cell velox-rownumber-cell');
+        rowNumCell.textContent = '#';
+        headerRow.appendChild(rowNumCell);
+      }
+      this.getFixedLeftColumns().forEach(col => {
+        headerRow.appendChild(this.createHeaderCell(col));
+      });
+
+      this.fixedLeftHeader.appendChild(headerRow);
+    }
+
+    // Render main header
     const headerRow = createElement('div', 'velox-header-row');
-
-    // Checkbox column
-    if (this.options.showCheckbox) {
-      const checkboxCell = this.createHeaderCheckboxCell();
-      headerRow.appendChild(checkboxCell);
-    }
-
-    // Row number column
-    if (this.options.showRowNumbers) {
-      const rowNumCell = createElement('div', 'velox-header-cell velox-rownumber-cell');
-      rowNumCell.textContent = '#';
-      headerRow.appendChild(rowNumCell);
-    }
-
-    // Data columns
-    this.state.columns.forEach((column) => {
-      if (column.visible === false) return;
-      const cell = this.createHeaderCell(column);
-      headerRow.appendChild(cell);
+    this.getScrollableColumns().forEach(col => {
+      headerRow.appendChild(this.createHeaderCell(col));
     });
-
     this.headerElement.innerHTML = '';
     this.headerElement.appendChild(headerRow);
   }
@@ -192,9 +269,7 @@ export class VeloxGrid implements VeloxGridInstance {
     const cell = createElement('div', 'velox-header-cell velox-checkbox-cell');
     const checkbox = createElement('input', 'velox-checkbox') as HTMLInputElement;
     checkbox.type = 'checkbox';
-    checkbox.setAttribute('aria-label', 'Select all rows');
     
-    // Set checkbox state
     const allSelected = this.state.displayData.length > 0 &&
       this.state.selection.selectedRows.size === this.state.displayData.length;
     const someSelected = this.state.selection.selectedRows.size > 0 && !allSelected;
@@ -202,22 +277,18 @@ export class VeloxGrid implements VeloxGridInstance {
     checkbox.checked = allSelected;
     checkbox.indeterminate = someSelected;
 
-    checkbox.addEventListener('change', () => {
-      this.selectAll(checkbox.checked);
-    });
-
+    checkbox.addEventListener('change', () => this.selectAll(checkbox.checked));
     cell.appendChild(checkbox);
     return cell;
   }
 
   private createHeaderCell(column: ColumnDefinition): HTMLElement {
     const cell = createElement('div', 'velox-header-cell');
+    cell.dataset.field = column.field;
     
-    // Alignment
     const align = column.headerAlign || column.align || 'left';
     addClass(cell, `velox-header-cell--align-${align}`);
 
-    // Width
     if (column.width) {
       cell.style.width = `${column.width}px`;
       cell.style.minWidth = `${column.minWidth || column.width}px`;
@@ -226,36 +297,46 @@ export class VeloxGrid implements VeloxGridInstance {
       cell.style.minWidth = `${column.minWidth || 100}px`;
     }
 
-    // Header class
-    if (column.headerClass) {
-      addClass(cell, column.headerClass);
-    }
+    if (column.headerClass) addClass(cell, column.headerClass);
 
     // Sortable
     if (this.options.sortable && column.sortable !== false) {
       addClass(cell, 'velox-header-cell--sortable');
-      cell.addEventListener('click', () => this.handleSort(column.field));
-      
-      // Check if sorted
       const sortState = this.state.sort.find(s => s.field === column.field);
-      if (sortState?.direction) {
-        addClass(cell, 'velox-header-cell--sorted');
-      }
+      if (sortState?.direction) addClass(cell, 'velox-header-cell--sorted');
     }
 
-    // Header text
+    // Content wrapper
+    const contentWrapper = createElement('div', 'velox-header-content');
     const text = createElement('span', 'velox-header-text');
     text.textContent = column.header;
-    cell.appendChild(text);
+    contentWrapper.appendChild(text);
 
     // Sort icon
     if (this.options.sortable && column.sortable !== false) {
       const sortIcon = createElement('span', 'velox-sort-icon');
       const sortState = this.state.sort.find(s => s.field === column.field);
-      if (sortState?.direction) {
-        addClass(sortIcon, `velox-sort-icon--${sortState.direction}`);
-      }
-      cell.appendChild(sortIcon);
+      if (sortState?.direction) addClass(sortIcon, `velox-sort-icon--${sortState.direction}`);
+      contentWrapper.appendChild(sortIcon);
+      contentWrapper.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleSort(column.field);
+      });
+    }
+
+    cell.appendChild(contentWrapper);
+
+    // Filter button
+    if (this.options.filterable && column.filterable !== false) {
+      const filterBtn = createElement('button', 'velox-filter-btn');
+      filterBtn.innerHTML = '▼';
+      const hasFilter = this.state.filter?.conditions.some(c => c.field === column.field);
+      if (hasFilter) addClass(filterBtn, 'velox-filter-btn--active');
+      filterBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showFilterPopup(column, filterBtn);
+      });
+      cell.appendChild(filterBtn);
     }
 
     // Resize handle
@@ -269,65 +350,99 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   private renderBody(): void {
+    const visibleRows = this.getVisibleRows();
+
+    // Render fixed left body
+    if (this.fixedLeftBody) {
+      this.fixedLeftBody.innerHTML = '';
+      const innerDiv = createElement('div', 'velox-body-inner');
+      
+      if (this.options.virtualScroll) {
+        innerDiv.style.height = `${this.virtualState.totalHeight}px`;
+        innerDiv.style.position = 'relative';
+      }
+
+      if (visibleRows.length === 0) {
+        // Don't show empty message in fixed section
+      } else {
+        visibleRows.forEach(({ data, index }) => {
+          const row = this.createFixedLeftRow(data, index);
+          if (this.options.virtualScroll) {
+            row.style.position = 'absolute';
+            row.style.top = `${index * (this.options.rowHeight || 40)}px`;
+            row.style.width = '100%';
+          }
+          innerDiv.appendChild(row);
+        });
+      }
+      this.fixedLeftBody.appendChild(innerDiv);
+    }
+
+    // Render main body
     this.bodyInner.innerHTML = '';
 
-    // Empty state
-    if (this.state.displayData.length === 0) {
+    if (this.options.virtualScroll) {
+      this.bodyInner.style.height = `${this.virtualState.totalHeight}px`;
+      this.bodyInner.style.position = 'relative';
+    }
+
+    if (visibleRows.length === 0) {
       const emptyDiv = createElement('div', 'velox-empty');
       emptyDiv.textContent = this.options.emptyMessage || '데이터가 없습니다.';
       this.bodyInner.appendChild(emptyDiv);
       return;
     }
 
-    // Render rows
-    this.state.displayData.forEach((row, index) => {
-      const rowElement = this.createRow(row, index);
-      this.bodyInner.appendChild(rowElement);
+    visibleRows.forEach(({ data, index }) => {
+      const row = this.createRow(data, index);
+      if (this.options.virtualScroll) {
+        row.style.position = 'absolute';
+        row.style.top = `${index * (this.options.rowHeight || 40)}px`;
+        row.style.width = '100%';
+      }
+      this.bodyInner.appendChild(row);
     });
+  }
+
+  private createFixedLeftRow(rowData: RowData, rowIndex: number): HTMLElement {
+    const row = createElement('div', 'velox-row');
+    row.dataset.rowIndex = String(rowIndex);
+
+    if (rowIndex % 2 === 1) addClass(row, 'velox-row--alt');
+    if (this.state.selection.selectedRows.has(rowIndex)) addClass(row, 'velox-row--selected');
+
+    row.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.velox-checkbox-cell')) return;
+      this.handleRowClick(rowIndex, e);
+    });
+
+    if (this.options.showCheckbox) {
+      row.appendChild(this.createCheckboxCell(rowIndex));
+    }
+    if (this.options.showRowNumbers) {
+      const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
+      rowNumCell.textContent = String(rowIndex + 1);
+      row.appendChild(rowNumCell);
+    }
+    this.getFixedLeftColumns().forEach(col => {
+      row.appendChild(this.createCell(rowData, rowIndex, col));
+    });
+
+    return row;
   }
 
   private createRow(rowData: RowData, rowIndex: number): HTMLElement {
     const row = createElement('div', 'velox-row');
     row.dataset.rowIndex = String(rowIndex);
 
-    // Alternate row style
-    if (rowIndex % 2 === 1) {
-      addClass(row, 'velox-row--alt');
-    }
+    if (rowIndex % 2 === 1) addClass(row, 'velox-row--alt');
+    if (this.state.selection.selectedRows.has(rowIndex)) addClass(row, 'velox-row--selected');
 
-    // Selected state
-    if (this.state.selection.selectedRows.has(rowIndex)) {
-      addClass(row, 'velox-row--selected');
-    }
+    row.addEventListener('click', (e) => this.handleRowClick(rowIndex, e));
+    row.addEventListener('dblclick', (e) => this.handleRowDoubleClick(rowIndex, e));
 
-    // Row click event
-    row.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).closest('.velox-checkbox-cell')) return;
-      this.handleRowClick(rowIndex, e);
-    });
-
-    row.addEventListener('dblclick', (e) => {
-      this.handleRowDoubleClick(rowIndex, e);
-    });
-
-    // Checkbox cell
-    if (this.options.showCheckbox) {
-      const checkboxCell = this.createCheckboxCell(rowIndex);
-      row.appendChild(checkboxCell);
-    }
-
-    // Row number cell
-    if (this.options.showRowNumbers) {
-      const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
-      rowNumCell.textContent = String(rowIndex + 1);
-      row.appendChild(rowNumCell);
-    }
-
-    // Data cells
-    this.state.columns.forEach((column) => {
-      if (column.visible === false) return;
-      const cell = this.createCell(rowData, rowIndex, column);
-      row.appendChild(cell);
+    this.getScrollableColumns().forEach(col => {
+      row.appendChild(this.createCell(rowData, rowIndex, col));
     });
 
     return row;
@@ -338,12 +453,7 @@ export class VeloxGrid implements VeloxGridInstance {
     const checkbox = createElement('input', 'velox-checkbox') as HTMLInputElement;
     checkbox.type = 'checkbox';
     checkbox.checked = this.state.selection.selectedRows.has(rowIndex);
-    checkbox.setAttribute('aria-label', `Select row ${rowIndex + 1}`);
-
-    checkbox.addEventListener('change', () => {
-      this.selectRow(rowIndex, checkbox.checked);
-    });
-
+    checkbox.addEventListener('change', () => this.selectRow(rowIndex, checkbox.checked));
     cell.appendChild(checkbox);
     return cell;
   }
@@ -352,11 +462,9 @@ export class VeloxGrid implements VeloxGridInstance {
     const cell = createElement('div', 'velox-cell');
     cell.dataset.field = column.field;
 
-    // Alignment
     const align = column.align || 'left';
     addClass(cell, `velox-cell--align-${align}`);
 
-    // Width (match header)
     if (column.width) {
       cell.style.width = `${column.width}px`;
       cell.style.minWidth = `${column.minWidth || column.width}px`;
@@ -365,15 +473,12 @@ export class VeloxGrid implements VeloxGridInstance {
       cell.style.minWidth = `${column.minWidth || 100}px`;
     }
 
-    // Cell class
     if (column.cellClass) {
       const className = typeof column.cellClass === 'function'
-        ? column.cellClass(rowData[column.field], rowData)
-        : column.cellClass;
+        ? column.cellClass(rowData[column.field], rowData) : column.cellClass;
       if (className) addClass(cell, className);
     }
 
-    // Editable
     if (this.options.editable && column.editable !== false) {
       addClass(cell, 'velox-cell--editable');
       cell.addEventListener('dblclick', (e) => {
@@ -382,7 +487,6 @@ export class VeloxGrid implements VeloxGridInstance {
       });
     }
 
-    // Cell content
     const value = rowData[column.field];
     const content = createElement('span', 'velox-cell-content');
 
@@ -395,8 +499,6 @@ export class VeloxGrid implements VeloxGridInstance {
     }
 
     cell.appendChild(content);
-
-    // Cell click event
     cell.addEventListener('click', () => {
       this.events.onCellClick?.(rowIndex, column.field, value);
     });
@@ -405,16 +507,173 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   // ============================================
+  // Filter Popup
+  // ============================================
+
+  private showFilterPopup(column: ColumnDefinition, anchor: HTMLElement): void {
+    this.closeFilterPopup();
+
+    const popup = createElement('div', 'velox-filter-popup');
+    const rect = anchor.getBoundingClientRect();
+    const gridRect = this.rootElement.getBoundingClientRect();
+
+    popup.style.top = `${rect.bottom - gridRect.top + 5}px`;
+    popup.style.left = `${Math.max(0, rect.left - gridRect.left - 100)}px`;
+
+    const uniqueValues = [...new Set(this.state.data.map(row => row[column.field]))]
+      .filter(v => v !== null && v !== undefined)
+      .sort();
+
+    const currentFilter = this.state.filter?.conditions.find(c => c.field === column.field);
+
+    // Operator select
+    const operatorSelect = createElement('select', 'velox-filter-operator') as HTMLSelectElement;
+    const operators: { value: FilterOperator; label: string }[] = [
+      { value: 'contains', label: '포함' },
+      { value: 'equals', label: '같음' },
+      { value: 'notEquals', label: '같지 않음' },
+      { value: 'startsWith', label: '시작' },
+      { value: 'endsWith', label: '끝' },
+      { value: 'greaterThan', label: '>' },
+      { value: 'lessThan', label: '<' },
+      { value: 'greaterThanOrEqual', label: '>=' },
+      { value: 'lessThanOrEqual', label: '<=' },
+      { value: 'isEmpty', label: '비어있음' },
+      { value: 'isNotEmpty', label: '비어있지 않음' },
+    ];
+
+    operators.forEach(op => {
+      const option = createElement('option') as HTMLOptionElement;
+      option.value = op.value;
+      option.textContent = op.label;
+      if (currentFilter?.operator === op.value) option.selected = true;
+      operatorSelect.appendChild(option);
+    });
+    popup.appendChild(operatorSelect);
+
+    // Value input
+    const valueInput = createElement('input', 'velox-filter-input') as HTMLInputElement;
+    valueInput.type = column.type === 'number' ? 'number' : 'text';
+    valueInput.placeholder = '값 입력...';
+    if (currentFilter?.value !== undefined) valueInput.value = String(currentFilter.value);
+    popup.appendChild(valueInput);
+
+    // Quick filter list
+    if (uniqueValues.length > 0 && uniqueValues.length <= 15) {
+      const listContainer = createElement('div', 'velox-filter-list');
+      const listLabel = createElement('div', 'velox-filter-list-label');
+      listLabel.textContent = '빠른 선택:';
+      listContainer.appendChild(listLabel);
+
+      uniqueValues.slice(0, 10).forEach(value => {
+        const item = createElement('div', 'velox-filter-list-item');
+        item.textContent = formatValue(value, column.type);
+        item.addEventListener('click', () => {
+          this.applyColumnFilter(column.field, 'equals', value);
+          this.closeFilterPopup();
+        });
+        listContainer.appendChild(item);
+      });
+      popup.appendChild(listContainer);
+    }
+
+    // Buttons
+    const btnContainer = createElement('div', 'velox-filter-buttons');
+    
+    const applyBtn = createElement('button', 'velox-filter-apply');
+    applyBtn.textContent = '적용';
+    applyBtn.addEventListener('click', () => {
+      const operator = operatorSelect.value as FilterOperator;
+      const value = column.type === 'number' ? parseFloat(valueInput.value) : valueInput.value;
+      this.applyColumnFilter(column.field, operator, value);
+      this.closeFilterPopup();
+    });
+    btnContainer.appendChild(applyBtn);
+
+    const clearBtn = createElement('button', 'velox-filter-clear');
+    clearBtn.textContent = '해제';
+    clearBtn.addEventListener('click', () => {
+      this.removeColumnFilter(column.field);
+      this.closeFilterPopup();
+    });
+    btnContainer.appendChild(clearBtn);
+
+    popup.appendChild(btnContainer);
+
+    this.filterPopup = popup;
+    this.rootElement.appendChild(popup);
+
+    setTimeout(() => {
+      document.addEventListener('click', this.handleOutsideClick);
+    }, 0);
+
+    valueInput.focus();
+  }
+
+  private handleOutsideClick = (e: MouseEvent): void => {
+    if (this.filterPopup && !this.filterPopup.contains(e.target as Node)) {
+      this.closeFilterPopup();
+    }
+  };
+
+  private closeFilterPopup(): void {
+    if (this.filterPopup) {
+      this.filterPopup.remove();
+      this.filterPopup = null;
+      document.removeEventListener('click', this.handleOutsideClick);
+    }
+  }
+
+  private applyColumnFilter(field: string, operator: FilterOperator, value: CellValue): void {
+    const newCondition: FilterCondition = { field, operator, value };
+
+    if (this.state.filter) {
+      const conditions = this.state.filter.conditions.filter(c => c.field !== field);
+      conditions.push(newCondition);
+      this.state.filter = { conditions, logic: 'and' };
+    } else {
+      this.state.filter = { conditions: [newCondition], logic: 'and' };
+    }
+
+    this.applyDataTransformations();
+    this.render();
+    this.events.onFilter?.(this.state.filter);
+  }
+
+  private removeColumnFilter(field: string): void {
+    if (this.state.filter) {
+      const conditions = this.state.filter.conditions.filter(c => c.field !== field);
+      this.state.filter = conditions.length === 0 ? null : { conditions, logic: 'and' };
+      this.applyDataTransformations();
+      this.render();
+      if (this.state.filter) this.events.onFilter?.(this.state.filter);
+    }
+  }
+
+  // ============================================
   // Event Handlers
   // ============================================
 
   private attachEvents(): void {
-    // Scroll event
-    this.bodyElement.addEventListener('scroll', throttle(() => {
+    // Scroll event with virtual scroll support
+    const handleScroll = throttle(() => {
       this.state.scroll.top = this.bodyElement.scrollTop;
       this.state.scroll.left = this.bodyElement.scrollLeft;
+
+      // Sync fixed left body scroll
+      if (this.fixedLeftBody) {
+        this.fixedLeftBody.scrollTop = this.bodyElement.scrollTop;
+      }
+
+      // Re-render for virtual scroll
+      if (this.options.virtualScroll) {
+        this.renderBody();
+      }
+
       this.events.onScroll?.(this.state.scroll.top, this.state.scroll.left);
-    }, 16));
+    }, 16);
+
+    this.bodyElement.addEventListener('scroll', handleScroll);
 
     // Global mouse events for resize
     document.addEventListener('mousemove', this.handleResizeMove.bind(this));
@@ -434,12 +693,7 @@ export class VeloxGrid implements VeloxGridInstance {
       else if (current === 'desc') newDirection = null;
     }
 
-    // Single column sort (can be extended to multi-column)
-    if (newDirection) {
-      this.state.sort = [{ field, direction: newDirection }];
-    } else {
-      this.state.sort = [];
-    }
+    this.state.sort = newDirection ? [{ field, direction: newDirection }] : [];
 
     this.applyDataTransformations();
     this.render();
@@ -449,13 +703,10 @@ export class VeloxGrid implements VeloxGridInstance {
   private handleRowClick(rowIndex: number, e: MouseEvent): void {
     if (this.options.selectable) {
       if (this.options.selectionMode === 'multiple' && e.ctrlKey) {
-        // Toggle selection
         this.selectRow(rowIndex, !this.state.selection.selectedRows.has(rowIndex));
       } else if (this.options.selectionMode === 'multiple' && e.shiftKey) {
-        // Range selection (simplified)
         this.selectRow(rowIndex, true);
       } else {
-        // Single selection
         this.clearSelection();
         this.selectRow(rowIndex, true);
       }
@@ -469,11 +720,8 @@ export class VeloxGrid implements VeloxGridInstance {
 
   private handleKeyDown(e: KeyboardEvent): void {
     if (this.state.edit.editing) {
-      if (e.key === 'Escape') {
-        this.cancelEdit();
-      } else if (e.key === 'Enter') {
-        this.endEdit(true);
-      }
+      if (e.key === 'Escape') this.cancelEdit();
+      else if (e.key === 'Enter') this.endEdit(true);
     }
   }
 
@@ -525,12 +773,10 @@ export class VeloxGrid implements VeloxGridInstance {
   private applyDataTransformations(): void {
     let data = [...this.state.data];
 
-    // Apply filter
     if (this.state.filter) {
       data = filterData(data, this.state.filter);
     }
 
-    // Apply sort
     if (this.state.sort.length > 0) {
       const columnTypes: Record<string, ValueType> = {};
       this.state.columns.forEach(col => {
@@ -650,7 +896,6 @@ export class VeloxGrid implements VeloxGridInstance {
     return this.state.selection.selectedRows.has(index);
   }
 
-  // Check methods (alias)
   checkRow(index: number, checked = true): void {
     this.selectRow(index, checked);
   }
@@ -672,11 +917,7 @@ export class VeloxGrid implements VeloxGridInstance {
   // ============================================
 
   sort(field: string, direction: SortDirection = 'asc'): void {
-    if (direction) {
-      this.state.sort = [{ field, direction }];
-    } else {
-      this.state.sort = [];
-    }
+    this.state.sort = direction ? [{ field, direction }] : [];
     this.applyDataTransformations();
     this.render();
     this.events.onSort?.(this.state.sort);
@@ -699,10 +940,7 @@ export class VeloxGrid implements VeloxGridInstance {
 
   filter(conditions: FilterCondition | FilterCondition[]): void {
     const conditionArray = Array.isArray(conditions) ? conditions : [conditions];
-    this.state.filter = {
-      conditions: conditionArray,
-      logic: 'and',
-    };
+    this.state.filter = { conditions: conditionArray, logic: 'and' };
     this.applyDataTransformations();
     this.render();
     this.events.onFilter?.(this.state.filter);
@@ -712,7 +950,6 @@ export class VeloxGrid implements VeloxGridInstance {
     this.state.filter = null;
     this.applyDataTransformations();
     this.render();
-    this.events.onFilter?.(this.state.filter!);
   }
 
   getFilterState(): FilterState | null {
@@ -729,18 +966,10 @@ export class VeloxGrid implements VeloxGridInstance {
     const column = this.state.columns.find(c => c.field === field);
     if (!column || column.editable === false) return;
 
-    // End any current edit
-    if (this.state.edit.editing) {
-      this.endEdit(true);
-    }
+    if (this.state.edit.editing) this.endEdit(true);
 
     const value = this.state.displayData[rowIndex]?.[field];
-    this.state.edit = {
-      editing: true,
-      rowIndex,
-      field,
-      originalValue: value,
-    };
+    this.state.edit = { editing: true, rowIndex, field, originalValue: value };
 
     this.events.onCellEditStart?.(rowIndex, field, value);
     this.renderEditCell(rowIndex, field, value);
@@ -763,9 +992,7 @@ export class VeloxGrid implements VeloxGridInstance {
     input.focus();
     input.select();
 
-    input.addEventListener('blur', () => {
-      this.endEdit(true);
-    });
+    input.addEventListener('blur', () => this.endEdit(true));
   }
 
   endEdit(save = true): void {
@@ -781,13 +1008,11 @@ export class VeloxGrid implements VeloxGridInstance {
     if (save && input) {
       const newValue = input.value;
       if (newValue !== String(originalValue ?? '')) {
-        // Update data
         const column = this.state.columns.find(c => c.field === field);
         const dataIndex = this.state.data.indexOf(this.state.displayData[rowIndex]);
         if (dataIndex >= 0) {
           this.state.data[dataIndex][field] = column?.type === 'number' 
-            ? parseFloat(newValue) 
-            : newValue;
+            ? parseFloat(newValue) : newValue;
         }
 
         this.events.onCellEditEnd?.({
@@ -802,13 +1027,7 @@ export class VeloxGrid implements VeloxGridInstance {
       this.events.onCellEditCancel?.(rowIndex, field);
     }
 
-    this.state.edit = {
-      editing: false,
-      rowIndex: null,
-      field: null,
-      originalValue: null,
-    };
-
+    this.state.edit = { editing: false, rowIndex: null, field: null, originalValue: null };
     this.applyDataTransformations();
     this.render();
   }
@@ -924,14 +1143,10 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   destroy(): void {
-    // Remove event listeners
     document.removeEventListener('mousemove', this.handleResizeMove.bind(this));
     document.removeEventListener('mouseup', this.handleResizeEnd.bind(this));
-
-    // Clear DOM
+    document.removeEventListener('click', this.handleOutsideClick);
     this.container.innerHTML = '';
-
-    // Fire destroy event
     this.events.onDestroy?.();
   }
 }

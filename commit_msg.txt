@@ -1,0 +1,10 @@
+feat: Add Phase 5 & 6 features
+
+- Virtual Scroll: Support for large datasets (100,000+ rows)
+- Fixed Columns: Left-side column pinning (checkbox, row number, custom)
+- Header Filter UI: Click filter button on column header to apply filters
+- Filter operators: contains, equals, greater than, less than, etc.
+- Updated README.md with complete API documentation
+- Added advanced.html example with 10,000 rows demo
+
+Co-authored-by: Claude <claude@anthropic.com>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid - Advanced Example (Phase 5 & 6)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 8px; color: #333; }
+    .description { margin-bottom: 20px; color: #666; }
+    .toolbar {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .toolbar button {
+      padding: 8px 16px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .toolbar button:hover {
+      background: #e3f2fd;
+      border-color: #1976d2;
+    }
+    .toolbar span {
+      color: #666;
+      font-size: 14px;
+    }
+    #grid-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .info {
+      margin-top: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .info h3 { margin-bottom: 10px; color: #333; }
+    .info pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      max-height: 200px;
+      overflow: auto;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge-new { background: #e3f2fd; color: #1976d2; }
+    .badge-virtual { background: #e8f5e9; color: #388e3c; }
+  </style>
+</head>
+<body>
+  <h1>🚀 VeloxGrid - Advanced Example</h1>
+  <p class="description">
+    <span class="badge badge-new">Phase 5</span> Virtual Scroll (10,000 rows)
+    <span class="badge badge-new">Phase 6</span> Fixed Columns & Header Filter
+  </p>
+  
+  <div class="toolbar">
+    <button onclick="addRows(100)">➕ 100행 추가</button>
+    <button onclick="addRows(1000)">➕ 1000행 추가</button>
+    <button onclick="removeSelectedRows()">🗑️ 선택 삭제</button>
+    <button onclick="clearAllData()">🧹 전체 삭제</button>
+    <span>|</span>
+    <button onclick="selectAll()">☑️ 전체 선택</button>
+    <button onclick="clearSelection()">⬜ 선택 해제</button>
+    <span>|</span>
+    <button onclick="clearFilter()">🔍 필터 해제</button>
+    <button onclick="clearSort()">🔄 정렬 초기화</button>
+    <span>|</span>
+    <button onclick="scrollToTop()">⬆️ 맨 위로</button>
+    <button onclick="scrollToBottom()">⬇️ 맨 아래로</button>
+    <button onclick="scrollToRow()">📍 행 이동</button>
+  </div>
+  
+  <div id="grid-container"></div>
+  
+  <div class="info">
+    <h3>📊 그리드 정보</h3>
+    <pre id="grid-info">로딩 중...</pre>
+  </div>
+
+  <script type="module">
+    import { VeloxGrid } from '../src/index.ts';
+
+    // Generate large dataset
+    function generateData(count, startId = 1) {
+      const departments = ['개발팀', '디자인팀', '기획팀', '마케팅팀', '인사팀', 'QA팀', '운영팀'];
+      const firstNames = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임'];
+      const lastNames = ['철수', '영희', '민수', '지연', '수빈', '민호', '서연', '재현', '소희', '준혁'];
+      
+      const data = [];
+      for (let i = 0; i < count; i++) {
+        const id = startId + i;
+        data.push({
+          id,
+          name: firstNames[Math.floor(Math.random() * firstNames.length)] + lastNames[Math.floor(Math.random() * lastNames.length)],
+          age: Math.floor(Math.random() * 30) + 22,
+          email: `user${id}@example.com`,
+          department: departments[Math.floor(Math.random() * departments.length)],
+          salary: Math.floor(Math.random() * 5000000) + 3000000,
+          joinDate: new Date(2015 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0],
+          active: Math.random() > 0.2,
+        });
+      }
+      return data;
+    }
+
+    const initialData = generateData(10000);
+
+    // Column definitions with fixed columns
+    const columns = [
+      { field: 'id', header: 'ID', type: 'number', width: 70, align: 'center', fixed: 'left', sortable: true, filterable: true },
+      { field: 'name', header: '이름', type: 'text', width: 100, fixed: 'left', sortable: true, filterable: true, editable: true },
+      { field: 'age', header: '나이', type: 'number', width: 70, align: 'center', sortable: true, filterable: true, editable: true },
+      { field: 'email', header: '이메일', type: 'text', width: 200, sortable: true, filterable: true },
+      { field: 'department', header: '부서', type: 'text', width: 100, sortable: true, filterable: true },
+      { 
+        field: 'salary', 
+        header: '급여', 
+        type: 'number', 
+        width: 130, 
+        align: 'right',
+        sortable: true,
+        filterable: true,
+        formatter: (value) => value ? `₩${value.toLocaleString()}` : ''
+      },
+      { field: 'joinDate', header: '입사일', type: 'text', width: 110, align: 'center', sortable: true, filterable: true },
+      { 
+        field: 'active', 
+        header: '활성', 
+        type: 'boolean', 
+        width: 70, 
+        align: 'center',
+        filterable: true,
+        renderer: (value) => value 
+          ? '<span style="color: #4caf50;">●</span>' 
+          : '<span style="color: #f44336;">●</span>'
+      },
+    ];
+
+    // Create grid with virtual scroll enabled
+    const grid = new VeloxGrid('#grid-container', {
+      columns,
+      data: initialData,
+      height: 500,
+      showCheckbox: true,
+      showRowNumbers: true,
+      selectable: true,
+      selectionMode: 'multiple',
+      sortable: true,
+      filterable: true,  // Enable header filter
+      editable: true,
+      resizable: true,
+      virtualScroll: true,  // Enable virtual scroll for large data
+      bufferSize: 10,
+      rowHeight: 40,
+    }, {
+      onSelectionChange: (selectedRows) => {
+        updateInfo();
+      },
+      onSort: (sortState) => {
+        console.log('Sort:', sortState);
+        updateInfo();
+      },
+      onFilter: (filterState) => {
+        console.log('Filter:', filterState);
+        updateInfo();
+      },
+      onScroll: (top, left) => {
+        // console.log('Scroll:', top, left);
+      },
+      onReady: (instance) => {
+        console.log('VeloxGrid ready with', instance.getRowCount(), 'rows');
+        updateInfo();
+      }
+    });
+
+    window.grid = grid;
+
+    // Toolbar functions
+    window.addRows = function(count) {
+      const currentCount = grid.getRowCount();
+      const newData = generateData(count, currentCount + 1);
+      const allData = [...grid.getData(), ...newData];
+      grid.setData(allData);
+      updateInfo();
+    };
+
+    window.removeSelectedRows = function() {
+      const selected = grid.getSelectedRows();
+      selected.sort((a, b) => b - a).forEach(index => grid.removeRow(index));
+      updateInfo();
+    };
+
+    window.clearAllData = function() {
+      if (confirm('정말 모든 데이터를 삭제하시겠습니까?')) {
+        grid.clearData();
+        updateInfo();
+      }
+    };
+
+    window.selectAll = function() {
+      grid.selectAll(true);
+    };
+
+    window.clearSelection = function() {
+      grid.clearSelection();
+    };
+
+    window.clearFilter = function() {
+      grid.clearFilter();
+      updateInfo();
+    };
+
+    window.clearSort = function() {
+      grid.clearSort();
+      updateInfo();
+    };
+
+    window.scrollToTop = function() {
+      grid.scrollToTop();
+    };
+
+    window.scrollToBottom = function() {
+      grid.scrollToBottom();
+    };
+
+    window.scrollToRow = function() {
+      const rowIndex = prompt('이동할 행 번호를 입력하세요:', '5000');
+      if (rowIndex !== null) {
+        grid.scrollToRow(parseInt(rowIndex, 10));
+      }
+    };
+
+    function updateInfo() {
+      const info = {
+        '전체 행 수': grid.getRowCount().toLocaleString(),
+        '표시 행 수 (필터 후)': grid.getVisibleRowCount().toLocaleString(),
+        '선택된 행': grid.getSelectedRows().length.toLocaleString(),
+        '정렬 상태': JSON.stringify(grid.getSortState()),
+        '필터 상태': JSON.stringify(grid.getFilterState()),
+        '가상 스크롤': 'ON ✅',
+        '고정 컬럼': 'ID, 이름 (왼쪽 고정)',
+      };
+      
+      document.getElementById('grid-info').textContent = 
+        Object.entries(info).map(([k, v]) => `${k}: ${v}`).join('\n');
+    }
+  </script>
+</body>
+</html>

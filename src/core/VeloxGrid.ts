@@ -1,6 +1,11 @@
 /**
- * VeloxGrid - Core Grid Class v2.2
- * Fixed: Row add/remove, Selection, Data reference
+ * VeloxGrid - Core Grid Class v3.0
+ * Phase 7: Selection Enhancement
+ * - SelectionStyle (row/cell/block/none)
+ * - Cell Selection API
+ * - CheckBar separation
+ * - Keyboard Navigation
+ * - Loading State
  */
 
 import type {
@@ -17,6 +22,10 @@ import type {
   GridEvents,
   ValueType,
   FilterOperator,
+  CellIndex,
+  Selection,
+  CheckBarOptions,
+  ExportOptions,
 } from '../types';
 import { createElement, addClass, removeClass, throttle } from '../utils/dom';
 import { formatValue, sortData, filterData, generateId } from '../utils/data';
@@ -27,6 +36,7 @@ const DEFAULT_OPTIONS: Partial<GridOptions> = {
   showRowNumbers: false,
   selectable: true,
   selectionMode: 'multiple',
+  selectionStyle: 'row',
   showCheckbox: false,
   sortable: true,
   filterable: false,
@@ -37,7 +47,14 @@ const DEFAULT_OPTIONS: Partial<GridOptions> = {
   theme: 'default',
   locale: 'ko-KR',
   emptyMessage: '데이터가 없습니다.',
+  loading: false,
   loadingMessage: '로딩 중...',
+};
+
+const DEFAULT_CHECKBAR: CheckBarOptions = {
+  visible: false,
+  exclusive: false,
+  showAll: true,
 };
 
 export class VeloxGrid implements VeloxGridInstance {
@@ -52,6 +69,7 @@ export class VeloxGrid implements VeloxGridInstance {
   private bodyElement!: HTMLElement;
   private bodyInner!: HTMLElement;
   private filterPopup: HTMLElement | null = null;
+  private loadingOverlay: HTMLElement | null = null;
 
   private fixedLeftContainer: HTMLElement | null = null;
   private fixedLeftHeader: HTMLElement | null = null;
@@ -59,6 +77,7 @@ export class VeloxGrid implements VeloxGridInstance {
   private fixedLeftBodyInner: HTMLElement | null = null;
 
   private resizing: { field: string; startX: number; startWidth: number } | null = null;
+  private blockSelecting: { startRow: number; startField: string } | null = null;
 
   private virtualState = {
     startIndex: 0,
@@ -67,7 +86,6 @@ export class VeloxGrid implements VeloxGridInstance {
     totalHeight: 0,
   };
 
-  // 원본 데이터 인덱스를 추적하기 위한 맵
   private dataIndexMap: Map<RowData, number> = new Map();
 
   constructor(
@@ -84,6 +102,13 @@ export class VeloxGrid implements VeloxGridInstance {
     }
 
     this.options = { ...DEFAULT_OPTIONS, ...options } as GridOptions;
+    
+    if (this.options.checkBar) {
+      this.options.checkBar = { ...DEFAULT_CHECKBAR, ...this.options.checkBar };
+    } else if (this.options.showCheckbox) {
+      this.options.checkBar = { ...DEFAULT_CHECKBAR, visible: true };
+    }
+
     this.events = events;
     this.gridId = generateId('velox-grid');
 
@@ -95,6 +120,11 @@ export class VeloxGrid implements VeloxGridInstance {
         selectedRows: new Set<number>(),
         selectedCells: new Set<string>(),
         focusedCell: null,
+        selections: [],
+      },
+      checkBar: {
+        checkedRows: new Set<number>(),
+        checkableRows: new Set<number>(),
       },
       sort: [],
       filter: null,
@@ -111,6 +141,7 @@ export class VeloxGrid implements VeloxGridInstance {
       this.state.data = this.options.data.map(row => ({ ...row }));
       this.rebuildDataIndexMap();
       this.state.displayData = [...this.state.data];
+      this.initCheckableRows();
     }
 
     this.build();
@@ -119,11 +150,25 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onReady?.(this);
   }
 
-  // 데이터 인덱스 맵 재구성
   private rebuildDataIndexMap(): void {
     this.dataIndexMap.clear();
     this.state.data.forEach((row, index) => {
       this.dataIndexMap.set(row, index);
+    });
+  }
+
+  private initCheckableRows(): void {
+    this.state.checkBar.checkableRows.clear();
+    const checkBar = this.options.checkBar;
+    
+    this.state.displayData.forEach((row, index) => {
+      if (checkBar?.checkableCallback) {
+        if (checkBar.checkableCallback(row, index)) {
+          this.state.checkBar.checkableRows.add(index);
+        }
+      } else {
+        this.state.checkBar.checkableRows.add(index);
+      }
     });
   }
 
@@ -135,8 +180,13 @@ export class VeloxGrid implements VeloxGridInstance {
     return this.state.columns.filter(col => col.fixed !== 'left' && col.visible !== false);
   }
 
+  private getVisibleColumns(): ColumnDefinition[] {
+    return this.state.columns.filter(col => col.visible !== false);
+  }
+
   private hasFixedLeft(): boolean {
     return this.getFixedLeftColumns().length > 0 || 
+           this.options.checkBar?.visible === true || 
            this.options.showCheckbox === true || 
            this.options.showRowNumbers === true;
   }
@@ -144,6 +194,7 @@ export class VeloxGrid implements VeloxGridInstance {
   private build(): void {
     this.rootElement = createElement('div', 'velox-grid');
     this.rootElement.id = this.gridId;
+    this.rootElement.tabIndex = 0;
     
     if (this.options.className) addClass(this.rootElement, this.options.className);
 
@@ -181,6 +232,21 @@ export class VeloxGrid implements VeloxGridInstance {
     this.rootElement.appendChild(wrapper);
     this.container.innerHTML = '';
     this.container.appendChild(this.rootElement);
+
+    this.buildLoadingOverlay();
+  }
+
+  private buildLoadingOverlay(): void {
+    this.loadingOverlay = createElement('div', 'velox-loading-overlay');
+    this.loadingOverlay.style.display = 'none';
+    
+    const spinner = createElement('div', 'velox-loading-spinner');
+    const message = createElement('div', 'velox-loading-message');
+    message.textContent = this.options.loadingMessage || '로딩 중...';
+    
+    this.loadingOverlay.appendChild(spinner);
+    this.loadingOverlay.appendChild(message);
+    this.rootElement.appendChild(this.loadingOverlay);
   }
 
   private calculateVirtualState(): void {
@@ -215,18 +281,24 @@ export class VeloxGrid implements VeloxGridInstance {
   private render(): void {
     this.renderHeader();
     this.renderBody();
+    this.updateLoadingState();
   }
 
   private renderHeader(): void {
     if (this.fixedLeftHeader) {
       this.fixedLeftHeader.innerHTML = '';
       const headerRow = createElement('div', 'velox-header-row');
-      if (this.options.showCheckbox) headerRow.appendChild(this.createHeaderCheckboxCell());
+      
+      if (this.options.checkBar?.visible) {
+        headerRow.appendChild(this.createHeaderCheckbarCell());
+      }
+      
       if (this.options.showRowNumbers) {
         const rowNumCell = createElement('div', 'velox-header-cell velox-rownumber-cell');
         rowNumCell.textContent = '#';
         headerRow.appendChild(rowNumCell);
       }
+      
       this.getFixedLeftColumns().forEach(col => headerRow.appendChild(this.createHeaderCell(col)));
       this.fixedLeftHeader.appendChild(headerRow);
     }
@@ -237,19 +309,29 @@ export class VeloxGrid implements VeloxGridInstance {
     this.headerElement.appendChild(headerRow);
   }
 
-  private createHeaderCheckboxCell(): HTMLElement {
+  private createHeaderCheckbarCell(): HTMLElement {
     const cell = createElement('div', 'velox-header-cell velox-checkbox-cell');
-    const checkbox = createElement('input', 'velox-checkbox') as HTMLInputElement;
-    checkbox.type = 'checkbox';
+    const checkBar = this.options.checkBar!;
     
-    const allSelected = this.state.displayData.length > 0 &&
-      this.state.selection.selectedRows.size === this.state.displayData.length;
-    const someSelected = this.state.selection.selectedRows.size > 0 && !allSelected;
+    if (checkBar.showAll && !checkBar.exclusive) {
+      const checkbox = createElement('input', 'velox-checkbox') as HTMLInputElement;
+      checkbox.type = 'checkbox';
+      
+      const checkableCount = this.state.checkBar.checkableRows.size;
+      const checkedCount = this.state.checkBar.checkedRows.size;
+      const allChecked = checkableCount > 0 && checkedCount === checkableCount;
+      const someChecked = checkedCount > 0 && !allChecked;
+      
+      checkbox.checked = allChecked;
+      checkbox.indeterminate = someChecked;
+      checkbox.addEventListener('change', () => this.checkAll(checkbox.checked));
+      cell.appendChild(checkbox);
+    } else if (checkBar.exclusive) {
+      const label = createElement('span', 'velox-checkbox-label');
+      label.textContent = '선택';
+      cell.appendChild(label);
+    }
     
-    checkbox.checked = allSelected;
-    checkbox.indeterminate = someSelected;
-    checkbox.addEventListener('change', () => this.selectAll(checkbox.checked));
-    cell.appendChild(checkbox);
     return cell;
   }
 
@@ -367,7 +449,14 @@ export class VeloxGrid implements VeloxGridInstance {
     row.dataset.rowIndex = String(rowIndex);
 
     if (rowIndex % 2 === 1) addClass(row, 'velox-row--alt');
-    if (this.state.selection.selectedRows.has(rowIndex)) addClass(row, 'velox-row--selected');
+    
+    if (this.options.selectionStyle === 'row' && this.state.selection.selectedRows.has(rowIndex)) {
+      addClass(row, 'velox-row--selected');
+    }
+    
+    if (this.state.checkBar.checkedRows.has(rowIndex)) {
+      addClass(row, 'velox-row--checked');
+    }
 
     row.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
@@ -375,12 +464,16 @@ export class VeloxGrid implements VeloxGridInstance {
       this.handleRowClick(rowIndex, e);
     });
 
-    if (this.options.showCheckbox) row.appendChild(this.createCheckboxCell(rowIndex));
+    if (this.options.checkBar?.visible) {
+      row.appendChild(this.createCheckbarCell(rowIndex));
+    }
+    
     if (this.options.showRowNumbers) {
       const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
       rowNumCell.textContent = String(rowIndex + 1);
       row.appendChild(rowNumCell);
     }
+    
     this.getFixedLeftColumns().forEach(col => row.appendChild(this.createCell(rowData, rowIndex, col)));
 
     return row;
@@ -391,7 +484,10 @@ export class VeloxGrid implements VeloxGridInstance {
     row.dataset.rowIndex = String(rowIndex);
 
     if (rowIndex % 2 === 1) addClass(row, 'velox-row--alt');
-    if (this.state.selection.selectedRows.has(rowIndex)) addClass(row, 'velox-row--selected');
+    
+    if (this.options.selectionStyle === 'row' && this.state.selection.selectedRows.has(rowIndex)) {
+      addClass(row, 'velox-row--selected');
+    }
 
     row.addEventListener('click', (e) => this.handleRowClick(rowIndex, e));
     row.addEventListener('dblclick', (e) => this.handleRowDoubleClick(rowIndex, e));
@@ -400,20 +496,44 @@ export class VeloxGrid implements VeloxGridInstance {
     return row;
   }
 
-  private createCheckboxCell(rowIndex: number): HTMLElement {
+  private createCheckbarCell(rowIndex: number): HTMLElement {
     const cell = createElement('div', 'velox-cell velox-checkbox-cell');
-    const checkbox = createElement('input', 'velox-checkbox') as HTMLInputElement;
-    checkbox.type = 'checkbox';
-    checkbox.checked = this.state.selection.selectedRows.has(rowIndex);
-    checkbox.addEventListener('click', (e) => e.stopPropagation());
-    checkbox.addEventListener('change', () => this.selectRow(rowIndex, checkbox.checked));
-    cell.appendChild(checkbox);
+    const checkBar = this.options.checkBar!;
+    const isCheckable = this.state.checkBar.checkableRows.has(rowIndex);
+    const isChecked = this.state.checkBar.checkedRows.has(rowIndex);
+    
+    const input = createElement('input', 'velox-checkbox') as HTMLInputElement;
+    input.type = checkBar.exclusive ? 'radio' : 'checkbox';
+    input.name = checkBar.exclusive ? `${this.gridId}-check` : '';
+    input.checked = isChecked;
+    input.disabled = !isCheckable;
+    
+    if (!isCheckable) {
+      addClass(cell, 'velox-checkbox-cell--disabled');
+    }
+    
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('change', () => {
+      if (checkBar.exclusive) {
+        this.state.checkBar.checkedRows.clear();
+        if (input.checked) {
+          this.state.checkBar.checkedRows.add(rowIndex);
+        }
+        this.render();
+        this.events.onCheckChange?.(rowIndex, input.checked);
+      } else {
+        this.checkItem(rowIndex, input.checked);
+      }
+    });
+    
+    cell.appendChild(input);
     return cell;
   }
 
   private createCell(rowData: RowData, rowIndex: number, column: ColumnDefinition): HTMLElement {
     const cell = createElement('div', 'velox-cell');
     cell.dataset.field = column.field;
+    cell.dataset.rowIndex = String(rowIndex);
 
     const align = column.align || 'left';
     addClass(cell, `velox-cell--align-${align}`);
@@ -432,6 +552,16 @@ export class VeloxGrid implements VeloxGridInstance {
       if (className) addClass(cell, className);
     }
 
+    const cellKey = `${rowIndex}:${column.field}`;
+    if (this.state.selection.selectedCells.has(cellKey)) {
+      addClass(cell, 'velox-cell--selected');
+    }
+    
+    const focusedCell = this.state.selection.focusedCell;
+    if (focusedCell && focusedCell.rowIndex === rowIndex && focusedCell.field === column.field) {
+      addClass(cell, 'velox-cell--focused');
+    }
+
     if (this.options.editable && column.editable !== false) {
       addClass(cell, 'velox-cell--editable');
       cell.addEventListener('dblclick', (e) => { e.stopPropagation(); this.startEdit(rowIndex, column.field); });
@@ -445,9 +575,30 @@ export class VeloxGrid implements VeloxGridInstance {
     else content.textContent = formatValue(value, column.type);
 
     cell.appendChild(content);
-    cell.addEventListener('click', () => this.events.onCellClick?.(rowIndex, column.field, value));
+    
+    cell.addEventListener('click', (e) => {
+      this.handleCellClick(rowIndex, column.field, value, e);
+    });
+    
+    cell.addEventListener('mousedown', (e) => {
+      if (this.options.selectionStyle === 'block' && e.button === 0) {
+        this.startBlockSelection(rowIndex, column.field);
+      }
+    });
+    
+    cell.addEventListener('mouseenter', () => {
+      if (this.blockSelecting) {
+        this.updateBlockSelection(rowIndex, column.field);
+      }
+    });
 
     return cell;
+  }
+
+  private updateLoadingState(): void {
+    if (this.loadingOverlay) {
+      this.loadingOverlay.style.display = this.options.loading ? 'flex' : 'none';
+    }
   }
 
   private showFilterPopup(column: ColumnDefinition, anchor: HTMLElement): void {
@@ -551,6 +702,7 @@ export class VeloxGrid implements VeloxGridInstance {
       this.state.filter = { conditions: [newCondition], logic: 'and' };
     }
     this.state.selection.selectedRows.clear();
+    this.state.selection.selectedCells.clear();
     this.applyDataTransformations();
     this.render();
     this.events.onFilter?.(this.state.filter);
@@ -561,6 +713,7 @@ export class VeloxGrid implements VeloxGridInstance {
       const conditions = this.state.filter.conditions.filter(c => c.field !== field);
       this.state.filter = conditions.length === 0 ? null : { conditions, logic: 'and' };
       this.state.selection.selectedRows.clear();
+      this.state.selection.selectedCells.clear();
       this.applyDataTransformations();
       this.render();
       if (this.state.filter) this.events.onFilter?.(this.state.filter);
@@ -580,6 +733,7 @@ export class VeloxGrid implements VeloxGridInstance {
     this.bodyElement.addEventListener('scroll', handleScroll);
     document.addEventListener('mousemove', this.handleResizeMove.bind(this));
     document.addEventListener('mouseup', this.handleResizeEnd.bind(this));
+    document.addEventListener('mouseup', this.handleBlockSelectionEnd.bind(this));
     this.rootElement.addEventListener('keydown', this.handleKeyDown.bind(this));
   }
 
@@ -593,6 +747,7 @@ export class VeloxGrid implements VeloxGridInstance {
     }
     this.state.sort = newDirection ? [{ field, direction: newDirection }] : [];
     this.state.selection.selectedRows.clear();
+    this.state.selection.selectedCells.clear();
     this.applyDataTransformations();
     this.render();
     this.events.onSort?.(this.state.sort);
@@ -600,11 +755,25 @@ export class VeloxGrid implements VeloxGridInstance {
 
   private handleRowClick(rowIndex: number, e: MouseEvent): void {
     if (!this.options.selectable) return;
+    
+    const selectionStyle = this.options.selectionStyle || 'row';
+    
+    if (selectionStyle === 'row') {
+      this.handleRowSelection(rowIndex, e);
+    }
+    
+    this.events.onRowClick?.(rowIndex, this.state.displayData[rowIndex]);
+  }
 
-    if (this.options.selectionMode === 'multiple' && (e.ctrlKey || e.metaKey)) {
+  private handleRowSelection(rowIndex: number, e: MouseEvent): void {
+    const selectionMode = this.options.selectionMode || 'multiple';
+    
+    if (selectionMode === 'none') return;
+    
+    if (selectionMode === 'multiple' && (e.ctrlKey || e.metaKey)) {
       const isSelected = this.state.selection.selectedRows.has(rowIndex);
       this.selectRow(rowIndex, !isSelected);
-    } else if (this.options.selectionMode === 'multiple' && e.shiftKey) {
+    } else if (selectionMode === 'multiple' && e.shiftKey) {
       const selectedArray = Array.from(this.state.selection.selectedRows);
       if (selectedArray.length > 0) {
         const lastSelected = selectedArray[selectedArray.length - 1];
@@ -616,12 +785,102 @@ export class VeloxGrid implements VeloxGridInstance {
       } else {
         this.selectRow(rowIndex, true);
       }
+    } else if (selectionMode === 'extended' && (e.ctrlKey || e.metaKey)) {
+      const isSelected = this.state.selection.selectedRows.has(rowIndex);
+      this.selectRow(rowIndex, !isSelected);
     } else {
       this.state.selection.selectedRows.clear();
       this.selectRow(rowIndex, true);
     }
-    this.events.onRowClick?.(rowIndex, this.state.displayData[rowIndex]);
   }
+
+  private handleCellClick(rowIndex: number, field: string, value: CellValue, e: MouseEvent): void {
+    const selectionStyle = this.options.selectionStyle || 'row';
+    
+    if (selectionStyle === 'cell' || selectionStyle === 'block') {
+      this.handleCellSelection(rowIndex, field, e);
+    }
+    
+    this.events.onCellClick?.(rowIndex, field, value);
+  }
+
+  private handleCellSelection(rowIndex: number, field: string, e: MouseEvent): void {
+    const selectionMode = this.options.selectionMode || 'multiple';
+    const cellKey = `${rowIndex}:${field}`;
+    
+    if (selectionMode === 'none') return;
+    
+    this.state.selection.focusedCell = { rowIndex, field };
+    
+    if (selectionMode === 'multiple' && (e.ctrlKey || e.metaKey)) {
+      const isSelected = this.state.selection.selectedCells.has(cellKey);
+      if (isSelected) {
+        this.state.selection.selectedCells.delete(cellKey);
+      } else {
+        this.state.selection.selectedCells.add(cellKey);
+      }
+    } else if (selectionMode === 'multiple' && e.shiftKey) {
+      const focusedCell = this.state.selection.focusedCell;
+      if (focusedCell) {
+        this.selectCellRange(focusedCell.rowIndex, focusedCell.field, rowIndex, field);
+      }
+    } else {
+      this.state.selection.selectedCells.clear();
+      this.state.selection.selectedCells.add(cellKey);
+    }
+    
+    this.render();
+    this.events.onCellSelectionChange?.(this.getSelectedCells());
+  }
+
+  private selectCellRange(startRow: number, startField: string, endRow: number, endField: string): void {
+    const columns = this.getVisibleColumns();
+    const startColIndex = columns.findIndex(c => c.field === startField);
+    const endColIndex = columns.findIndex(c => c.field === endField);
+    
+    const minRow = Math.min(startRow, endRow);
+    const maxRow = Math.max(startRow, endRow);
+    const minCol = Math.min(startColIndex, endColIndex);
+    const maxCol = Math.max(startColIndex, endColIndex);
+    
+    this.state.selection.selectedCells.clear();
+    
+    for (let r = minRow; r <= maxRow; r++) {
+      for (let c = minCol; c <= maxCol; c++) {
+        const field = columns[c].field;
+        this.state.selection.selectedCells.add(`${r}:${field}`);
+      }
+    }
+  }
+
+  private startBlockSelection(rowIndex: number, field: string): void {
+    if (this.options.selectionStyle !== 'block') return;
+    
+    this.blockSelecting = { startRow: rowIndex, startField: field };
+    this.state.selection.focusedCell = { rowIndex, field };
+    this.state.selection.selectedCells.clear();
+    this.state.selection.selectedCells.add(`${rowIndex}:${field}`);
+    this.render();
+  }
+
+  private updateBlockSelection(rowIndex: number, field: string): void {
+    if (!this.blockSelecting) return;
+    
+    this.selectCellRange(
+      this.blockSelecting.startRow,
+      this.blockSelecting.startField,
+      rowIndex,
+      field
+    );
+    this.render();
+  }
+
+  private handleBlockSelectionEnd = (): void => {
+    if (this.blockSelecting) {
+      this.blockSelecting = null;
+      this.events.onCellSelectionChange?.(this.getSelectedCells());
+    }
+  };
 
   private handleRowDoubleClick(rowIndex: number, _e: MouseEvent): void {
     this.events.onRowDoubleClick?.(rowIndex, this.state.displayData[rowIndex]);
@@ -631,7 +890,101 @@ export class VeloxGrid implements VeloxGridInstance {
     if (this.state.edit.editing) {
       if (e.key === 'Escape') this.cancelEdit();
       else if (e.key === 'Enter') this.endEdit(true);
+      return;
     }
+    
+    const focusedCell = this.state.selection.focusedCell;
+    this.events.onKeyDown?.(e, focusedCell);
+    
+    if (!focusedCell) return;
+    
+    const columns = this.getVisibleColumns();
+    const currentColIndex = columns.findIndex(c => c.field === focusedCell.field);
+    let newRowIndex = focusedCell.rowIndex;
+    let newColIndex = currentColIndex;
+    let handled = false;
+    
+    switch (e.key) {
+      case 'ArrowUp':
+        if (newRowIndex > 0) { newRowIndex--; handled = true; }
+        break;
+      case 'ArrowDown':
+        if (newRowIndex < this.state.displayData.length - 1) { newRowIndex++; handled = true; }
+        break;
+      case 'ArrowLeft':
+        if (newColIndex > 0) { newColIndex--; handled = true; }
+        break;
+      case 'ArrowRight':
+        if (newColIndex < columns.length - 1) { newColIndex++; handled = true; }
+        break;
+      case 'Home':
+        if (e.ctrlKey) { newRowIndex = 0; newColIndex = 0; }
+        else { newColIndex = 0; }
+        handled = true;
+        break;
+      case 'End':
+        if (e.ctrlKey) { newRowIndex = this.state.displayData.length - 1; newColIndex = columns.length - 1; }
+        else { newColIndex = columns.length - 1; }
+        handled = true;
+        break;
+      case 'PageUp':
+        newRowIndex = Math.max(0, newRowIndex - this.virtualState.visibleCount);
+        handled = true;
+        break;
+      case 'PageDown':
+        newRowIndex = Math.min(this.state.displayData.length - 1, newRowIndex + this.virtualState.visibleCount);
+        handled = true;
+        break;
+      case 'Enter':
+      case 'F2':
+        if (this.options.editable) { this.startEdit(focusedCell.rowIndex, focusedCell.field); handled = true; }
+        break;
+      case ' ':
+        if (this.options.checkBar?.visible) { this.checkItem(focusedCell.rowIndex, !this.isItemChecked(focusedCell.rowIndex)); handled = true; }
+        break;
+      case 'a':
+      case 'A':
+        if (e.ctrlKey || e.metaKey) { this.selectAllCells(); handled = true; }
+        break;
+    }
+    
+    if (handled) {
+      e.preventDefault();
+      
+      const newField = columns[newColIndex]?.field;
+      if (newField && (newRowIndex !== focusedCell.rowIndex || newField !== focusedCell.field)) {
+        this.setFocusedCell(newRowIndex, newField);
+        
+        if (e.shiftKey && (this.options.selectionStyle === 'cell' || this.options.selectionStyle === 'block')) {
+          this.selectCellRange(focusedCell.rowIndex, focusedCell.field, newRowIndex, newField);
+        } else if (!e.shiftKey && !e.ctrlKey) {
+          this.state.selection.selectedCells.clear();
+          this.state.selection.selectedCells.add(`${newRowIndex}:${newField}`);
+          
+          if (this.options.selectionStyle === 'row') {
+            this.state.selection.selectedRows.clear();
+            this.state.selection.selectedRows.add(newRowIndex);
+          }
+        }
+        
+        this.render();
+        this.scrollToCell(newRowIndex, newField);
+      }
+    }
+  }
+
+  private selectAllCells(): void {
+    const columns = this.getVisibleColumns();
+    this.state.selection.selectedCells.clear();
+    
+    for (let r = 0; r < this.state.displayData.length; r++) {
+      for (const col of columns) {
+        this.state.selection.selectedCells.add(`${r}:${col.field}`);
+      }
+    }
+    
+    this.render();
+    this.events.onCellSelectionChange?.(this.getSelectedCells());
   }
 
   private startResize(e: MouseEvent, column: ColumnDefinition): void {
@@ -667,6 +1020,7 @@ export class VeloxGrid implements VeloxGridInstance {
       data = sortData(data, this.state.sort, columnTypes);
     }
     this.state.displayData = data;
+    this.initCheckableRows();
   }
 
   // ============================================
@@ -681,6 +1035,9 @@ export class VeloxGrid implements VeloxGridInstance {
     this.state.data = data.map(row => ({ ...row }));
     this.rebuildDataIndexMap();
     this.state.selection.selectedRows.clear();
+    this.state.selection.selectedCells.clear();
+    this.state.selection.focusedCell = null;
+    this.state.checkBar.checkedRows.clear();
     this.applyDataTransformations();
     this.render();
     this.events.onDataChange?.(this.state.data);
@@ -713,7 +1070,6 @@ export class VeloxGrid implements VeloxGridInstance {
     const displayRow = this.state.displayData[index];
     if (!displayRow) return;
     
-    // displayData의 행이 data 배열의 어느 위치인지 찾기
     const dataIndex = this.state.data.indexOf(displayRow);
     if (dataIndex >= 0) {
       Object.assign(this.state.data[dataIndex], data);
@@ -728,20 +1084,26 @@ export class VeloxGrid implements VeloxGridInstance {
     const displayRow = this.state.displayData[index];
     if (!displayRow) return;
     
-    // displayData의 행이 data 배열의 어느 위치인지 찾기
     const dataIndex = this.state.data.indexOf(displayRow);
     if (dataIndex >= 0) {
       const removed = this.state.data.splice(dataIndex, 1)[0];
       this.rebuildDataIndexMap();
       
-      // Selection 업데이트
       this.state.selection.selectedRows.delete(index);
-      const newSelection = new Set<number>();
+      const newSelectedRows = new Set<number>();
       this.state.selection.selectedRows.forEach(i => {
-        if (i > index) newSelection.add(i - 1);
-        else if (i < index) newSelection.add(i);
+        if (i > index) newSelectedRows.add(i - 1);
+        else if (i < index) newSelectedRows.add(i);
       });
-      this.state.selection.selectedRows = newSelection;
+      this.state.selection.selectedRows = newSelectedRows;
+      
+      this.state.checkBar.checkedRows.delete(index);
+      const newCheckedRows = new Set<number>();
+      this.state.checkBar.checkedRows.forEach(i => {
+        if (i > index) newCheckedRows.add(i - 1);
+        else if (i < index) newCheckedRows.add(i);
+      });
+      this.state.checkBar.checkedRows = newCheckedRows;
 
       this.applyDataTransformations();
       this.render();
@@ -755,12 +1117,16 @@ export class VeloxGrid implements VeloxGridInstance {
     this.state.displayData = [];
     this.dataIndexMap.clear();
     this.state.selection.selectedRows.clear();
+    this.state.selection.selectedCells.clear();
+    this.state.selection.focusedCell = null;
+    this.state.checkBar.checkedRows.clear();
+    this.state.checkBar.checkableRows.clear();
     this.render();
     this.events.onDataChange?.([]);
   }
 
   // ============================================
-  // Public API - Selection Methods
+  // Public API - Row Selection Methods
   // ============================================
 
   getSelectedRows(): number[] {
@@ -801,19 +1167,170 @@ export class VeloxGrid implements VeloxGridInstance {
 
   clearSelection(): void {
     this.state.selection.selectedRows.clear();
+    this.state.selection.selectedCells.clear();
+    this.state.selection.focusedCell = null;
     this.render();
     this.events.onSelectionChange?.([]);
+    this.events.onCellSelectionChange?.([]);
   }
 
   isRowSelected(index: number): boolean {
     return this.state.selection.selectedRows.has(index);
   }
 
-  // Checkbox aliases
-  checkRow(index: number, checked = true): void { this.selectRow(index, checked); }
-  checkAll(checked = true): void { this.selectAll(checked); }
-  getCheckedRows(): number[] { return this.getSelectedRows(); }
-  getCheckedData(): RowData[] { return this.getSelectedData(); }
+  // ============================================
+  // Public API - Cell Selection Methods (Phase 7)
+  // ============================================
+
+  selectCell(rowIndex: number, field: string, selected = true): void {
+    const cellKey = `${rowIndex}:${field}`;
+    if (selected) {
+      this.state.selection.selectedCells.add(cellKey);
+    } else {
+      this.state.selection.selectedCells.delete(cellKey);
+    }
+    this.render();
+    this.events.onCellSelect?.({ rowIndex, field }, selected);
+    this.events.onCellSelectionChange?.(this.getSelectedCells());
+  }
+
+  getSelectedCells(): CellIndex[] {
+    return Array.from(this.state.selection.selectedCells).map(key => {
+      const [rowIndex, field] = key.split(':');
+      return { rowIndex: parseInt(rowIndex, 10), field };
+    });
+  }
+
+  setFocusedCell(rowIndex: number, field: string): void {
+    this.state.selection.focusedCell = { rowIndex, field };
+    this.render();
+  }
+
+  getFocusedCell(): CellIndex | null {
+    return this.state.selection.focusedCell;
+  }
+
+  setSelection(selection: Selection): void {
+    this.state.selection.selectedCells.clear();
+    this.state.selection.selectedRows.clear();
+    
+    if (selection.style === 'row') {
+      for (let r = selection.startRow; r <= selection.endRow; r++) {
+        this.state.selection.selectedRows.add(r);
+      }
+    } else if (selection.style === 'cell' || selection.style === 'block') {
+      if (selection.startColumn && selection.endColumn) {
+        this.selectCellRange(selection.startRow, selection.startColumn, selection.endRow, selection.endColumn);
+      }
+    }
+    
+    this.state.selection.selections = [selection];
+    this.render();
+  }
+
+  getSelection(): Selection | null {
+    const selections = this.state.selection.selections;
+    return selections.length > 0 ? selections[0] : null;
+  }
+
+  getSelectionData(): CellValue[][] {
+    const cells = this.getSelectedCells();
+    if (cells.length === 0) return [];
+    
+    const rowIndices = [...new Set(cells.map(c => c.rowIndex))].sort((a, b) => a - b);
+    const fields = [...new Set(cells.map(c => c.field))];
+    
+    const columns = this.getVisibleColumns();
+    const orderedFields = columns.filter(c => fields.includes(c.field)).map(c => c.field);
+    
+    const result: CellValue[][] = [];
+    for (const rowIndex of rowIndices) {
+      const rowData = this.state.displayData[rowIndex];
+      if (rowData) {
+        const row: CellValue[] = orderedFields.map(field => rowData[field]);
+        result.push(row);
+      }
+    }
+    
+    return result;
+  }
+
+  // ============================================
+  // Public API - CheckBar Methods (Phase 7)
+  // ============================================
+
+  checkItem(index: number, checked = true): void {
+    if (!this.state.checkBar.checkableRows.has(index)) return;
+    
+    const checkBar = this.options.checkBar;
+    
+    if (checkBar?.exclusive && checked) {
+      this.state.checkBar.checkedRows.clear();
+    }
+    
+    if (checked) {
+      this.state.checkBar.checkedRows.add(index);
+    } else {
+      this.state.checkBar.checkedRows.delete(index);
+    }
+    
+    this.render();
+    this.events.onCheckChange?.(index, checked);
+  }
+
+  checkItems(indices: number[], checked = true): void {
+    indices.forEach(index => {
+      if (this.state.checkBar.checkableRows.has(index)) {
+        if (checked) {
+          this.state.checkBar.checkedRows.add(index);
+        } else {
+          this.state.checkBar.checkedRows.delete(index);
+        }
+      }
+    });
+    this.render();
+  }
+
+  checkAll(checked = true): void {
+    if (this.options.checkBar?.exclusive) return;
+    
+    if (checked) {
+      this.state.checkBar.checkableRows.forEach(index => {
+        this.state.checkBar.checkedRows.add(index);
+      });
+    } else {
+      this.state.checkBar.checkedRows.clear();
+    }
+    
+    this.render();
+    this.events.onCheckAllChange?.(checked);
+  }
+
+  uncheckAll(): void {
+    this.checkAll(false);
+  }
+
+  getCheckedItems(): number[] {
+    return Array.from(this.state.checkBar.checkedRows).sort((a, b) => a - b);
+  }
+
+  getCheckedData(): RowData[] {
+    return this.getCheckedItems()
+      .map(i => this.state.displayData[i])
+      .filter(Boolean)
+      .map(row => ({ ...row }));
+  }
+
+  isItemChecked(index: number): boolean {
+    return this.state.checkBar.checkedRows.has(index);
+  }
+
+  isItemCheckable(index: number): boolean {
+    return this.state.checkBar.checkableRows.has(index);
+  }
+
+  checkRow(index: number, checked = true): void { this.checkItem(index, checked); }
+  getCheckedRows(): number[] { return this.getCheckedItems(); }
 
   // ============================================
   // Public API - Sort Methods
@@ -822,6 +1339,7 @@ export class VeloxGrid implements VeloxGridInstance {
   sort(field: string, direction: SortDirection = 'asc'): void {
     this.state.sort = direction ? [{ field, direction }] : [];
     this.state.selection.selectedRows.clear();
+    this.state.selection.selectedCells.clear();
     this.applyDataTransformations();
     this.render();
     this.events.onSort?.(this.state.sort);
@@ -846,6 +1364,7 @@ export class VeloxGrid implements VeloxGridInstance {
     const conditionArray = Array.isArray(conditions) ? conditions : [conditions];
     this.state.filter = { conditions: conditionArray, logic: 'and' };
     this.state.selection.selectedRows.clear();
+    this.state.selection.selectedCells.clear();
     this.applyDataTransformations();
     this.render();
     this.events.onFilter?.(this.state.filter);
@@ -854,6 +1373,7 @@ export class VeloxGrid implements VeloxGridInstance {
   clearFilter(): void {
     this.state.filter = null;
     this.state.selection.selectedRows.clear();
+    this.state.selection.selectedCells.clear();
     this.applyDataTransformations();
     this.render();
   }
@@ -964,6 +1484,39 @@ export class VeloxGrid implements VeloxGridInstance {
     this.render();
   }
 
+  autoFitColumn(field: string): void {
+    const column = this.state.columns.find(c => c.field === field);
+    if (!column) return;
+    
+    let maxWidth = 100;
+    
+    const headerText = column.header || '';
+    maxWidth = Math.max(maxWidth, this.measureTextWidth(headerText) + 40);
+    
+    this.state.displayData.forEach(row => {
+      const value = row[column.field];
+      const text = formatValue(value, column.type);
+      const width = this.measureTextWidth(text) + 20;
+      maxWidth = Math.max(maxWidth, width);
+    });
+    
+    column.width = Math.min(maxWidth, 500);
+    this.render();
+    this.events.onColumnResize?.(field, column.width);
+  }
+
+  autoFitAllColumns(): void {
+    this.getVisibleColumns().forEach(col => this.autoFitColumn(col.field));
+  }
+
+  private measureTextWidth(text: string): number {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) return 100;
+    context.font = '14px sans-serif';
+    return context.measureText(text).width;
+  }
+
   // ============================================
   // Public API - Scroll Methods
   // ============================================
@@ -982,6 +1535,173 @@ export class VeloxGrid implements VeloxGridInstance {
   scrollToBottom(): void {
     this.bodyElement.scrollTop = this.bodyElement.scrollHeight;
     if (this.fixedLeftBody) this.fixedLeftBody.scrollTop = this.fixedLeftBody.scrollHeight;
+  }
+
+  scrollToCell(rowIndex: number, field: string): void {
+    const rowHeight = this.options.rowHeight || 40;
+    const containerHeight = this.bodyElement.clientHeight;
+    const currentScrollTop = this.bodyElement.scrollTop;
+    
+    const rowTop = rowIndex * rowHeight;
+    const rowBottom = rowTop + rowHeight;
+    
+    if (rowTop < currentScrollTop) {
+      this.bodyElement.scrollTop = rowTop;
+    } else if (rowBottom > currentScrollTop + containerHeight) {
+      this.bodyElement.scrollTop = rowBottom - containerHeight;
+    }
+    
+    if (this.fixedLeftBody) {
+      this.fixedLeftBody.scrollTop = this.bodyElement.scrollTop;
+    }
+    
+    const cell = this.bodyInner.querySelector(`[data-field="${field}"]`) as HTMLElement;
+    if (cell) {
+      const cellLeft = cell.offsetLeft;
+      const cellRight = cellLeft + cell.offsetWidth;
+      const containerWidth = this.bodyElement.clientWidth;
+      const currentScrollLeft = this.bodyElement.scrollLeft;
+      
+      if (cellLeft < currentScrollLeft) {
+        this.bodyElement.scrollLeft = cellLeft;
+      } else if (cellRight > currentScrollLeft + containerWidth) {
+        this.bodyElement.scrollLeft = cellRight - containerWidth;
+      }
+    }
+  }
+
+  // ============================================
+  // Public API - Clipboard Methods (Phase 9 - Stub)
+  // ============================================
+
+  copy(): void {
+    const data = this.getSelectionData();
+    if (data.length === 0) return;
+    
+    const text = data.map(row => row.join('\t')).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      this.events.onCopy?.(data.map(row => row.map(v => String(v ?? ''))));
+    });
+  }
+
+  paste(): void {
+    const focusedCell = this.state.selection.focusedCell;
+    if (!focusedCell) return;
+    
+    navigator.clipboard.readText().then(text => {
+      const rows = text.split('\n').map(row => row.split('\t'));
+      this.events.onPaste?.(rows, focusedCell);
+      
+      const columns = this.getVisibleColumns();
+      const startColIndex = columns.findIndex(c => c.field === focusedCell.field);
+      
+      rows.forEach((row, rOffset) => {
+        const rowIndex = focusedCell.rowIndex + rOffset;
+        if (rowIndex >= this.state.displayData.length) return;
+        
+        row.forEach((value, cOffset) => {
+          const colIndex = startColIndex + cOffset;
+          if (colIndex >= columns.length) return;
+          
+          const field = columns[colIndex].field;
+          const column = columns[colIndex];
+          
+          if (column.editable !== false) {
+            const displayRow = this.state.displayData[rowIndex];
+            const dataIndex = this.state.data.indexOf(displayRow);
+            if (dataIndex >= 0) {
+              this.state.data[dataIndex][field] = column.type === 'number' ? parseFloat(value) : value;
+            }
+          }
+        });
+      });
+      
+      this.applyDataTransformations();
+      this.render();
+      this.events.onDataChange?.(this.state.data);
+    });
+  }
+
+  cut(): void {
+    const data = this.getSelectionData();
+    if (data.length === 0) return;
+    
+    this.copy();
+    
+    const cells = this.getSelectedCells();
+    cells.forEach(cell => {
+      const column = this.state.columns.find(c => c.field === cell.field);
+      if (column?.editable !== false) {
+        const displayRow = this.state.displayData[cell.rowIndex];
+        const dataIndex = this.state.data.indexOf(displayRow);
+        if (dataIndex >= 0) {
+          this.state.data[dataIndex][cell.field] = '';
+        }
+      }
+    });
+    
+    this.applyDataTransformations();
+    this.render();
+    this.events.onCut?.(data.map(row => row.map(v => String(v ?? ''))));
+    this.events.onDataChange?.(this.state.data);
+  }
+
+  // ============================================
+  // Public API - Export Methods (Phase 8 - Stub)
+  // ============================================
+
+  exportToExcel(_options?: ExportOptions): void {
+    console.warn('exportToExcel is not implemented yet. Coming in Phase 8.');
+  }
+
+  exportToCSV(options?: ExportOptions): string {
+    const data = options?.filteredOnly ? this.state.displayData : this.state.data;
+    const columns = options?.columns 
+      ? this.state.columns.filter(c => options.columns!.includes(c.field))
+      : this.getVisibleColumns();
+    
+    const rows: string[] = [];
+    
+    if (options?.includeHeader !== false) {
+      rows.push(columns.map(c => `"${c.header}"`).join(','));
+    }
+    
+    const rowsToExport = options?.selectedOnly 
+      ? this.getSelectedRows().map(i => data[i]).filter(Boolean)
+      : data;
+    
+    rowsToExport.forEach(row => {
+      const values = columns.map(col => {
+        const value = row[col.field];
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'string') return `"${value.replace(/"/g, '""')}"`;
+        return String(value);
+      });
+      rows.push(values.join(','));
+    });
+    
+    return rows.join('\n');
+  }
+
+  exportToJSON(options?: ExportOptions): string {
+    const data = options?.filteredOnly ? this.state.displayData : this.state.data;
+    const columns = options?.columns 
+      ? this.state.columns.filter(c => options.columns!.includes(c.field))
+      : this.getVisibleColumns();
+    
+    const rowsToExport = options?.selectedOnly 
+      ? this.getSelectedRows().map(i => data[i]).filter(Boolean)
+      : data;
+    
+    const result = rowsToExport.map(row => {
+      const obj: RowData = {};
+      columns.forEach(col => {
+        obj[col.field] = row[col.field];
+      });
+      return obj;
+    });
+    
+    return JSON.stringify(result, null, 2);
   }
 
   // ============================================
@@ -1006,11 +1726,30 @@ export class VeloxGrid implements VeloxGridInstance {
 
   setOptions(options: Partial<GridOptions>): void {
     this.options = { ...this.options, ...options };
-    if (options.columns) this.state.columns = options.columns.map(col => ({ ...col }));
+    
+    if (options.checkBar) {
+      this.options.checkBar = { ...DEFAULT_CHECKBAR, ...options.checkBar };
+    }
+    
+    if (options.columns) {
+      this.state.columns = options.columns.map(col => ({ ...col }));
+    }
+    
+    if (options.loading !== undefined) {
+      this.updateLoadingState();
+    }
+    
     this.render();
   }
 
-  getOptions(): GridOptions { return { ...this.options }; }
+  getOptions(): GridOptions { 
+    return { ...this.options }; 
+  }
+
+  setLoading(loading: boolean): void {
+    this.options.loading = loading;
+    this.updateLoadingState();
+  }
 
   refresh(): void {
     this.applyDataTransformations();
@@ -1020,6 +1759,7 @@ export class VeloxGrid implements VeloxGridInstance {
   destroy(): void {
     document.removeEventListener('mousemove', this.handleResizeMove.bind(this));
     document.removeEventListener('mouseup', this.handleResizeEnd.bind(this));
+    document.removeEventListener('mouseup', this.handleBlockSelectionEnd);
     document.removeEventListener('click', this.handleOutsideClick);
     this.container.innerHTML = '';
     this.events.onDestroy?.();

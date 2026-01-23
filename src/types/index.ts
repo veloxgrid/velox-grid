@@ -1,6 +1,9 @@
 /**
- * VeloxGrid Type Definitions
+ * VeloxGrid Type Definitions v3.0
  * @description Core types for the VeloxGrid library
+ * Phase 7: Selection Enhancement
+ * Phase 8: Excel Export/Import
+ * Phase 9: Clipboard & Keyboard
  */
 
 // ============================================
@@ -57,6 +60,56 @@ export interface ColumnDefinition {
 }
 
 // ============================================
+// Selection Types (Phase 7)
+// ============================================
+
+export type SelectionMode = 'none' | 'single' | 'multiple' | 'extended';
+export type SelectionStyle = 'row' | 'cell' | 'block' | 'none';
+
+export interface CellIndex {
+  rowIndex: number;
+  field: string;
+}
+
+export interface Selection {
+  style: SelectionStyle;
+  startRow: number;
+  endRow: number;
+  startColumn?: string;
+  endColumn?: string;
+}
+
+export interface CheckBarOptions {
+  /** Show checkbar */
+  visible: boolean;
+  /** Radio button style (single check only) */
+  exclusive?: boolean;
+  /** Show select all checkbox in header */
+  showAll?: boolean;
+  /** Callback to determine if row is checkable */
+  checkableCallback?: (rowData: RowData, rowIndex: number) => boolean;
+}
+
+// ============================================
+// Export Options (Phase 8)
+// ============================================
+
+export interface ExportOptions {
+  /** Filename without extension */
+  filename?: string;
+  /** Include header row */
+  includeHeader?: boolean;
+  /** Export only selected rows */
+  selectedOnly?: boolean;
+  /** Export only filtered/visible rows */
+  filteredOnly?: boolean;
+  /** Specific columns to export */
+  columns?: string[];
+  /** Sheet name for Excel */
+  sheetName?: string;
+}
+
+// ============================================
 // Grid Options
 // ============================================
 
@@ -77,10 +130,14 @@ export interface GridOptions {
   showRowNumbers?: boolean;
   /** Enable row selection */
   selectable?: boolean;
-  /** Selection mode */
-  selectionMode?: 'single' | 'multiple';
-  /** Show checkbox column */
+  /** Selection mode (Phase 7) */
+  selectionMode?: SelectionMode;
+  /** Selection style (Phase 7) */
+  selectionStyle?: SelectionStyle;
+  /** Show checkbox column (deprecated: use checkBar) */
   showCheckbox?: boolean;
+  /** CheckBar options (Phase 7) */
+  checkBar?: CheckBarOptions;
   /** Enable sorting */
   sortable?: boolean;
   /** Enable filtering */
@@ -151,8 +208,18 @@ export interface FilterState {
 
 export interface SelectionState {
   selectedRows: Set<number>;
-  selectedCells: Set<string>; // "rowIndex:colIndex" format
-  focusedCell: { row: number; col: number } | null;
+  selectedCells: Set<string>; // "rowIndex:field" format
+  focusedCell: CellIndex | null;
+  selections: Selection[]; // Multiple selection areas (Phase 7)
+}
+
+// ============================================
+// CheckBar State (Phase 7)
+// ============================================
+
+export interface CheckBarState {
+  checkedRows: Set<number>;
+  checkableRows: Set<number>;
 }
 
 // ============================================
@@ -194,6 +261,14 @@ export interface GridEvents {
   onRowClick?: (rowIndex: number, row: RowData) => void;
   onRowDoubleClick?: (rowIndex: number, row: RowData) => void;
 
+  // Cell Selection events (Phase 7)
+  onCellSelect?: (cell: CellIndex, selected: boolean) => void;
+  onCellSelectionChange?: (cells: CellIndex[]) => void;
+
+  // CheckBar events (Phase 7)
+  onCheckChange?: (rowIndex: number, checked: boolean) => void;
+  onCheckAllChange?: (checked: boolean) => void;
+
   // Sort & Filter events
   onSort?: (sortState: SortState[]) => void;
   onFilter?: (filterState: FilterState) => void;
@@ -202,6 +277,14 @@ export interface GridEvents {
   onCellEditStart?: (rowIndex: number, field: string, value: CellValue) => void;
   onCellEditEnd?: (event: CellEditEvent) => void;
   onCellEditCancel?: (rowIndex: number, field: string) => void;
+
+  // Clipboard events (Phase 9)
+  onCopy?: (data: string[][]) => void;
+  onPaste?: (data: string[][], startCell: CellIndex) => void;
+  onCut?: (data: string[][]) => void;
+
+  // Keyboard events (Phase 9)
+  onKeyDown?: (event: KeyboardEvent, cell: CellIndex | null) => void;
 
   // Scroll events
   onScroll?: (scrollTop: number, scrollLeft: number) => void;
@@ -233,7 +316,7 @@ export interface VeloxGridInstance {
   removeRow(index: number): void;
   clearData(): void;
 
-  // Selection methods
+  // Row Selection methods
   getSelectedRows(): number[];
   getSelectedData(): RowData[];
   selectRow(index: number, selected?: boolean): void;
@@ -241,11 +324,28 @@ export interface VeloxGridInstance {
   clearSelection(): void;
   isRowSelected(index: number): boolean;
 
-  // Check methods (alias for selection with checkbox)
-  checkRow(index: number, checked?: boolean): void;
+  // Cell Selection methods (Phase 7)
+  selectCell(rowIndex: number, field: string, selected?: boolean): void;
+  getSelectedCells(): CellIndex[];
+  setFocusedCell(rowIndex: number, field: string): void;
+  getFocusedCell(): CellIndex | null;
+  setSelection(selection: Selection): void;
+  getSelection(): Selection | null;
+  getSelectionData(): CellValue[][];
+
+  // CheckBar methods (Phase 7)
+  checkItem(index: number, checked?: boolean): void;
+  checkItems(indices: number[], checked?: boolean): void;
   checkAll(checked?: boolean): void;
-  getCheckedRows(): number[];
+  uncheckAll(): void;
+  getCheckedItems(): number[];
   getCheckedData(): RowData[];
+  isItemChecked(index: number): boolean;
+  isItemCheckable(index: number): boolean;
+
+  // Legacy checkbox aliases (deprecated)
+  checkRow(index: number, checked?: boolean): void;
+  getCheckedRows(): number[];
 
   // Sort methods
   sort(field: string, direction?: SortDirection): void;
@@ -269,11 +369,24 @@ export interface VeloxGridInstance {
   showColumn(field: string): void;
   hideColumn(field: string): void;
   setColumns(columns: ColumnDefinition[]): void;
+  autoFitColumn(field: string): void;
+  autoFitAllColumns(): void;
 
   // Scroll methods
   scrollToRow(index: number): void;
   scrollToTop(): void;
   scrollToBottom(): void;
+  scrollToCell(rowIndex: number, field: string): void;
+
+  // Clipboard methods (Phase 9)
+  copy(): void;
+  paste(): void;
+  cut(): void;
+
+  // Export methods (Phase 8)
+  exportToExcel(options?: ExportOptions): void;
+  exportToCSV(options?: ExportOptions): string;
+  exportToJSON(options?: ExportOptions): string;
 
   // Utility methods
   getRowCount(): number;
@@ -284,10 +397,6 @@ export interface VeloxGridInstance {
   // Options
   setOptions(options: Partial<GridOptions>): void;
   getOptions(): GridOptions;
-
-  // Export (future)
-  // exportToCSV(): string;
-  // exportToJSON(): string;
 }
 
 // ============================================
@@ -299,6 +408,7 @@ export interface GridState {
   displayData: RowData[]; // After sort/filter
   columns: ColumnDefinition[];
   selection: SelectionState;
+  checkBar: CheckBarState; // Phase 7
   sort: SortState[];
   filter: FilterState | null;
   edit: EditState;

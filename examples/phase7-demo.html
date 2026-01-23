@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid - Phase 7 Demo (Selection Enhancement)</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { margin-bottom: 8px; color: #1a1a2e; }
+    .version { color: #666; margin-bottom: 24px; font-size: 14px; }
+    
+    .demo-section {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .demo-section h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .toolbar button {
+      padding: 8px 16px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .toolbar button:hover {
+      background: #e3f2fd;
+      border-color: #1976d2;
+      color: #1976d2;
+    }
+    .toolbar button.active {
+      background: #1976d2;
+      border-color: #1976d2;
+      color: white;
+    }
+    
+    .options-row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .option-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .option-group label {
+      font-size: 13px;
+      color: #666;
+    }
+    .option-group select {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    .grid-wrapper {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .info-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .info-card {
+      background: #f8f9fa;
+      padding: 12px 16px;
+      border-radius: 8px;
+    }
+    .info-card h4 {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .info-card .value {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .keyboard-help {
+      background: #f0f7ff;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+    .keyboard-help h4 {
+      font-size: 14px;
+      color: #1976d2;
+      margin-bottom: 12px;
+    }
+    .keyboard-help .keys {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .key-item {
+      font-size: 12px;
+      display: flex;
+      gap: 8px;
+    }
+    .key-item kbd {
+      background: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid #ddd;
+      font-family: monospace;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 VeloxGrid Phase 7 Demo</h1>
+    <p class="version">Selection Enhancement | Cell Selection | CheckBar | Keyboard Navigation | Loading State</p>
+    
+    <!-- Selection Style Demo -->
+    <div class="demo-section">
+      <h2>📌 Selection Style Demo</h2>
+      
+      <div class="options-row">
+        <div class="option-group">
+          <label>Selection Style:</label>
+          <select id="selectionStyle" onchange="updateSelectionStyle()">
+            <option value="row">Row (행 단위)</option>
+            <option value="cell">Cell (셀 단위)</option>
+            <option value="block">Block (블록 선택)</option>
+            <option value="none">None (선택 없음)</option>
+          </select>
+        </div>
+        <div class="option-group">
+          <label>Selection Mode:</label>
+          <select id="selectionMode" onchange="updateSelectionMode()">
+            <option value="multiple">Multiple (다중 선택)</option>
+            <option value="single">Single (단일 선택)</option>
+            <option value="extended">Extended (확장)</option>
+            <option value="none">None</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="toolbar">
+        <button onclick="toggleLoading()">⏳ Loading 토글</button>
+        <button onclick="clearSelection1()">⬜ 선택 해제</button>
+        <button onclick="selectAllCells()">☑️ 전체 셀 선택</button>
+        <button onclick="copySelection()">📋 복사 (Ctrl+C)</button>
+        <button onclick="logSelectionData()">📊 선택 데이터</button>
+      </div>
+      
+      <div class="grid-wrapper">
+        <div id="grid1"></div>
+      </div>
+      
+      <div class="info-panel">
+        <div class="info-card">
+          <h4>선택된 행</h4>
+          <div class="value" id="selectedRows1">0</div>
+        </div>
+        <div class="info-card">
+          <h4>선택된 셀</h4>
+          <div class="value" id="selectedCells1">0</div>
+        </div>
+        <div class="info-card">
+          <h4>포커스 셀</h4>
+          <div class="value" id="focusedCell1">-</div>
+        </div>
+      </div>
+      
+      <div class="keyboard-help">
+        <h4>⌨️ 키보드 단축키</h4>
+        <div class="keys">
+          <div class="key-item"><kbd>↑↓←→</kbd> 셀 이동</div>
+          <div class="key-item"><kbd>Shift + Arrow</kbd> 선택 확장</div>
+          <div class="key-item"><kbd>Ctrl + A</kbd> 전체 선택</div>
+          <div class="key-item"><kbd>Ctrl + C</kbd> 복사</div>
+          <div class="key-item"><kbd>Ctrl + V</kbd> 붙여넣기</div>
+          <div class="key-item"><kbd>Home / End</kbd> 첫/끝 셀</div>
+          <div class="key-item"><kbd>PgUp / PgDn</kbd> 페이지 이동</div>
+          <div class="key-item"><kbd>Enter / F2</kbd> 편집 모드</div>
+          <div class="key-item"><kbd>Space</kbd> 체크 토글</div>
+          <div class="key-item"><kbd>Escape</kbd> 편집 취소</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- CheckBar Demo -->
+    <div class="demo-section">
+      <h2>☑️ CheckBar Demo (Selection 분리)</h2>
+      
+      <div class="options-row">
+        <div class="option-group">
+          <label>CheckBar Mode:</label>
+          <select id="checkBarMode" onchange="updateCheckBarMode()">
+            <option value="normal">Normal (체크박스)</option>
+            <option value="exclusive">Exclusive (라디오)</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="toolbar">
+        <button onclick="checkAll2()">☑️ 전체 체크</button>
+        <button onclick="uncheckAll2()">⬜ 전체 해제</button>
+        <button onclick="checkEvens()">🔢 짝수행 체크</button>
+        <button onclick="logCheckedData()">📋 체크 데이터</button>
+      </div>
+      
+      <div class="grid-wrapper">
+        <div id="grid2"></div>
+      </div>
+      
+      <div class="info-panel">
+        <div class="info-card">
+          <h4>체크된 행</h4>
+          <div class="value" id="checkedRows2">0</div>
+        </div>
+        <div class="info-card">
+          <h4>선택된 행</h4>
+          <div class="value" id="selectedRows2">0</div>
+        </div>
+      </div>
+      
+      <p style="margin-top: 12px; font-size: 13px; color: #666;">
+        💡 <strong>CheckBar</strong>는 Selection과 독립적으로 동작합니다. 행을 클릭하면 Selection이, 체크박스를 클릭하면 Check가 변경됩니다.
+      </p>
+    </div>
+  </div>
+
+  <script src="../dist/velox-grid.iife.js"></script>
+  <script>
+    // Sample data
+    const sampleData1 = Array.from({ length: 20 }, (_, i) => ({
+      id: i + 1,
+      name: ['김철수', '이영희', '박민수', '최지연', '정수빈'][i % 5],
+      age: 25 + (i % 20),
+      department: ['개발팀', '디자인팀', '기획팀', '마케팅팀'][i % 4],
+      salary: 4000000 + (i * 200000),
+      status: ['활성', '비활성', '대기'][i % 3]
+    }));
+
+    const columns1 = [
+      { field: 'id', header: 'ID', type: 'number', width: 60, align: 'center' },
+      { field: 'name', header: '이름', type: 'text', width: 100, editable: true },
+      { field: 'age', header: '나이', type: 'number', width: 70, align: 'center', editable: true },
+      { field: 'department', header: '부서', type: 'text', width: 100, editable: true },
+      { field: 'salary', header: '급여', type: 'number', width: 120, align: 'right',
+        formatter: (v) => v ? `₩${v.toLocaleString()}` : '' },
+      { field: 'status', header: '상태', type: 'text', width: 80, align: 'center' }
+    ];
+
+    // Grid 1: Selection Style Demo
+    let grid1 = new VeloxGrid.VeloxGrid('#grid1', {
+      columns: columns1,
+      data: sampleData1,
+      height: 350,
+      selectable: true,
+      selectionMode: 'multiple',
+      selectionStyle: 'row',
+      checkBar: { visible: true, showAll: true },
+      showRowNumbers: true,
+      sortable: true,
+      editable: true,
+      resizable: true,
+      loading: false
+    }, {
+      onSelectionChange: (rows) => {
+        document.getElementById('selectedRows1').textContent = rows.length;
+      },
+      onCellSelectionChange: (cells) => {
+        document.getElementById('selectedCells1').textContent = cells.length;
+        if (cells.length > 0) {
+          const last = cells[cells.length - 1];
+          document.getElementById('focusedCell1').textContent = `R${last.rowIndex + 1}:${last.field}`;
+        }
+      },
+      onKeyDown: (e, cell) => {
+        if (cell) {
+          document.getElementById('focusedCell1').textContent = `R${cell.rowIndex + 1}:${cell.field}`;
+        }
+      }
+    });
+
+    function updateSelectionStyle() {
+      const style = document.getElementById('selectionStyle').value;
+      grid1.setOptions({ selectionStyle: style });
+      grid1.clearSelection();
+    }
+
+    function updateSelectionMode() {
+      const mode = document.getElementById('selectionMode').value;
+      grid1.setOptions({ selectionMode: mode });
+      grid1.clearSelection();
+    }
+
+    function toggleLoading() {
+      const isLoading = grid1.getOptions().loading;
+      grid1.setLoading(!isLoading);
+    }
+
+    function clearSelection1() {
+      grid1.clearSelection();
+    }
+
+    function selectAllCells() {
+      // Use Ctrl+A programmatically
+      const columns = ['id', 'name', 'age', 'department', 'salary', 'status'];
+      for (let r = 0; r < 20; r++) {
+        for (const field of columns) {
+          grid1.selectCell(r, field, true);
+        }
+      }
+    }
+
+    function copySelection() {
+      grid1.copy();
+      alert('클립보드에 복사되었습니다!');
+    }
+
+    function logSelectionData() {
+      const data = grid1.getSelectionData();
+      console.log('Selection Data:', data);
+      alert(`선택된 데이터: ${data.length}행 x ${data[0]?.length || 0}열\n콘솔에서 확인하세요.`);
+    }
+
+    // Grid 2: CheckBar Demo
+    const sampleData2 = Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: ['김철수', '이영희', '박민수', '최지연', '정수빈'][i % 5],
+      age: 25 + (i % 15),
+      department: ['개발팀', '디자인팀', '기획팀', '마케팅팀'][i % 4],
+      active: i % 3 !== 0
+    }));
+
+    const columns2 = [
+      { field: 'id', header: 'ID', type: 'number', width: 60, align: 'center' },
+      { field: 'name', header: '이름', type: 'text', width: 120 },
+      { field: 'age', header: '나이', type: 'number', width: 80, align: 'center' },
+      { field: 'department', header: '부서', type: 'text', width: 120 },
+      { field: 'active', header: '활성', type: 'boolean', width: 80, align: 'center',
+        formatter: (v) => v ? '✅' : '❌' }
+    ];
+
+    let grid2 = new VeloxGrid.VeloxGrid('#grid2', {
+      columns: columns2,
+      data: sampleData2,
+      height: 300,
+      selectable: true,
+      selectionMode: 'multiple',
+      selectionStyle: 'row',
+      checkBar: {
+        visible: true,
+        exclusive: false,
+        showAll: true,
+        checkableCallback: (row, index) => row.active !== false
+      },
+      showRowNumbers: true,
+      sortable: true
+    }, {
+      onCheckChange: (index, checked) => {
+        document.getElementById('checkedRows2').textContent = grid2.getCheckedItems().length;
+      },
+      onCheckAllChange: (checked) => {
+        document.getElementById('checkedRows2').textContent = grid2.getCheckedItems().length;
+      },
+      onSelectionChange: (rows) => {
+        document.getElementById('selectedRows2').textContent = rows.length;
+      }
+    });
+
+    function updateCheckBarMode() {
+      const mode = document.getElementById('checkBarMode').value;
+      grid2.destroy();
+      grid2 = new VeloxGrid.VeloxGrid('#grid2', {
+        columns: columns2,
+        data: sampleData2,
+        height: 300,
+        selectable: true,
+        selectionMode: 'multiple',
+        selectionStyle: 'row',
+        checkBar: {
+          visible: true,
+          exclusive: mode === 'exclusive',
+          showAll: mode !== 'exclusive',
+          checkableCallback: (row, index) => row.active !== false
+        },
+        showRowNumbers: true,
+        sortable: true
+      }, {
+        onCheckChange: (index, checked) => {
+          document.getElementById('checkedRows2').textContent = grid2.getCheckedItems().length;
+        },
+        onSelectionChange: (rows) => {
+          document.getElementById('selectedRows2').textContent = rows.length;
+        }
+      });
+    }
+
+    function checkAll2() {
+      grid2.checkAll(true);
+    }
+
+    function uncheckAll2() {
+      grid2.uncheckAll();
+    }
+
+    function checkEvens() {
+      grid2.uncheckAll();
+      grid2.checkItems([1, 3, 5, 7, 9], true);
+    }
+
+    function logCheckedData() {
+      const data = grid2.getCheckedData();
+      console.log('Checked Data:', data);
+      alert(`체크된 데이터: ${data.length}행\n콘솔에서 확인하세요.`);
+    }
+  </script>
+</body>
+</html>

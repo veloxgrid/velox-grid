@@ -14,7 +14,9 @@ A fast, lightweight, and framework-agnostic data grid library.
 - 📦 **Zero Dependencies** - 외부 의존성 없음
 - 🎨 **Customizable** - CSS Variables를 통한 쉬운 테마 커스터마이징
 - 📝 **TypeScript** - 완벽한 타입 지원
-- ⚡ **Lightweight** - ~25KB (minified)
+- ⚡ **Lightweight** - ~30KB (minified)
+- 🔲 **Cell Selection** - 셀 단위 선택, 블록 선택 지원 (v0.3.0)
+- ⌨️ **Keyboard Navigation** - 화살표 키, 단축키 지원 (v0.3.0)
 
 ## 📦 Installation
 
@@ -44,7 +46,7 @@ npm install velox-grid
       { id: 2, name: '이영희', age: 32 },
     ],
     height: 400,
-    showCheckbox: true,
+    checkBar: { visible: true },
     sortable: true,
   });
 </script>
@@ -58,63 +60,20 @@ import 'velox-grid/dist/velox-grid.css';
 
 const grid = new VeloxGrid('#grid', {
   columns: [
-    { field: 'id', header: 'ID', type: 'number', width: 60, align: 'center' },
-    { field: 'name', header: '이름', type: 'text', width: 120, sortable: true },
-    { field: 'email', header: '이메일', type: 'text', width: 200 },
-    { 
-      field: 'salary', 
-      header: '급여', 
-      type: 'number',
-      align: 'right',
-      formatter: (value) => `₩${value?.toLocaleString() || 0}`
-    },
+    { field: 'id', header: 'ID', type: 'number', width: 60 },
+    { field: 'name', header: '이름', type: 'text', width: 120 },
+    { field: 'salary', header: '급여', type: 'number', align: 'right',
+      formatter: (value) => value?.toLocaleString() || 0 },
   ],
   data: sampleData,
   height: 500,
-  showCheckbox: true,
+  selectionStyle: 'cell',        // 'row' | 'cell' | 'block' | 'none'
+  checkBar: { visible: true },   // Selection과 독립된 CheckBar
   showRowNumbers: true,
   sortable: true,
-  filterable: true,
   editable: true,
-  virtualScroll: true, // 대용량 데이터 처리
+  virtualScroll: true,
 });
-```
-
-### React 사용 예시
-
-```tsx
-import { useEffect, useRef } from 'react';
-import { VeloxGrid, GridOptions, GridEvents, VeloxGridInstance } from 'velox-grid';
-import 'velox-grid/dist/velox-grid.css';
-
-interface DataGridProps {
-  options: GridOptions;
-  events?: GridEvents;
-}
-
-function DataGrid({ options, events }: DataGridProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<VeloxGridInstance | null>(null);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      gridRef.current = new VeloxGrid(containerRef.current, options, events);
-    }
-    return () => gridRef.current?.destroy();
-  }, []);
-
-  // 외부에서 그리드 조작
-  const handleAddRow = () => {
-    gridRef.current?.addRow({ id: Date.now(), name: 'New', age: 0 });
-  };
-
-  return (
-    <div>
-      <button onClick={handleAddRow}>행 추가</button>
-      <div ref={containerRef} />
-    </div>
-  );
-}
 ```
 
 ---
@@ -127,295 +86,101 @@ function DataGrid({ options, events }: DataGridProps) {
 |--------|------|---------|-------------|
 | `columns` | `ColumnDefinition[]` | **Required** | 컬럼 정의 배열 |
 | `data` | `RowData[]` | `[]` | 초기 데이터 |
-| `width` | `number \| string` | `'100%'` | 그리드 너비 |
-| `height` | `number \| string` | `'auto'` | 그리드 높이 |
-| `rowHeight` | `number` | `40` | 행 높이 (px) |
-| `headerHeight` | `number` | `44` | 헤더 높이 (px) |
-| `showCheckbox` | `boolean` | `false` | 체크박스 컬럼 표시 |
-| `showRowNumbers` | `boolean` | `false` | 행 번호 표시 |
-| `selectable` | `boolean` | `true` | 행 선택 활성화 |
-| `selectionMode` | `'single' \| 'multiple'` | `'multiple'` | 선택 모드 |
+| `height` | `number | string` | `'auto'` | 그리드 높이 |
+| `selectable` | `boolean` | `true` | 선택 활성화 |
+| `selectionMode` | `SelectionMode` | `'multiple'` | 선택 모드 |
+| `selectionStyle` | `SelectionStyle` | `'row'` | 선택 스타일 (v0.3.0) |
+| `checkBar` | `CheckBarOptions` | `{ visible: false }` | CheckBar 옵션 (v0.3.0) |
 | `sortable` | `boolean` | `true` | 정렬 활성화 |
 | `filterable` | `boolean` | `false` | 필터링 활성화 |
 | `editable` | `boolean` | `false` | 편집 활성화 |
-| `resizable` | `boolean` | `true` | 컬럼 리사이즈 활성화 |
-| `virtualScroll` | `boolean` | `false` | 가상 스크롤 활성화 |
-| `bufferSize` | `number` | `5` | 가상 스크롤 버퍼 행 수 |
-| `emptyMessage` | `string` | `'데이터가 없습니다.'` | 빈 데이터 메시지 |
+| `virtualScroll` | `boolean` | `false` | 가상 스크롤 |
+| `loading` | `boolean` | `false` | 로딩 상태 (v0.3.0) |
 
-### ColumnDefinition
+### Selection Types (v0.3.0)
 
 ```typescript
-interface ColumnDefinition {
-  field: string;           // 데이터 필드명 (필수)
-  header: string;          // 헤더 표시명 (필수)
-  type?: ValueType;        // 'text' | 'number' | 'boolean' | 'date' | 'datetime'
-  width?: number;          // 컬럼 너비 (px)
-  minWidth?: number;       // 최소 너비 (px)
-  maxWidth?: number;       // 최대 너비 (px)
-  align?: 'left' | 'center' | 'right';      // 셀 정렬
-  headerAlign?: 'left' | 'center' | 'right'; // 헤더 정렬
-  sortable?: boolean;      // 정렬 가능 여부
-  filterable?: boolean;    // 필터 가능 여부
-  editable?: boolean;      // 편집 가능 여부
-  resizable?: boolean;     // 리사이즈 가능 여부
-  visible?: boolean;       // 표시 여부
-  fixed?: 'left' | 'right' | false; // 컬럼 고정
-  formatter?: (value, row, column) => string;  // 값 포맷터
-  renderer?: (value, row, column) => string;   // 커스텀 렌더러 (HTML)
-  cellClass?: string | ((value, row) => string); // 셀 CSS 클래스
+type SelectionMode = 'none' | 'single' | 'multiple' | 'extended';
+type SelectionStyle = 'row' | 'cell' | 'block' | 'none';
+```
+
+### CheckBar Options (v0.3.0)
+
+```typescript
+interface CheckBarOptions {
+  visible: boolean;
+  exclusive?: boolean;           // 라디오 버튼 스타일
+  showAll?: boolean;             // 전체 선택 체크박스
+  checkableCallback?: (row, index) => boolean;
 }
 ```
 
 ### Methods
 
-#### 데이터 조작
+#### Cell Selection (v0.3.0)
 
 ```typescript
-// 데이터 가져오기/설정
-grid.getData(): RowData[]
-grid.setData(data: RowData[]): void
-grid.getRow(index: number): RowData | null
-grid.getRowCount(): number
-
-// 행 추가/수정/삭제
-grid.addRow(row: RowData, index?: number): void
-grid.updateRow(index: number, data: Partial<RowData>): void
-grid.removeRow(index: number): void
-grid.clearData(): void
-
-// 셀 값
-grid.getCellValue(rowIndex: number, field: string): CellValue
-grid.setCellValue(rowIndex: number, field: string, value: CellValue): void
+grid.selectCell(rowIndex, field, selected?): void
+grid.getSelectedCells(): CellIndex[]
+grid.setFocusedCell(rowIndex, field): void
+grid.getFocusedCell(): CellIndex | null
+grid.getSelectionData(): CellValue[][]
 ```
 
-#### 선택 (Selection)
+#### CheckBar (v0.3.0)
 
 ```typescript
-grid.selectRow(index: number, selected?: boolean): void
-grid.selectAll(selected?: boolean): void
-grid.clearSelection(): void
-grid.getSelectedRows(): number[]
-grid.getSelectedData(): RowData[]
-grid.isRowSelected(index: number): boolean
-
-// 체크박스 (Selection alias)
-grid.checkRow(index: number, checked?: boolean): void
-grid.checkAll(checked?: boolean): void
-grid.getCheckedRows(): number[]
+grid.checkItem(index, checked?): void
+grid.checkItems(indices, checked?): void
+grid.checkAll(checked?): void
+grid.uncheckAll(): void
+grid.getCheckedItems(): number[]
 grid.getCheckedData(): RowData[]
 ```
 
-#### 정렬 (Sort)
+#### Clipboard (v0.3.0)
 
 ```typescript
-grid.sort(field: string, direction?: 'asc' | 'desc' | null): void
-grid.clearSort(): void
-grid.getSortState(): SortState[]
-```
-
-#### 필터 (Filter)
-
-```typescript
-grid.filter(conditions: FilterCondition | FilterCondition[]): void
-grid.clearFilter(): void
-grid.getFilterState(): FilterState | null
-
-// FilterCondition 예시
-grid.filter({
-  field: 'age',
-  operator: 'greaterThanOrEqual',
-  value: 30
-});
-
-// 다중 필터
-grid.filter([
-  { field: 'age', operator: 'greaterThan', value: 25 },
-  { field: 'department', operator: 'equals', value: '개발팀' }
-]);
-```
-
-**Filter Operators:**
-- `equals`, `notEquals`
-- `contains`, `notContains`, `startsWith`, `endsWith`
-- `greaterThan`, `lessThan`, `greaterThanOrEqual`, `lessThanOrEqual`
-- `between`, `isEmpty`, `isNotEmpty`
-
-#### 편집 (Edit)
-
-```typescript
-grid.startEdit(rowIndex: number, field: string): void
-grid.endEdit(save?: boolean): void
-grid.cancelEdit(): void
-grid.isEditing(): boolean
-```
-
-#### 컬럼
-
-```typescript
-grid.getColumn(field: string): ColumnDefinition | null
-grid.setColumns(columns: ColumnDefinition[]): void
-grid.setColumnWidth(field: string, width: number): void
-grid.showColumn(field: string): void
-grid.hideColumn(field: string): void
-```
-
-#### 스크롤
-
-```typescript
-grid.scrollToRow(index: number): void
-grid.scrollToTop(): void
-grid.scrollToBottom(): void
-```
-
-#### 기타
-
-```typescript
-grid.refresh(): void
-grid.destroy(): void
-grid.setOptions(options: Partial<GridOptions>): void
-grid.getOptions(): GridOptions
-```
-
-### Events
-
-```typescript
-const grid = new VeloxGrid('#grid', options, {
-  // 데이터 이벤트
-  onDataChange: (data: RowData[]) => void,
-  onRowAdd: (row: RowData, index: number) => void,
-  onRowRemove: (row: RowData, index: number) => void,
-  onRowUpdate: (row: RowData, index: number, changes: Partial<RowData>) => void,
-
-  // 선택 이벤트
-  onSelectionChange: (selectedRows: number[]) => void,
-  onRowSelect: (rowIndex: number, selected: boolean) => void,
-  onAllSelect: (selected: boolean) => void,
-  onCellClick: (rowIndex: number, field: string, value: CellValue) => void,
-  onRowClick: (rowIndex: number, row: RowData) => void,
-  onRowDoubleClick: (rowIndex: number, row: RowData) => void,
-
-  // 정렬/필터 이벤트
-  onSort: (sortState: SortState[]) => void,
-  onFilter: (filterState: FilterState) => void,
-
-  // 편집 이벤트
-  onCellEditStart: (rowIndex: number, field: string, value: CellValue) => void,
-  onCellEditEnd: (event: CellEditEvent) => void,
-  onCellEditCancel: (rowIndex: number, field: string) => void,
-
-  // 컬럼 이벤트
-  onColumnResize: (field: string, width: number) => void,
-
-  // 스크롤 이벤트
-  onScroll: (scrollTop: number, scrollLeft: number) => void,
-
-  // 라이프사이클
-  onReady: (grid: VeloxGridInstance) => void,
-  onDestroy: () => void,
-});
+grid.copy(): void
+grid.paste(): void
+grid.cut(): void
 ```
 
 ---
 
-## 🎨 Theming
+## ⌨️ Keyboard Shortcuts (v0.3.0)
 
-CSS Variables를 통해 쉽게 커스터마이징할 수 있습니다:
-
-```css
-:root {
-  /* 메인 컬러 */
-  --velox-primary-color: #1976d2;
-  
-  /* 배경 */
-  --velox-bg-color: #ffffff;
-  --velox-header-bg: #f5f5f5;
-  --velox-row-hover-bg: #f0f7ff;
-  --velox-row-selected-bg: #e3f2fd;
-  
-  /* 테두리 */
-  --velox-border-color: #e0e0e0;
-  
-  /* 텍스트 */
-  --velox-text-color: #212121;
-  --velox-header-text-color: #424242;
-  
-  /* 폰트 */
-  --velox-font-family: 'Noto Sans KR', sans-serif;
-  --velox-font-size: 14px;
-  
-  /* 크기 */
-  --velox-row-height: 40px;
-  --velox-header-height: 44px;
-}
-```
-
-### 다크 테마 예시
-
-```css
-[data-theme="dark"] {
-  --velox-bg-color: #1e1e1e;
-  --velox-header-bg: #2d2d2d;
-  --velox-row-bg: #1e1e1e;
-  --velox-row-alt-bg: #252525;
-  --velox-row-hover-bg: #333333;
-  --velox-row-selected-bg: #264f78;
-  --velox-border-color: #404040;
-  --velox-text-color: #e0e0e0;
-  --velox-header-text-color: #cccccc;
-}
-```
+| 단축키 | 동작 |
+|--------|------|
+| `↑ ↓ ← →` | 셀 이동 |
+| `Shift + Arrow` | 선택 영역 확장 |
+| `Ctrl + A` | 전체 선택 |
+| `Ctrl + C/V/X` | 복사/붙여넣기/잘라내기 |
+| `Enter / F2` | 편집 모드 |
+| `Escape` | 편집 취소 |
+| `Space` | 체크 토글 |
 
 ---
 
 ## 📋 Roadmap
 
-- [x] **Phase 1**: 기본 기능 (테이블 렌더링, 컬럼 정의)
-- [x] **Phase 2**: 체크박스/선택 (행 선택, 다중 선택)
-- [x] **Phase 3**: 정렬/필터링
-- [x] **Phase 4**: 편집 기능 (인라인 편집)
-- [x] **Phase 5**: 가상 스크롤 (대용량 데이터) ✅
-- [x] **Phase 6**: 컬럼 고정, 헤더 필터 UI ✅
-- [ ] **Phase 7**: Excel Export/Import
-- [ ] **Phase 8**: React/Vue 래퍼 컴포넌트
+- [x] Phase 1-6: 기본 기능, 정렬/필터, 가상 스크롤, 컬럼 고정
+- [x] **Phase 7**: Selection 고도화 ✅ (v0.3.0)
+- [ ] Phase 8: Excel Export/Import
+- [ ] Phase 9: Clipboard 고도화, Undo/Redo
+- [ ] Phase 14: React/Vue 래퍼
 
 ## 📝 Changelog
 
-### v0.2.1 (2025-01-24)
-- 🐛 **버그 수정**: `removeRow()` 메소드 - displayData와 data 간 객체 참조 문제 해결
-- 🐛 **버그 수정**: `updateRow()`, `setCellValue()` 메소드 - 정렬/필터 적용 후에도 정상 동작
-- ♻️ **리팩토링**: `deepClone` 대신 얕은 복사 방식으로 데이터 참조 유지
-- ♻️ **리팩토링**: 중복 코드 제거 및 Public API 섹션 정리
-- 📝 **Examples 개선**: `let grid = null` 초기화로 콜백 함수 참조 에러 해결
+### v0.3.0 (2025-01-24)
+- ✅ Selection 고도화 (selectionStyle: row/cell/block/none)
+- ✅ CheckBar 분리 (Selection과 독립)
+- ✅ Keyboard Navigation
+- ✅ Loading State
+- ✅ Clipboard (Copy/Paste/Cut)
 
-### v0.2.0 (2025-01-23)
-- ✅ **Virtual Scroll**: 100,000+ 행 대용량 데이터 처리 지원
-- ✅ **Fixed Columns**: 왼쪽 컬럼 고정 (`fixed: 'left'`)
-- ✅ **Header Filter UI**: 컬럼 헤더에서 필터 팝업 지원
-- ✅ **Selection 개선**: Ctrl+클릭(토글), Shift+클릭(범위 선택)
-- ✅ **Scroll 동기화**: 고정 컬럼과 메인 영역 스크롤 동기화
-- 🐛 **버그 수정**: 행 추가/삭제 시 인덱스 처리 개선
-
----
-
-## 🛠 Development
-
-```bash
-# 설치
-npm install
-
-# 개발 서버
-npm run dev
-
-# 빌드
-npm run build
-
-# 테스트
-npm test
-
-# 린트
-npm run lint
-```
+### v0.2.x
+- Virtual Scroll, Fixed Columns, Header Filter UI
 
 ---
 
@@ -423,17 +188,4 @@ npm run lint
 
 MIT License
 
-## 👤 Author
-
-**bart** - with 🤖 Claude AI
-
----
-
-## 🔗 Links
-
-- [GitHub Repository](https://github.com/bart-idea/velox-grid)
-- [Bug Reports](https://github.com/bart-idea/velox-grid/issues)
-
----
-
-Made with ❤️ in Korea (Human + AI Collaboration)
+**bumki** - with 🤖 Claude AI

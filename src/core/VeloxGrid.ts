@@ -12,14 +12,13 @@ import type {
   SortDirection,
   FilterState,
   FilterCondition,
-  SelectionState,
   CellValue,
   VeloxGridInstance,
   GridEvents,
   ValueType,
 } from '../types';
-import { createElement, addClass, removeClass, setStyles, throttle } from '../utils/dom';
-import { deepClone, formatValue, sortData, filterData, escapeHtml, generateId } from '../utils/data';
+import { createElement, addClass, removeClass, throttle } from '../utils/dom';
+import { deepClone, formatValue, sortData, filterData, generateId } from '../utils/data';
 
 // Default options
 const DEFAULT_OPTIONS: Partial<GridOptions> = {

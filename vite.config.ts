@@ -30,7 +30,7 @@ export default defineConfig({
       },
     },
     sourcemap: true,
-    minify: 'terser',
+    minify: 'esbuild',
     cssMinify: true,
   },
   server: {

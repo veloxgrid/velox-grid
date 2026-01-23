@@ -4,25 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VeloxGrid - Basic Example</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #f5f5f5;
       padding: 20px;
     }
-    h1 {
-      margin-bottom: 10px;
-      color: #333;
-    }
-    .description {
-      margin-bottom: 20px;
-      color: #666;
-    }
+    h1 { margin-bottom: 10px; color: #333; }
+    .description { margin-bottom: 20px; color: #666; }
     .toolbar {
       margin-bottom: 10px;
       display: flex;
@@ -54,10 +45,7 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    .info h3 {
-      margin-bottom: 10px;
-      color: #333;
-    }
+    .info h3 { margin-bottom: 10px; color: #333; }
     .info pre {
       background: #f5f5f5;
       padding: 10px;
@@ -91,9 +79,8 @@
     <pre id="grid-info">선택된 행: 0개</pre>
   </div>
 
-  <script type="module">
-    import { VeloxGrid } from '../src/index.ts';
-
+  <script src="../dist/velox-grid.iife.js"></script>
+  <script>
     // Sample data
     const sampleData = [
       { id: 1, name: '김철수', age: 28, email: 'kim@example.com', department: '개발팀', salary: 5000000 },
@@ -127,7 +114,7 @@
     ];
 
     // Create grid instance
-    const grid = new VeloxGrid('#grid-container', {
+    const grid = new VeloxGrid.VeloxGrid('#grid-container', {
       columns,
       data: sampleData,
       height: 400,
@@ -156,10 +143,8 @@
       }
     });
 
-    // Expose to window for button handlers
-    window.grid = grid;
-
-    window.addRow = function() {
+    // Toolbar functions (global scope for onclick)
+    function addRow() {
       const newId = grid.getRowCount() + 1;
       grid.addRow({
         id: newId,
@@ -169,58 +154,52 @@
         department: '미정',
         salary: 4000000
       });
-    };
+    }
 
-    window.removeSelectedRows = function() {
+    function removeSelectedRows() {
       const selected = grid.getSelectedRows();
-      // Remove from end to start to maintain correct indices
-      selected.sort((a, b) => b - a).forEach(index => {
-        grid.removeRow(index);
-      });
-    };
+      console.log('Selected rows to remove:', selected);
+      [...selected].sort((a, b) => b - a).forEach(index => grid.removeRow(index));
+    }
 
-    window.selectAll = function() {
+    function selectAll() {
       grid.selectAll(true);
-    };
+    }
 
-    window.clearSelection = function() {
+    function clearSelection() {
       grid.clearSelection();
-    };
+    }
 
-    window.sortByName = function() {
+    function sortByName() {
       const currentSort = grid.getSortState();
       const nameSort = currentSort.find(s => s.field === 'name');
       const newDirection = nameSort?.direction === 'asc' ? 'desc' : 'asc';
       grid.sort('name', newDirection);
-    };
+    }
 
-    window.sortByAge = function() {
+    function sortByAge() {
       const currentSort = grid.getSortState();
       const ageSort = currentSort.find(s => s.field === 'age');
       const newDirection = ageSort?.direction === 'asc' ? 'desc' : 'asc';
       grid.sort('age', newDirection);
-    };
+    }
 
-    window.clearSort = function() {
+    function clearSort() {
       grid.clearSort();
-    };
+    }
 
-    window.filterAdults = function() {
-      grid.filter({
-        field: 'age',
-        operator: 'greaterThanOrEqual',
-        value: 30
-      });
-    };
+    function filterAdults() {
+      grid.filter({ field: 'age', operator: 'greaterThanOrEqual', value: 30 });
+    }
 
-    window.clearFilter = function() {
+    function clearFilter() {
       grid.clearFilter();
-    };
+    }
 
-    window.logData = function() {
+    function logData() {
       console.log('All Data:', grid.getData());
       console.log('Selected Data:', grid.getSelectedData());
-    };
+    }
 
     function updateInfo(text) {
       document.getElementById('grid-info').textContent = text;

@@ -374,10 +374,27 @@ CSS Variables를 통해 쉽게 커스터마이징할 수 있습니다:
 - [x] **Phase 2**: 체크박스/선택 (행 선택, 다중 선택)
 - [x] **Phase 3**: 정렬/필터링
 - [x] **Phase 4**: 편집 기능 (인라인 편집)
-- [x] **Phase 5**: 가상 스크롤 (대용량 데이터) ✨ NEW
-- [x] **Phase 6**: 컬럼 고정, 헤더 필터 UI ✨ NEW
+- [x] **Phase 5**: 가상 스크롤 (대용량 데이터) ✅
+- [x] **Phase 6**: 컬럼 고정, 헤더 필터 UI ✅
 - [ ] **Phase 7**: Excel Export/Import
 - [ ] **Phase 8**: React/Vue 래퍼 컴포넌트
+
+## 📝 Changelog
+
+### v0.2.1 (2025-01-24)
+- 🐛 **버그 수정**: `removeRow()` 메소드 - displayData와 data 간 객체 참조 문제 해결
+- 🐛 **버그 수정**: `updateRow()`, `setCellValue()` 메소드 - 정렬/필터 적용 후에도 정상 동작
+- ♻️ **리팩토링**: `deepClone` 대신 얕은 복사 방식으로 데이터 참조 유지
+- ♻️ **리팩토링**: 중복 코드 제거 및 Public API 섹션 정리
+- 📝 **Examples 개선**: `let grid = null` 초기화로 콜백 함수 참조 에러 해결
+
+### v0.2.0 (2025-01-23)
+- ✅ **Virtual Scroll**: 100,000+ 행 대용량 데이터 처리 지원
+- ✅ **Fixed Columns**: 왼쪽 컬럼 고정 (`fixed: 'left'`)
+- ✅ **Header Filter UI**: 컬럼 헤더에서 필터 팝업 지원
+- ✅ **Selection 개선**: Ctrl+클릭(토글), Shift+클릭(범위 선택)
+- ✅ **Scroll 동기화**: 고정 컬럼과 메인 영역 스크롤 동기화
+- 🐛 **버그 수정**: 행 추가/삭제 시 인덱스 처리 개선
 
 ---
 

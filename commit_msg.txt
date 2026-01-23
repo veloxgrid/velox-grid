@@ -1,10 +1,8 @@
-feat: Add Phase 5 & 6 features
+fix: removeRow/updateRow bug fix and examples improvement
 
-- Virtual Scroll: Support for large datasets (100,000+ rows)
-- Fixed Columns: Left-side column pinning (checkbox, row number, custom)
-- Header Filter UI: Click filter button on column header to apply filters
-- Filter operators: contains, equals, greater than, less than, etc.
-- Updated README.md with complete API documentation
-- Added advanced.html example with 10,000 rows demo
-
-Co-authored-by: Claude <claude@anthropic.com>
+- VeloxGrid.ts: Use shallow copy instead of deepClone to maintain object reference
+- VeloxGrid.ts: Use indexOf for displayData-data reference comparison
+- VeloxGrid.ts: Remove duplicate code and organize Public API section
+- examples/advanced.html: Fix callback error with let grid = null initialization
+- examples/index.html: Use function declaration for global scope exposure
+- README.md: Add v0.2.1 Changelog

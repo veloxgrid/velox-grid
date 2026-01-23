@@ -1,0 +1,453 @@
+/**
+ * VeloxGrid Default Styles
+ * Using CSS Variables for easy theming
+ */
+
+:root {
+  /* Colors */
+  --velox-primary-color: #1976d2;
+  --velox-primary-light: #42a5f5;
+  --velox-primary-dark: #1565c0;
+  
+  /* Background */
+  --velox-bg-color: #ffffff;
+  --velox-header-bg: #f5f5f5;
+  --velox-row-bg: #ffffff;
+  --velox-row-alt-bg: #fafafa;
+  --velox-row-hover-bg: #f0f7ff;
+  --velox-row-selected-bg: #e3f2fd;
+  
+  /* Border */
+  --velox-border-color: #e0e0e0;
+  --velox-border-width: 1px;
+  
+  /* Text */
+  --velox-text-color: #212121;
+  --velox-text-secondary: #757575;
+  --velox-header-text-color: #424242;
+  
+  /* Font */
+  --velox-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --velox-font-size: 14px;
+  --velox-header-font-size: 14px;
+  --velox-header-font-weight: 600;
+  
+  /* Sizing */
+  --velox-row-height: 40px;
+  --velox-header-height: 44px;
+  --velox-checkbox-size: 18px;
+  --velox-cell-padding: 8px 12px;
+  
+  /* Effects */
+  --velox-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --velox-transition: all 0.15s ease;
+  
+  /* Focus */
+  --velox-focus-color: #1976d2;
+  --velox-focus-ring: 0 0 0 2px rgba(25, 118, 210, 0.3);
+}
+
+/* ============================================
+   Grid Container
+   ============================================ */
+
+.velox-grid {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--velox-font-family);
+  font-size: var(--velox-font-size);
+  color: var(--velox-text-color);
+  background: var(--velox-bg-color);
+  border: var(--velox-border-width) solid var(--velox-border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.velox-grid *,
+.velox-grid *::before,
+.velox-grid *::after {
+  box-sizing: border-box;
+}
+
+/* ============================================
+   Header
+   ============================================ */
+
+.velox-header {
+  display: flex;
+  flex-shrink: 0;
+  background: var(--velox-header-bg);
+  border-bottom: var(--velox-border-width) solid var(--velox-border-color);
+  min-height: var(--velox-header-height);
+}
+
+.velox-header-row {
+  display: flex;
+  width: 100%;
+}
+
+.velox-header-cell {
+  display: flex;
+  align-items: center;
+  padding: var(--velox-cell-padding);
+  font-size: var(--velox-header-font-size);
+  font-weight: var(--velox-header-font-weight);
+  color: var(--velox-header-text-color);
+  border-right: var(--velox-border-width) solid var(--velox-border-color);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.velox-header-cell:last-child {
+  border-right: none;
+}
+
+.velox-header-cell--sortable {
+  cursor: pointer;
+}
+
+.velox-header-cell--sortable:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.velox-header-cell--align-left {
+  justify-content: flex-start;
+}
+
+.velox-header-cell--align-center {
+  justify-content: center;
+}
+
+.velox-header-cell--align-right {
+  justify-content: flex-end;
+}
+
+/* Sort indicator */
+.velox-sort-icon {
+  display: inline-flex;
+  margin-left: 4px;
+  opacity: 0.5;
+}
+
+.velox-header-cell--sorted .velox-sort-icon {
+  opacity: 1;
+  color: var(--velox-primary-color);
+}
+
+.velox-sort-icon--asc::after {
+  content: '▲';
+  font-size: 10px;
+}
+
+.velox-sort-icon--desc::after {
+  content: '▼';
+  font-size: 10px;
+}
+
+/* Column resize handle */
+.velox-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 1;
+}
+
+.velox-resize-handle:hover,
+.velox-resize-handle--active {
+  background: var(--velox-primary-color);
+}
+
+/* ============================================
+   Body
+   ============================================ */
+
+.velox-body {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+.velox-body-inner {
+  position: relative;
+  min-width: 100%;
+}
+
+/* ============================================
+   Rows
+   ============================================ */
+
+.velox-row {
+  display: flex;
+  border-bottom: var(--velox-border-width) solid var(--velox-border-color);
+  background: var(--velox-row-bg);
+  transition: background-color 0.1s ease;
+  min-height: var(--velox-row-height);
+}
+
+.velox-row:last-child {
+  border-bottom: none;
+}
+
+.velox-row--alt {
+  background: var(--velox-row-alt-bg);
+}
+
+.velox-row:hover {
+  background: var(--velox-row-hover-bg);
+}
+
+.velox-row--selected {
+  background: var(--velox-row-selected-bg);
+}
+
+.velox-row--selected:hover {
+  background: var(--velox-row-selected-bg);
+}
+
+/* ============================================
+   Cells
+   ============================================ */
+
+.velox-cell {
+  display: flex;
+  align-items: center;
+  padding: var(--velox-cell-padding);
+  border-right: var(--velox-border-width) solid var(--velox-border-color);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.velox-cell:last-child {
+  border-right: none;
+}
+
+.velox-cell--align-left {
+  justify-content: flex-start;
+}
+
+.velox-cell--align-center {
+  justify-content: center;
+}
+
+.velox-cell--align-right {
+  justify-content: flex-end;
+}
+
+.velox-cell--editable {
+  cursor: text;
+}
+
+.velox-cell--editing {
+  padding: 0;
+}
+
+/* Cell content */
+.velox-cell-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================
+   Checkbox
+   ============================================ */
+
+.velox-checkbox-cell {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  justify-content: center;
+  padding: 0;
+}
+
+.velox-checkbox {
+  appearance: none;
+  width: var(--velox-checkbox-size);
+  height: var(--velox-checkbox-size);
+  border: 2px solid var(--velox-border-color);
+  border-radius: 3px;
+  background: var(--velox-bg-color);
+  cursor: pointer;
+  transition: var(--velox-transition);
+  position: relative;
+}
+
+.velox-checkbox:hover {
+  border-color: var(--velox-primary-light);
+}
+
+.velox-checkbox:checked {
+  background: var(--velox-primary-color);
+  border-color: var(--velox-primary-color);
+}
+
+.velox-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.velox-checkbox:indeterminate {
+  background: var(--velox-primary-color);
+  border-color: var(--velox-primary-color);
+}
+
+.velox-checkbox:indeterminate::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  width: 8px;
+  height: 2px;
+  background: white;
+}
+
+.velox-checkbox:focus {
+  outline: none;
+  box-shadow: var(--velox-focus-ring);
+}
+
+/* ============================================
+   Row Number
+   ============================================ */
+
+.velox-rownumber-cell {
+  width: 50px;
+  min-width: 50px;
+  max-width: 50px;
+  justify-content: center;
+  color: var(--velox-text-secondary);
+  font-size: 12px;
+  background: var(--velox-header-bg);
+}
+
+/* ============================================
+   Edit Input
+   ============================================ */
+
+.velox-edit-input {
+  width: 100%;
+  height: 100%;
+  padding: var(--velox-cell-padding);
+  border: 2px solid var(--velox-primary-color);
+  border-radius: 0;
+  font-family: inherit;
+  font-size: inherit;
+  background: var(--velox-bg-color);
+  outline: none;
+}
+
+.velox-edit-input:focus {
+  box-shadow: inset var(--velox-focus-ring);
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+
+.velox-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--velox-text-secondary);
+  font-size: 14px;
+}
+
+/* ============================================
+   Loading State
+   ============================================ */
+
+.velox-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 10;
+}
+
+.velox-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--velox-border-color);
+  border-top-color: var(--velox-primary-color);
+  border-radius: 50%;
+  animation: velox-spin 0.8s linear infinite;
+}
+
+@keyframes velox-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   Scrollbar (Optional styling)
+   ============================================ */
+
+.velox-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.velox-body::-webkit-scrollbar-track {
+  background: var(--velox-header-bg);
+}
+
+.velox-body::-webkit-scrollbar-thumb {
+  background: #bdbdbd;
+  border-radius: 4px;
+}
+
+.velox-body::-webkit-scrollbar-thumb:hover {
+  background: #9e9e9e;
+}
+
+/* ============================================
+   Filter (Future)
+   ============================================ */
+
+.velox-filter-icon {
+  margin-left: 4px;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.velox-filter-icon:hover {
+  opacity: 1;
+}
+
+.velox-header-cell--filtered .velox-filter-icon {
+  opacity: 1;
+  color: var(--velox-primary-color);
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.velox-hidden {
+  display: none !important;
+}
+
+.velox-no-select {
+  user-select: none;
+}

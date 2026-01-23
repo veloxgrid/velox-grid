@@ -1,9 +1,0 @@
-docs: Add ROADMAP.md with feature planning
-
-- Add comprehensive feature roadmap document
-- Include Phase 7-15 planned features
-- Add Selection enhancement features (RealGrid style)
-- Add Excel Export/Import, Clipboard, Keyboard features
-- Add priority classification (High/Medium/Low)
-- Add recommended implementation order
-- Add competitor comparison table

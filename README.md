@@ -14,9 +14,10 @@ A fast, lightweight, and framework-agnostic data grid library.
 - 📦 **Zero Dependencies** - 외부 의존성 없음
 - 🎨 **Customizable** - CSS Variables를 통한 쉬운 테마 커스터마이징
 - 📝 **TypeScript** - 완벽한 타입 지원
-- ⚡ **Lightweight** - ~30KB (minified)
+- ⚡ **Lightweight** - ~45KB (minified)
 - 🔲 **Cell Selection** - 셀 단위 선택, 블록 선택 지원 (v0.3.0)
 - ⌨️ **Keyboard Navigation** - 화살표 키, 단축키 지원 (v0.3.0)
+- 📊 **Excel Export/Import** - Excel, CSV, JSON 내보내기/가져오기 (v0.4.0)
 
 ## 📦 Installation
 
@@ -146,6 +147,73 @@ grid.paste(): void
 grid.cut(): void
 ```
 
+#### Export/Import (v0.4.0)
+
+```typescript
+// Excel Export (requires SheetJS via CDN)
+grid.exportToExcel({ filename: 'data', sheetName: 'Sheet1' }): void
+
+// CSV Export
+grid.exportToCSV(options?): string    // Returns CSV string
+grid.downloadCSV(options?): void      // Downloads as file
+
+// JSON Export
+grid.exportToJSON(options?): string   // Returns JSON string
+grid.downloadJSON(options?): void     // Downloads as file
+
+// Import
+grid.importFromCSV(csvString, hasHeader?): ImportResult
+grid.importFromExcel(file, sheetIndex?): Promise<ImportResult>
+
+// Check SheetJS availability
+VeloxGrid.isExcelSupported(): boolean
+```
+
+#### Export Options
+
+```typescript
+interface ExportOptions {
+  filename?: string;      // 파일명 (확장자 제외)
+  includeHeader?: boolean;// 헤더 포함 (기본: true)
+  selectedOnly?: boolean; // 선택된 행만
+  filteredOnly?: boolean; // 필터된 행만
+  columns?: string[];     // 특정 컬럼만
+  sheetName?: string;     // Excel 시트 이름
+}
+```
+
+---
+
+## 📊 Excel Export Setup (v0.4.0)
+
+Excel 기능을 사용하려면 SheetJS 라이브러리를 CDN으로 로드하세요:
+
+```html
+<!-- SheetJS CDN -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+```
+
+```typescript
+// Excel Export
+grid.exportToExcel({
+  filename: 'employee-data',
+  includeHeader: true,
+  selectedOnly: false,
+  sheetName: '직원목록'
+});
+
+// Excel Import
+const fileInput = document.querySelector('input[type="file"]');
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  const result = await grid.importFromExcel(file);
+  
+  if (result.errors.length === 0) {
+    console.log('Imported', result.data.length, 'rows');
+  }
+});
+```
+
 ---
 
 ## ⌨️ Keyboard Shortcuts (v0.3.0)
@@ -166,11 +234,19 @@ grid.cut(): void
 
 - [x] Phase 1-6: 기본 기능, 정렬/필터, 가상 스크롤, 컬럼 고정
 - [x] **Phase 7**: Selection 고도화 ✅ (v0.3.0)
-- [ ] Phase 8: Excel Export/Import
+- [x] **Phase 8**: Excel Export/Import ✅ (v0.4.0)
 - [ ] Phase 9: Clipboard 고도화, Undo/Redo
+- [ ] Phase 12: Cell Validation, Custom Editor
 - [ ] Phase 14: React/Vue 래퍼
 
 ## 📝 Changelog
+
+### v0.4.0 (2025-01-24)
+- ✅ Excel Export (.xlsx) - SheetJS 연동
+- ✅ Excel Import - 파일에서 데이터 가져오기
+- ✅ CSV Export/Import
+- ✅ JSON Export
+- ✅ Export Options (선택된 행, 필터된 행, 특정 컬럼)
 
 ### v0.3.0 (2025-01-24)
 - ✅ Selection 고도화 (selectionStyle: row/cell/block/none)

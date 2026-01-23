@@ -4,7 +4,7 @@
  * 
  * @author bumki
  * @license MIT
- * @version 0.1.0
+ * @version 0.4.0
  */
 
 // Core
@@ -32,10 +32,20 @@ export type {
   
   // Selection
   SelectionState,
+  SelectionMode,
+  SelectionStyle,
+  CellIndex,
+  Selection,
+  CheckBarOptions,
+  CheckBarState,
   
   // Edit
   EditState,
   CellEditEvent,
+  
+  // Export/Import (Phase 8)
+  ExportOptions,
+  ImportResult,
   
   // Events
   GridEvents,
@@ -71,8 +81,23 @@ export {
   escapeHtml,
 } from './utils/data';
 
+// Export utilities (Phase 8)
+export {
+  exportToExcel,
+  exportToCSV,
+  exportToJSON,
+  downloadFile,
+  downloadCSV,
+  downloadJSON,
+  parseCSV,
+  importFromExcel,
+  importFromExcelBySheetName,
+  isSheetJSAvailable,
+  type ExportContext,
+} from './utils/export';
+
 // Styles
 import './styles/velox-grid.css';
 
 // Version
-export const VERSION = '0.1.0';
+export const VERSION = '0.4.0';

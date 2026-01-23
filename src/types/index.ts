@@ -1,5 +1,5 @@
 /**
- * VeloxGrid Type Definitions v3.0
+ * VeloxGrid Type Definitions v4.0
  * @description Core types for the VeloxGrid library
  * Phase 7: Selection Enhancement
  * Phase 8: Excel Export/Import
@@ -91,7 +91,7 @@ export interface CheckBarOptions {
 }
 
 // ============================================
-// Export Options (Phase 8)
+// Export/Import Options (Phase 8)
 // ============================================
 
 export interface ExportOptions {
@@ -107,6 +107,15 @@ export interface ExportOptions {
   columns?: string[];
   /** Sheet name for Excel */
   sheetName?: string;
+}
+
+export interface ImportResult {
+  /** Imported data */
+  data: RowData[];
+  /** Column headers from imported file */
+  headers: string[];
+  /** Any errors during import */
+  errors: string[];
 }
 
 // ============================================
@@ -386,7 +395,13 @@ export interface VeloxGridInstance {
   // Export methods (Phase 8)
   exportToExcel(options?: ExportOptions): void;
   exportToCSV(options?: ExportOptions): string;
+  downloadCSV(options?: ExportOptions): void;
   exportToJSON(options?: ExportOptions): string;
+  downloadJSON(options?: ExportOptions): void;
+  
+  // Import methods (Phase 8)
+  importFromCSV(csvString: string, hasHeader?: boolean): ImportResult;
+  importFromExcel(file: File, sheetIndex?: number): Promise<ImportResult>;
 
   // Utility methods
   getRowCount(): number;

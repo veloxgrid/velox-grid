@@ -1,11 +1,15 @@
 /**
- * VeloxGrid - Core Grid Class v3.0
+ * VeloxGrid - Core Grid Class v4.0
  * Phase 7: Selection Enhancement
  * - SelectionStyle (row/cell/block/none)
  * - Cell Selection API
  * - CheckBar separation
  * - Keyboard Navigation
  * - Loading State
+ * Phase 8: Excel Export/Import
+ * - Excel Export (.xlsx)
+ * - CSV Export/Import
+ * - JSON Export
  */
 
 import type {
@@ -29,6 +33,18 @@ import type {
 } from '../types';
 import { createElement, addClass, removeClass, throttle } from '../utils/dom';
 import { formatValue, sortData, filterData, generateId } from '../utils/data';
+import {
+  exportToExcel as exportToExcelUtil,
+  exportToCSV as exportToCSVUtil,
+  exportToJSON as exportToJSONUtil,
+  downloadCSV,
+  downloadJSON,
+  parseCSV,
+  importFromExcel,
+  isSheetJSAvailable,
+  type ExportContext,
+  type ImportResult,
+} from '../utils/export';
 
 const DEFAULT_OPTIONS: Partial<GridOptions> = {
   rowHeight: 40,
@@ -1647,61 +1663,98 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   // ============================================
-  // Public API - Export Methods (Phase 8 - Stub)
+  // Public API - Export Methods (Phase 8)
   // ============================================
 
-  exportToExcel(_options?: ExportOptions): void {
-    console.warn('exportToExcel is not implemented yet. Coming in Phase 8.');
+  /**
+   * Create export context for export utilities
+   */
+  private createExportContext(options: ExportOptions = {}): ExportContext {
+    return {
+      data: this.state.data,
+      displayData: this.state.displayData,
+      columns: this.state.columns,
+      selectedRows: this.getSelectedRows(),
+      options,
+    };
   }
 
-  exportToCSV(options?: ExportOptions): string {
-    const data = options?.filteredOnly ? this.state.displayData : this.state.data;
-    const columns = options?.columns 
-      ? this.state.columns.filter(c => options.columns!.includes(c.field))
-      : this.getVisibleColumns();
-    
-    const rows: string[] = [];
-    
-    if (options?.includeHeader !== false) {
-      rows.push(columns.map(c => `"${c.header}"`).join(','));
+  /**
+   * Export grid data to Excel (.xlsx) file
+   * Requires SheetJS library to be loaded via CDN:
+   * <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+   */
+  exportToExcel(options: ExportOptions = {}): void {
+    const context = this.createExportContext(options);
+    exportToExcelUtil(context);
+  }
+
+  /**
+   * Export grid data to CSV format
+   * @returns CSV string
+   */
+  exportToCSV(options: ExportOptions = {}): string {
+    const context = this.createExportContext(options);
+    return exportToCSVUtil(context);
+  }
+
+  /**
+   * Export grid data to JSON format
+   * @returns JSON string
+   */
+  exportToJSON(options: ExportOptions = {}): string {
+    const context = this.createExportContext(options);
+    return exportToJSONUtil(context);
+  }
+
+  /**
+   * Download grid data as CSV file
+   */
+  downloadCSV(options: ExportOptions = {}): void {
+    const context = this.createExportContext(options);
+    downloadCSV(context);
+  }
+
+  /**
+   * Download grid data as JSON file
+   */
+  downloadJSON(options: ExportOptions = {}): void {
+    const context = this.createExportContext(options);
+    downloadJSON(context);
+  }
+
+  /**
+   * Import data from CSV string
+   * @param csvString CSV content
+   * @param hasHeader Whether first row is header (default: true)
+   */
+  importFromCSV(csvString: string, hasHeader = true): ImportResult {
+    const result = parseCSV(csvString, hasHeader);
+    if (result.errors.length === 0 && result.data.length > 0) {
+      this.setData(result.data);
     }
-    
-    const rowsToExport = options?.selectedOnly 
-      ? this.getSelectedRows().map(i => data[i]).filter(Boolean)
-      : data;
-    
-    rowsToExport.forEach(row => {
-      const values = columns.map(col => {
-        const value = row[col.field];
-        if (value === null || value === undefined) return '';
-        if (typeof value === 'string') return `"${value.replace(/"/g, '""')}"`;
-        return String(value);
-      });
-      rows.push(values.join(','));
-    });
-    
-    return rows.join('\n');
+    return result;
   }
 
-  exportToJSON(options?: ExportOptions): string {
-    const data = options?.filteredOnly ? this.state.displayData : this.state.data;
-    const columns = options?.columns 
-      ? this.state.columns.filter(c => options.columns!.includes(c.field))
-      : this.getVisibleColumns();
-    
-    const rowsToExport = options?.selectedOnly 
-      ? this.getSelectedRows().map(i => data[i]).filter(Boolean)
-      : data;
-    
-    const result = rowsToExport.map(row => {
-      const obj: RowData = {};
-      columns.forEach(col => {
-        obj[col.field] = row[col.field];
-      });
-      return obj;
-    });
-    
-    return JSON.stringify(result, null, 2);
+  /**
+   * Import data from Excel file
+   * Requires SheetJS library to be loaded via CDN
+   * @param file Excel file (File object)
+   * @param sheetIndex Sheet index to import (default: 0)
+   */
+  async importFromExcel(file: File, sheetIndex = 0): Promise<ImportResult> {
+    const result = await importFromExcel(file, sheetIndex);
+    if (result.errors.length === 0 && result.data.length > 0) {
+      this.setData(result.data);
+    }
+    return result;
+  }
+
+  /**
+   * Check if SheetJS library is available for Excel operations
+   */
+  static isExcelSupported(): boolean {
+    return isSheetJSAvailable();
   }
 
   // ============================================

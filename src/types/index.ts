@@ -1,9 +1,9 @@
 /**
- * VeloxGrid Type Definitions v4.0
+ * VeloxGrid Type Definitions v5.0
  * @description Core types for the VeloxGrid library
  * Phase 7: Selection Enhancement
  * Phase 8: Excel Export/Import
- * Phase 9: Clipboard & Keyboard
+ * Phase 9: Keyboard Enhancement & Undo/Redo
  */
 
 // ============================================
@@ -119,6 +119,52 @@ export interface ImportResult {
 }
 
 // ============================================
+// Undo/Redo Types (Phase 9)
+// ============================================
+
+export type UndoActionType = 
+  | 'cell_edit'
+  | 'row_add'
+  | 'row_remove'
+  | 'row_update'
+  | 'paste'
+  | 'cut'
+  | 'delete'
+  | 'bulk_edit';
+
+export interface UndoAction {
+  type: UndoActionType;
+  timestamp: number;
+  data: unknown;
+}
+
+export interface CellEditUndoData {
+  rowIndex: number;
+  field: string;
+  oldValue: CellValue;
+  newValue: CellValue;
+}
+
+export interface RowAddUndoData {
+  row: RowData;
+  index: number;
+}
+
+export interface RowRemoveUndoData {
+  row: RowData;
+  index: number;
+}
+
+export interface BulkEditUndoData {
+  changes: Array<{
+    rowIndex: number;
+    field: string;
+    oldValue: CellValue;
+    newValue: CellValue;
+  }>;
+}
+
+// ============================================
 // Grid Options
 // ============================================
 
@@ -171,6 +217,10 @@ export interface GridOptions {
   loadingMessage?: string;
   /** Custom CSS class */
   className?: string;
+  /** Enable Undo/Redo (Phase 9) */
+  undoable?: boolean;
+  /** Max undo stack size (Phase 9) */
+  undoStackSize?: number;
 }
 
 // ============================================
@@ -294,6 +344,10 @@ export interface GridEvents {
 
   // Keyboard events (Phase 9)
   onKeyDown?: (event: KeyboardEvent, cell: CellIndex | null) => void;
+  
+  // Undo/Redo events (Phase 9)
+  onUndo?: (action: UndoAction) => void;
+  onRedo?: (action: UndoAction) => void;
 
   // Scroll events
   onScroll?: (scrollTop: number, scrollLeft: number) => void;
@@ -391,6 +445,17 @@ export interface VeloxGridInstance {
   copy(): void;
   paste(): void;
   cut(): void;
+  
+  // Undo/Redo methods (Phase 9)
+  undo(): boolean;
+  redo(): boolean;
+  canUndo(): boolean;
+  canRedo(): boolean;
+  clearHistory(): void;
+  
+  // Delete methods (Phase 9)
+  deleteSelectedCells(): void;
+  deleteSelectedRows(): void;
 
   // Export methods (Phase 8)
   exportToExcel(options?: ExportOptions): void;

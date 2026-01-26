@@ -14,10 +14,11 @@ A fast, lightweight, and framework-agnostic data grid library.
 - 📦 **Zero Dependencies** - 외부 의존성 없음
 - 🎨 **Customizable** - CSS Variables를 통한 쉬운 테마 커스터마이징
 - 📝 **TypeScript** - 완벽한 타입 지원
-- ⚡ **Lightweight** - ~45KB (minified)
+- ⚡ **Lightweight** - ~50KB (minified)
 - 🔲 **Cell Selection** - 셀 단위 선택, 블록 선택 지원 (v0.3.0)
 - ⌨️ **Keyboard Navigation** - 화살표 키, 단축키 지원 (v0.3.0)
 - 📊 **Excel Export/Import** - Excel, CSV, JSON 내보내기/가져오기 (v0.4.0)
+- ↩️ **Undo/Redo** - 작업 취소/다시 실행 (v0.5.0)
 
 ## 📦 Installation
 
@@ -49,6 +50,8 @@ npm install velox-grid
     height: 400,
     checkBar: { visible: true },
     sortable: true,
+    editable: true,
+    undoable: true,  // v0.5.0 - Undo/Redo 활성화
   });
 </script>
 ```
@@ -74,6 +77,8 @@ const grid = new VeloxGrid('#grid', {
   sortable: true,
   editable: true,
   virtualScroll: true,
+  undoable: true,                // v0.5.0
+  undoStackSize: 50,             // v0.5.0 - 최대 Undo 스택 크기
 });
 ```
 
@@ -97,26 +102,27 @@ const grid = new VeloxGrid('#grid', {
 | `editable` | `boolean` | `false` | 편집 활성화 |
 | `virtualScroll` | `boolean` | `false` | 가상 스크롤 |
 | `loading` | `boolean` | `false` | 로딩 상태 (v0.3.0) |
-
-### Selection Types (v0.3.0)
-
-```typescript
-type SelectionMode = 'none' | 'single' | 'multiple' | 'extended';
-type SelectionStyle = 'row' | 'cell' | 'block' | 'none';
-```
-
-### CheckBar Options (v0.3.0)
-
-```typescript
-interface CheckBarOptions {
-  visible: boolean;
-  exclusive?: boolean;           // 라디오 버튼 스타일
-  showAll?: boolean;             // 전체 선택 체크박스
-  checkableCallback?: (row, index) => boolean;
-}
-```
+| `undoable` | `boolean` | `true` | Undo/Redo 활성화 (v0.5.0) |
+| `undoStackSize` | `number` | `50` | 최대 Undo 스택 크기 (v0.5.0) |
 
 ### Methods
+
+#### Undo/Redo (v0.5.0)
+
+```typescript
+grid.undo(): boolean           // 마지막 작업 취소
+grid.redo(): boolean           // 마지막 취소된 작업 다시 실행
+grid.canUndo(): boolean        // Undo 가능 여부
+grid.canRedo(): boolean        // Redo 가능 여부
+grid.clearHistory(): void      // Undo/Redo 스택 초기화
+```
+
+#### Delete (v0.5.0)
+
+```typescript
+grid.deleteSelectedCells(): void   // 선택된 셀 내용 삭제
+grid.deleteSelectedRows(): void    // 선택된 행 삭제
+```
 
 #### Cell Selection (v0.3.0)
 
@@ -126,17 +132,6 @@ grid.getSelectedCells(): CellIndex[]
 grid.setFocusedCell(rowIndex, field): void
 grid.getFocusedCell(): CellIndex | null
 grid.getSelectionData(): CellValue[][]
-```
-
-#### CheckBar (v0.3.0)
-
-```typescript
-grid.checkItem(index, checked?): void
-grid.checkItems(indices, checked?): void
-grid.checkAll(checked?): void
-grid.uncheckAll(): void
-grid.getCheckedItems(): number[]
-grid.getCheckedData(): RowData[]
 ```
 
 #### Clipboard (v0.3.0)
@@ -164,23 +159,29 @@ grid.downloadJSON(options?): void     // Downloads as file
 // Import
 grid.importFromCSV(csvString, hasHeader?): ImportResult
 grid.importFromExcel(file, sheetIndex?): Promise<ImportResult>
-
-// Check SheetJS availability
-VeloxGrid.isExcelSupported(): boolean
 ```
 
-#### Export Options
+---
 
-```typescript
-interface ExportOptions {
-  filename?: string;      // 파일명 (확장자 제외)
-  includeHeader?: boolean;// 헤더 포함 (기본: true)
-  selectedOnly?: boolean; // 선택된 행만
-  filteredOnly?: boolean; // 필터된 행만
-  columns?: string[];     // 특정 컬럼만
-  sheetName?: string;     // Excel 시트 이름
-}
-```
+## ⌨️ Keyboard Shortcuts
+
+| 단축키 | 동작 |
+|--------|------|
+| `↑ ↓ ← →` | 셀 이동 |
+| `Shift + Arrow` | 선택 영역 확장 |
+| `Ctrl + A` | 전체 선택 |
+| `Ctrl + C` | 복사 |
+| `Ctrl + V` | 붙여넣기 |
+| `Ctrl + X` | 잘라내기 |
+| `Ctrl + Z` | Undo (v0.5.0) |
+| `Ctrl + Y` | Redo (v0.5.0) |
+| `Delete / Backspace` | 선택 셀 내용 삭제 (v0.5.0) |
+| `Enter` | 편집 완료 → 아래 셀 이동 (v0.5.0) |
+| `Tab` | 편집 완료 → 오른쪽 셀 이동 (v0.5.0) |
+| `Shift + Tab` | 편집 완료 → 왼쪽 셀 이동 (v0.5.0) |
+| `F2` | 편집 모드 |
+| `Escape` | 편집 취소 |
+| `Space` | 체크 토글 |
 
 ---
 
@@ -189,44 +190,8 @@ interface ExportOptions {
 Excel 기능을 사용하려면 SheetJS 라이브러리를 CDN으로 로드하세요:
 
 ```html
-<!-- SheetJS CDN -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 ```
-
-```typescript
-// Excel Export
-grid.exportToExcel({
-  filename: 'employee-data',
-  includeHeader: true,
-  selectedOnly: false,
-  sheetName: '직원목록'
-});
-
-// Excel Import
-const fileInput = document.querySelector('input[type="file"]');
-fileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  const result = await grid.importFromExcel(file);
-  
-  if (result.errors.length === 0) {
-    console.log('Imported', result.data.length, 'rows');
-  }
-});
-```
-
----
-
-## ⌨️ Keyboard Shortcuts (v0.3.0)
-
-| 단축키 | 동작 |
-|--------|------|
-| `↑ ↓ ← →` | 셀 이동 |
-| `Shift + Arrow` | 선택 영역 확장 |
-| `Ctrl + A` | 전체 선택 |
-| `Ctrl + C/V/X` | 복사/붙여넣기/잘라내기 |
-| `Enter / F2` | 편집 모드 |
-| `Escape` | 편집 취소 |
-| `Space` | 체크 토글 |
 
 ---
 
@@ -235,11 +200,20 @@ fileInput.addEventListener('change', async (e) => {
 - [x] Phase 1-6: 기본 기능, 정렬/필터, 가상 스크롤, 컬럼 고정
 - [x] **Phase 7**: Selection 고도화 ✅ (v0.3.0)
 - [x] **Phase 8**: Excel Export/Import ✅ (v0.4.0)
-- [ ] Phase 9: Clipboard 고도화, Undo/Redo
+- [x] **Phase 9**: Keyboard Enhancement & Undo/Redo ✅ (v0.5.0)
 - [ ] Phase 12: Cell Validation, Custom Editor
+- [ ] Phase 13: Footer Summary
 - [ ] Phase 14: React/Vue 래퍼
 
 ## 📝 Changelog
+
+### v0.5.0 (2025-01-26)
+- ✅ **Undo/Redo** - Ctrl+Z/Ctrl+Y로 작업 취소/다시 실행
+- ✅ **Delete Key** - Delete/Backspace로 선택 셀 내용 삭제
+- ✅ **Enter/Tab 이동** - 편집 완료 후 다음 셀로 자동 이동
+- ✅ `deleteSelectedCells()`, `deleteSelectedRows()` 메서드 추가
+- ✅ `undo()`, `redo()`, `canUndo()`, `canRedo()`, `clearHistory()` 메서드 추가
+- ✅ `undoable`, `undoStackSize` 옵션 추가
 
 ### v0.4.0 (2025-01-24)
 - ✅ Excel Export (.xlsx) - SheetJS 연동

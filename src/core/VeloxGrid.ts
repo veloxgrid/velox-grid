@@ -30,6 +30,11 @@ import type {
   Selection,
   CheckBarOptions,
   ExportOptions,
+  UndoAction,
+  CellEditUndoData,
+  BulkEditUndoData,
+  RowAddUndoData,
+  RowRemoveUndoData,
 } from '../types';
 import { createElement, addClass, removeClass, throttle } from '../utils/dom';
 import { formatValue, sortData, filterData, generateId } from '../utils/data';
@@ -65,6 +70,8 @@ const DEFAULT_OPTIONS: Partial<GridOptions> = {
   emptyMessage: '데이터가 없습니다.',
   loading: false,
   loadingMessage: '로딩 중...',
+  undoable: true,
+  undoStackSize: 50,
 };
 
 const DEFAULT_CHECKBAR: CheckBarOptions = {
@@ -103,6 +110,10 @@ export class VeloxGrid implements VeloxGridInstance {
   };
 
   private dataIndexMap: Map<RowData, number> = new Map();
+
+  // Undo/Redo stacks (Phase 9)
+  private undoStack: UndoAction[] = [];
+  private redoStack: UndoAction[] = [];
 
   constructor(
     container: HTMLElement | string,
@@ -903,10 +914,56 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
+    // Handle editing state
     if (this.state.edit.editing) {
-      if (e.key === 'Escape') this.cancelEdit();
-      else if (e.key === 'Enter') this.endEdit(true);
+      if (e.key === 'Escape') {
+        this.cancelEdit();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        this.endEditAndMove('down');
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        this.endEditAndMove(e.shiftKey ? 'left' : 'right');
+      }
       return;
+    }
+    
+    // Handle Undo/Redo (Ctrl+Z, Ctrl+Y)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      this.undo();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+      e.preventDefault();
+      this.redo();
+      return;
+    }
+    
+    // Handle Copy/Paste/Cut shortcuts
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+      e.preventDefault();
+      this.copy();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+      e.preventDefault();
+      this.paste();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
+      e.preventDefault();
+      this.cut();
+      return;
+    }
+    
+    // Handle Delete key
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (this.options.editable) {
+        e.preventDefault();
+        this.deleteSelectedCells();
+        return;
+      }
     }
     
     const focusedCell = this.state.selection.focusedCell;
@@ -1468,6 +1525,53 @@ export class VeloxGrid implements VeloxGridInstance {
   cancelEdit(): void { this.endEdit(false); }
   isEditing(): boolean { return this.state.edit.editing; }
 
+  /**
+   * End edit and move to adjacent cell (Phase 9)
+   */
+  private endEditAndMove(direction: 'up' | 'down' | 'left' | 'right'): void {
+    const { rowIndex, field } = this.state.edit;
+    if (rowIndex === null || field === null) return;
+    
+    this.endEdit(true);
+    
+    const columns = this.getVisibleColumns();
+    const currentColIndex = columns.findIndex(c => c.field === field);
+    let newRowIndex = rowIndex;
+    let newColIndex = currentColIndex;
+    
+    switch (direction) {
+      case 'up':
+        if (newRowIndex > 0) newRowIndex--;
+        break;
+      case 'down':
+        if (newRowIndex < this.state.displayData.length - 1) newRowIndex++;
+        break;
+      case 'left':
+        if (newColIndex > 0) newColIndex--;
+        else if (newRowIndex > 0) {
+          newRowIndex--;
+          newColIndex = columns.length - 1;
+        }
+        break;
+      case 'right':
+        if (newColIndex < columns.length - 1) newColIndex++;
+        else if (newRowIndex < this.state.displayData.length - 1) {
+          newRowIndex++;
+          newColIndex = 0;
+        }
+        break;
+    }
+    
+    const newField = columns[newColIndex]?.field;
+    if (newField) {
+      this.setFocusedCell(newRowIndex, newField);
+      this.state.selection.selectedCells.clear();
+      this.state.selection.selectedCells.add(`${newRowIndex}:${newField}`);
+      this.scrollToCell(newRowIndex, newField);
+      this.render();
+    }
+  }
+
   // ============================================
   // Public API - Column Methods
   // ============================================
@@ -1644,6 +1748,9 @@ export class VeloxGrid implements VeloxGridInstance {
     
     this.copy();
     
+    // Collect changes for undo
+    const changes: BulkEditUndoData['changes'] = [];
+    
     const cells = this.getSelectedCells();
     cells.forEach(cell => {
       const column = this.state.columns.find(c => c.field === cell.field);
@@ -1651,15 +1758,239 @@ export class VeloxGrid implements VeloxGridInstance {
         const displayRow = this.state.displayData[cell.rowIndex];
         const dataIndex = this.state.data.indexOf(displayRow);
         if (dataIndex >= 0) {
+          const oldValue = this.state.data[dataIndex][cell.field];
+          changes.push({
+            rowIndex: cell.rowIndex,
+            field: cell.field,
+            oldValue,
+            newValue: ''
+          });
           this.state.data[dataIndex][cell.field] = '';
         }
       }
     });
     
+    // Push to undo stack
+    if (changes.length > 0) {
+      this.pushUndo({ type: 'cut', timestamp: Date.now(), data: { changes } as BulkEditUndoData });
+    }
+    
     this.applyDataTransformations();
     this.render();
     this.events.onCut?.(data.map(row => row.map(v => String(v ?? ''))));
     this.events.onDataChange?.(this.state.data);
+  }
+
+  // ============================================
+  // Public API - Undo/Redo Methods (Phase 9)
+  // ============================================
+
+  /**
+   * Push action to undo stack
+   */
+  private pushUndo(action: UndoAction): void {
+    if (!this.options.undoable) return;
+    
+    this.undoStack.push(action);
+    
+    // Limit stack size
+    const maxSize = this.options.undoStackSize || 50;
+    while (this.undoStack.length > maxSize) {
+      this.undoStack.shift();
+    }
+    
+    // Clear redo stack when new action is performed
+    this.redoStack = [];
+  }
+
+  /**
+   * Undo the last action
+   */
+  undo(): boolean {
+    if (!this.options.undoable || this.undoStack.length === 0) return false;
+    
+    const action = this.undoStack.pop()!;
+    
+    switch (action.type) {
+      case 'cell_edit': {
+        const data = action.data as CellEditUndoData;
+        const displayRow = this.state.displayData[data.rowIndex];
+        const dataIndex = this.state.data.indexOf(displayRow);
+        if (dataIndex >= 0) {
+          this.state.data[dataIndex][data.field] = data.oldValue;
+        }
+        break;
+      }
+      case 'bulk_edit':
+      case 'paste':
+      case 'cut':
+      case 'delete': {
+        const data = action.data as BulkEditUndoData;
+        data.changes.forEach(change => {
+          const displayRow = this.state.displayData[change.rowIndex];
+          const dataIndex = this.state.data.indexOf(displayRow);
+          if (dataIndex >= 0) {
+            this.state.data[dataIndex][change.field] = change.oldValue;
+          }
+        });
+        break;
+      }
+      case 'row_add': {
+        const data = action.data as RowAddUndoData;
+        this.state.data.splice(data.index, 1);
+        this.rebuildDataIndexMap();
+        break;
+      }
+      case 'row_remove': {
+        const data = action.data as RowRemoveUndoData;
+        this.state.data.splice(data.index, 0, { ...data.row });
+        this.rebuildDataIndexMap();
+        break;
+      }
+    }
+    
+    this.redoStack.push(action);
+    this.applyDataTransformations();
+    this.render();
+    this.events.onUndo?.(action);
+    this.events.onDataChange?.(this.state.data);
+    
+    return true;
+  }
+
+  /**
+   * Redo the last undone action
+   */
+  redo(): boolean {
+    if (!this.options.undoable || this.redoStack.length === 0) return false;
+    
+    const action = this.redoStack.pop()!;
+    
+    switch (action.type) {
+      case 'cell_edit': {
+        const data = action.data as CellEditUndoData;
+        const displayRow = this.state.displayData[data.rowIndex];
+        const dataIndex = this.state.data.indexOf(displayRow);
+        if (dataIndex >= 0) {
+          this.state.data[dataIndex][data.field] = data.newValue;
+        }
+        break;
+      }
+      case 'bulk_edit':
+      case 'paste':
+      case 'cut':
+      case 'delete': {
+        const data = action.data as BulkEditUndoData;
+        data.changes.forEach(change => {
+          const displayRow = this.state.displayData[change.rowIndex];
+          const dataIndex = this.state.data.indexOf(displayRow);
+          if (dataIndex >= 0) {
+            this.state.data[dataIndex][change.field] = change.newValue;
+          }
+        });
+        break;
+      }
+      case 'row_add': {
+        const data = action.data as RowAddUndoData;
+        this.state.data.splice(data.index, 0, { ...data.row });
+        this.rebuildDataIndexMap();
+        break;
+      }
+      case 'row_remove': {
+        const data = action.data as RowRemoveUndoData;
+        this.state.data.splice(data.index, 1);
+        this.rebuildDataIndexMap();
+        break;
+      }
+    }
+    
+    this.undoStack.push(action);
+    this.applyDataTransformations();
+    this.render();
+    this.events.onRedo?.(action);
+    this.events.onDataChange?.(this.state.data);
+    
+    return true;
+  }
+
+  /**
+   * Check if undo is available
+   */
+  canUndo(): boolean {
+    return this.options.undoable === true && this.undoStack.length > 0;
+  }
+
+  /**
+   * Check if redo is available
+   */
+  canRedo(): boolean {
+    return this.options.undoable === true && this.redoStack.length > 0;
+  }
+
+  /**
+   * Clear undo/redo history
+   */
+  clearHistory(): void {
+    this.undoStack = [];
+    this.redoStack = [];
+  }
+
+  // ============================================
+  // Public API - Delete Methods (Phase 9)
+  // ============================================
+
+  /**
+   * Delete selected cells content
+   */
+  deleteSelectedCells(): void {
+    if (!this.options.editable) return;
+    
+    const cells = this.getSelectedCells();
+    if (cells.length === 0) return;
+    
+    const changes: BulkEditUndoData['changes'] = [];
+    
+    cells.forEach(cell => {
+      const column = this.state.columns.find(c => c.field === cell.field);
+      if (column?.editable !== false) {
+        const displayRow = this.state.displayData[cell.rowIndex];
+        const dataIndex = this.state.data.indexOf(displayRow);
+        if (dataIndex >= 0) {
+          const oldValue = this.state.data[dataIndex][cell.field];
+          if (oldValue !== '' && oldValue !== null && oldValue !== undefined) {
+            changes.push({
+              rowIndex: cell.rowIndex,
+              field: cell.field,
+              oldValue,
+              newValue: ''
+            });
+            this.state.data[dataIndex][cell.field] = '';
+          }
+        }
+      }
+    });
+    
+    if (changes.length > 0) {
+      this.pushUndo({ type: 'delete', timestamp: Date.now(), data: { changes } as BulkEditUndoData });
+      this.applyDataTransformations();
+      this.render();
+      this.events.onDataChange?.(this.state.data);
+    }
+  }
+
+  /**
+   * Delete selected rows
+   */
+  deleteSelectedRows(): void {
+    const selectedRows = this.getSelectedRows();
+    if (selectedRows.length === 0) return;
+    
+    // Sort in reverse order to delete from end first
+    const sortedRows = [...selectedRows].sort((a, b) => b - a);
+    
+    sortedRows.forEach(index => {
+      this.removeRow(index);
+    });
   }
 
   // ============================================

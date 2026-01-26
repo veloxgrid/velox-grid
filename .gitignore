@@ -10,5 +10,5 @@ coverage/
 .vscode/
 *.tsbuildinfo
 
-# Claude AI work files
-.claude/
+# Keep Claude AI work files for project continuity
+# .claude/

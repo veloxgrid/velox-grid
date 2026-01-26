@@ -1,6 +1,6 @@
 {
   "name": "velox-grid",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "A fast, lightweight, and framework-agnostic data grid library",
   "main": "dist/velox-grid.js",
   "module": "dist/velox-grid.esm.js",

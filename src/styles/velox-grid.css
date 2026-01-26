@@ -268,3 +268,158 @@
 /* Utility */
 .velox-hidden { display: none !important; }
 .velox-no-select { user-select: none; }
+
+/* ===========================================
+   Phase 10: Column Reorder & Menu
+   =========================================== */
+
+/* Column drag handle */
+.velox-column-drag-handle {
+  cursor: grab;
+  color: var(--velox-text-secondary);
+  font-size: 12px;
+  padding: 0 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  user-select: none;
+}
+.velox-header-cell:hover .velox-column-drag-handle {
+  opacity: 0.6;
+}
+.velox-column-drag-handle:hover {
+  opacity: 1 !important;
+  color: var(--velox-primary-color);
+}
+.velox-column-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Column menu button */
+.velox-column-menu-btn {
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--velox-text-secondary);
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  border-radius: 4px;
+}
+.velox-header-cell:hover .velox-column-menu-btn {
+  opacity: 0.6;
+}
+.velox-column-menu-btn:hover {
+  opacity: 1 !important;
+  color: var(--velox-primary-color);
+  background: var(--velox-row-hover-bg);
+}
+
+/* Column menu popup */
+.velox-column-menu {
+  position: absolute;
+  min-width: 180px;
+  background: var(--velox-bg-color);
+  border: var(--velox-border-width) solid var(--velox-border-color);
+  border-radius: 6px;
+  box-shadow: var(--velox-shadow);
+  z-index: 1000;
+  overflow: hidden;
+}
+.velox-column-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--velox-text-color);
+  transition: background 0.15s;
+}
+.velox-column-menu-item:hover {
+  background: var(--velox-row-hover-bg);
+}
+.velox-column-menu-icon {
+  width: 18px;
+  text-align: center;
+}
+.velox-column-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--velox-border-color);
+}
+
+/* Column drag indicator */
+.velox-column-drag-indicator {
+  padding: 8px 16px;
+  background: var(--velox-primary-color);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 10000;
+  white-space: nowrap;
+}
+
+/* Column drop target */
+.velox-header-cell--drop-target {
+  background: var(--velox-primary-light) !important;
+  border-left: 3px solid var(--velox-primary-color) !important;
+}
+
+/* ===========================================
+   Phase 11: Row Drag & Drop
+   =========================================== */
+
+/* Row drag handle */
+.velox-row-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-width: 24px;
+  cursor: grab;
+  color: var(--velox-text-secondary);
+  font-size: 14px;
+  opacity: 0.3;
+  transition: opacity 0.2s;
+  user-select: none;
+}
+.velox-row:hover .velox-row-drag-handle {
+  opacity: 0.7;
+}
+.velox-row-drag-handle:hover {
+  opacity: 1 !important;
+  color: var(--velox-primary-color);
+}
+.velox-row-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Row drag indicator */
+.velox-row-drag-indicator {
+  padding: 8px 16px;
+  background: var(--velox-primary-color);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 10000;
+  white-space: nowrap;
+}
+
+/* Row dragging state */
+.velox-row--dragging {
+  opacity: 0.5;
+  background: var(--velox-header-bg) !important;
+}
+
+/* Row drop target */
+.velox-row--drop-target {
+  border-top: 3px solid var(--velox-primary-color) !important;
+  background: rgba(66, 133, 244, 0.1) !important;
+}

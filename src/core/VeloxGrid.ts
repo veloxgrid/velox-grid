@@ -102,6 +102,16 @@ export class VeloxGrid implements VeloxGridInstance {
   private resizing: { field: string; startX: number; startWidth: number } | null = null;
   private blockSelecting: { startRow: number; startField: string } | null = null;
 
+  // Cached canvas for text measurement (performance optimization)
+  private measureCanvas: HTMLCanvasElement | null = null;
+  private measureContext: CanvasRenderingContext2D | null = null;
+
+  // Bound event handlers (avoid creating new functions on each call)
+  private boundHandleResizeMove: (e: MouseEvent) => void;
+  private boundHandleResizeEnd: (e: MouseEvent) => void;
+  private boundHandleBlockSelectionEnd: () => void;
+  private boundHandleKeyDown: (e: KeyboardEvent) => void;
+
   private virtualState = {
     startIndex: 0,
     endIndex: 0,
@@ -138,6 +148,12 @@ export class VeloxGrid implements VeloxGridInstance {
 
     this.events = events;
     this.gridId = generateId('velox-grid');
+
+    // Bind event handlers once in constructor (performance optimization)
+    this.boundHandleResizeMove = this.handleResizeMove.bind(this);
+    this.boundHandleResizeEnd = this.handleResizeEnd.bind(this);
+    this.boundHandleBlockSelectionEnd = this.handleBlockSelectionEnd.bind(this);
+    this.boundHandleKeyDown = this.handleKeyDown.bind(this);
 
     this.state = {
       data: [],
@@ -728,8 +744,7 @@ export class VeloxGrid implements VeloxGridInstance {
     } else {
       this.state.filter = { conditions: [newCondition], logic: 'and' };
     }
-    this.state.selection.selectedRows.clear();
-    this.state.selection.selectedCells.clear();
+    this.clearSelectionState();
     this.applyDataTransformations();
     this.render();
     this.events.onFilter?.(this.state.filter);
@@ -739,8 +754,7 @@ export class VeloxGrid implements VeloxGridInstance {
     if (this.state.filter) {
       const conditions = this.state.filter.conditions.filter(c => c.field !== field);
       this.state.filter = conditions.length === 0 ? null : { conditions, logic: 'and' };
-      this.state.selection.selectedRows.clear();
-      this.state.selection.selectedCells.clear();
+      this.clearSelectionState();
       this.applyDataTransformations();
       this.render();
       if (this.state.filter) this.events.onFilter?.(this.state.filter);
@@ -758,10 +772,10 @@ export class VeloxGrid implements VeloxGridInstance {
     }, 16);
 
     this.bodyElement.addEventListener('scroll', handleScroll);
-    document.addEventListener('mousemove', this.handleResizeMove.bind(this));
-    document.addEventListener('mouseup', this.handleResizeEnd.bind(this));
-    document.addEventListener('mouseup', this.handleBlockSelectionEnd.bind(this));
-    this.rootElement.addEventListener('keydown', this.handleKeyDown.bind(this));
+    document.addEventListener('mousemove', this.boundHandleResizeMove);
+    document.addEventListener('mouseup', this.boundHandleResizeEnd);
+    document.addEventListener('mouseup', this.boundHandleBlockSelectionEnd);
+    this.rootElement.addEventListener('keydown', this.boundHandleKeyDown);
   }
 
   private handleSort(field: string): void {
@@ -773,8 +787,7 @@ export class VeloxGrid implements VeloxGridInstance {
       else if (current === 'desc') newDirection = null;
     }
     this.state.sort = newDirection ? [{ field, direction: newDirection }] : [];
-    this.state.selection.selectedRows.clear();
-    this.state.selection.selectedCells.clear();
+    this.clearSelectionState();
     this.applyDataTransformations();
     this.render();
     this.events.onSort?.(this.state.sort);
@@ -1096,6 +1109,16 @@ export class VeloxGrid implements VeloxGridInstance {
     this.initCheckableRows();
   }
 
+  /**
+   * Clear all selection state (rows, cells, focused cell)
+   * Extracted to reduce code duplication
+   */
+  private clearSelectionState(): void {
+    this.state.selection.selectedRows.clear();
+    this.state.selection.selectedCells.clear();
+    this.state.selection.focusedCell = null;
+  }
+
   // ============================================
   // Public API - Data Methods
   // ============================================
@@ -1107,9 +1130,7 @@ export class VeloxGrid implements VeloxGridInstance {
   setData(data: RowData[]): void {
     this.state.data = data.map(row => ({ ...row }));
     this.rebuildDataIndexMap();
-    this.state.selection.selectedRows.clear();
-    this.state.selection.selectedCells.clear();
-    this.state.selection.focusedCell = null;
+    this.clearSelectionState();
     this.state.checkBar.checkedRows.clear();
     this.applyDataTransformations();
     this.render();
@@ -1239,9 +1260,7 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   clearSelection(): void {
-    this.state.selection.selectedRows.clear();
-    this.state.selection.selectedCells.clear();
-    this.state.selection.focusedCell = null;
+    this.clearSelectionState();
     this.render();
     this.events.onSelectionChange?.([]);
     this.events.onCellSelectionChange?.([]);
@@ -1411,8 +1430,7 @@ export class VeloxGrid implements VeloxGridInstance {
 
   sort(field: string, direction: SortDirection = 'asc'): void {
     this.state.sort = direction ? [{ field, direction }] : [];
-    this.state.selection.selectedRows.clear();
-    this.state.selection.selectedCells.clear();
+    this.clearSelectionState();
     this.applyDataTransformations();
     this.render();
     this.events.onSort?.(this.state.sort);
@@ -1436,8 +1454,7 @@ export class VeloxGrid implements VeloxGridInstance {
   filter(conditions: FilterCondition | FilterCondition[]): void {
     const conditionArray = Array.isArray(conditions) ? conditions : [conditions];
     this.state.filter = { conditions: conditionArray, logic: 'and' };
-    this.state.selection.selectedRows.clear();
-    this.state.selection.selectedCells.clear();
+    this.clearSelectionState();
     this.applyDataTransformations();
     this.render();
     this.events.onFilter?.(this.state.filter);
@@ -1445,8 +1462,7 @@ export class VeloxGrid implements VeloxGridInstance {
 
   clearFilter(): void {
     this.state.filter = null;
-    this.state.selection.selectedRows.clear();
-    this.state.selection.selectedCells.clear();
+    this.clearSelectionState();
     this.applyDataTransformations();
     this.render();
   }
@@ -1630,11 +1646,16 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   private measureTextWidth(text: string): number {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (!context) return 100;
-    context.font = '14px sans-serif';
-    return context.measureText(text).width;
+    // Reuse canvas instance for better performance
+    if (!this.measureCanvas) {
+      this.measureCanvas = document.createElement('canvas');
+      this.measureContext = this.measureCanvas.getContext('2d');
+      if (this.measureContext) {
+        this.measureContext.font = '14px sans-serif';
+      }
+    }
+    if (!this.measureContext) return 100;
+    return this.measureContext.measureText(text).width;
   }
 
   // ============================================
@@ -2141,10 +2162,14 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   destroy(): void {
-    document.removeEventListener('mousemove', this.handleResizeMove.bind(this));
-    document.removeEventListener('mouseup', this.handleResizeEnd.bind(this));
-    document.removeEventListener('mouseup', this.handleBlockSelectionEnd);
+    document.removeEventListener('mousemove', this.boundHandleResizeMove);
+    document.removeEventListener('mouseup', this.boundHandleResizeEnd);
+    document.removeEventListener('mouseup', this.boundHandleBlockSelectionEnd);
     document.removeEventListener('click', this.handleOutsideClick);
+    this.rootElement.removeEventListener('keydown', this.boundHandleKeyDown);
+    // Clean up cached canvas
+    this.measureCanvas = null;
+    this.measureContext = null;
     this.container.innerHTML = '';
     this.events.onDestroy?.();
   }

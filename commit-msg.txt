@@ -1,0 +1,12 @@
+refactor: code optimization v0.5.1
+
+Performance and code quality improvements:
+- Add measureCanvas singleton for text measurement (avoid repeated canvas creation)
+- Bind event handlers in constructor (eliminate bind() duplication)
+- Extract clearSelectionState() method (reduce code duplication)
+- Clean up destroy() method (proper event listener and cache cleanup)
+
+Build results:
+- velox-grid.js: 50.68 KB (gzip: 13.08 KB)
+- velox-grid.esm.js: 67.70 KB (gzip: 15.04 KB)
+- velox-grid.iife.js: 50.51 KB (gzip: 13.01 KB)

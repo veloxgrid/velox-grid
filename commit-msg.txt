@@ -1,19 +1,14 @@
-feat: Phase 10-11 Column Reorder, Row Drag and Code Optimization v0.6.0
+refactor: modularize core components (Phase 10-11)
 
-- Phase 10: Column Reorder and Menu
-  - Column drag handle for reorder
-  - Column context menu (sort, hide, fix, auto-fit)
-  - reorderColumn() and fixColumn() API
-  
-- Phase 11: Row Drag and Drop
-  - Row drag handle for reorder
-  - moveRow() API
-  - Visual drag indicators and drop targets
-  
-- Code Optimization
-  - GridHistory class for Undo/Redo management
-  - Column cache system (invalidateColumnCache)
-  - Unified row creation (createRowBase)
-  - Bound event handlers for Phase 10-11
+- Add GridHistory for Undo/Redo management
+- Add GridSelection for selection/checkbar handling
+- Add GridVirtualScroll for virtual scroll calculations
+- Add GridEditor for cell editing
+- Add GridKeyboard for keyboard navigation
+- Add GridColumnManager with column caching
+- Add GridDataManager for data operations
+- Phase 10: Column reorder, column menu, fix/unfix
+- Phase 11: Row drag & drop
+- Update PROGRESS.md with new architecture
 
-- Bundle: 59KB (gzip 15KB)
+Bundle size: ~59KB (gzip ~15KB)

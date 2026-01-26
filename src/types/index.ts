@@ -165,6 +165,72 @@ export interface BulkEditUndoData {
 }
 
 // ============================================
+// Context Menu Types (Phase 10)
+// ============================================
+
+/** Context menu item type */
+export type ContextMenuItemType = 'item' | 'separator' | 'submenu';
+
+/** Context menu target type */
+export type ContextMenuTarget = 'cell' | 'row' | 'header' | 'column';
+
+/** Context for menu item callbacks */
+export interface ContextMenuContext {
+  /** Row index (for cell/row context) */
+  rowIndex?: number;
+  /** Column field (for cell/header context) */
+  field?: string;
+  /** Row data (for cell/row context) */
+  rowData?: RowData;
+  /** Column definition (for cell/header context) */
+  column?: ColumnDefinition;
+  /** Selected rows */
+  selectedRows: number[];
+  /** Selected cells */
+  selectedCells: CellIndex[];
+  /** Grid instance */
+  grid: VeloxGridInstance;
+}
+
+/** Context menu item definition */
+export interface ContextMenuItem {
+  /** Item type */
+  type?: ContextMenuItemType;
+  /** Unique identifier */
+  id?: string;
+  /** Display label */
+  label?: string;
+  /** Icon (emoji, HTML, or class name) */
+  icon?: string;
+  /** Keyboard shortcut hint */
+  shortcut?: string;
+  /** Disabled state or callback */
+  disabled?: boolean | ((context: ContextMenuContext) => boolean);
+  /** Visible state or callback */
+  visible?: boolean | ((context: ContextMenuContext) => boolean);
+  /** Click handler */
+  action?: (context: ContextMenuContext) => void;
+  /** Sub-menu items (for type: 'submenu') */
+  items?: ContextMenuItem[];
+  /** CSS class for the item */
+  className?: string;
+}
+
+/** Context menu configuration */
+export interface ContextMenuOptions {
+  /** Enable context menu */
+  enabled?: boolean;
+  /** Cell/Row context menu items */
+  items?: ContextMenuItem[];
+  /** Header/Column context menu items */
+  headerItems?: ContextMenuItem[];
+  /** Show default menu items */
+  showDefaultItems?: boolean;
+  /** Custom class for menu container */
+  className?: string;
+}
+
+// ============================================
 // Grid Options
 // ============================================
 
@@ -221,6 +287,8 @@ export interface GridOptions {
   undoable?: boolean;
   /** Max undo stack size (Phase 9) */
   undoStackSize?: number;
+  /** Context menu options (Phase 10) */
+  contextMenu?: ContextMenuOptions;
 }
 
 // ============================================

@@ -36,6 +36,8 @@ import type {
   BulkEditUndoData,
   RowAddUndoData,
   RowRemoveUndoData,
+  ContextMenuItem,
+  ContextMenuContext,
 } from '../types';
 import { createElement, addClass, removeClass, throttle } from '../utils/dom';
 import { formatValue, sortData, filterData, generateId } from '../utils/data';
@@ -824,13 +826,23 @@ export class VeloxGrid implements VeloxGridInstance {
   }
 
   private handleOutsideClick = (e: MouseEvent): void => {
-    if (this.filterPopup && !this.filterPopup.contains(e.target as Node)) this.closeFilterPopup();
+    // Close filter popup if clicking outside
+    if (this.filterPopup && !this.filterPopup.contains(e.target as Node)) {
+      this.closeFilterPopup();
+    }
+    // Close column menu if clicking outside
+    if (this.columnMenuPopup && !this.columnMenuPopup.contains(e.target as Node)) {
+      this.closeColumnMenu();
+    }
   };
 
   private closeFilterPopup(): void {
     if (this.filterPopup) {
       this.filterPopup.remove();
       this.filterPopup = null;
+    }
+    // Only remove listener if no popups are open
+    if (!this.columnMenuPopup) {
       document.removeEventListener('click', this.handleOutsideClick);
     }
   }
@@ -2300,30 +2312,80 @@ export class VeloxGrid implements VeloxGridInstance {
     menu.style.top = `${rect.bottom - gridRect.top + 5}px`;
     menu.style.left = `${rect.left - gridRect.left}px`;
 
-    const items = [
-      { label: '오름차순 정렬', icon: '↑', action: () => this.sort(column.field, 'asc') },
-      { label: '내림차순 정렬', icon: '↓', action: () => this.sort(column.field, 'desc') },
-      { label: '정렬 해제', icon: '✕', action: () => this.clearSort() },
-      { type: 'separator' as const },
-      { label: '컬럼 숨기기', icon: '👁', action: () => this.hideColumn(column.field) },
-      { label: '컬럼 너비 자동', icon: '↔', action: () => this.autoFitColumn(column.field) },
-      { label: '모든 컬럼 자동', icon: '⇔', action: () => this.autoFitAllColumns() },
-      { type: 'separator' as const },
-      { label: '왼쪽에 고정', icon: '◀', action: () => this.fixColumn(column.field, 'left') },
-      { label: '고정 해제', icon: '◇', action: () => this.fixColumn(column.field, false) },
+    // Create context for custom menu items
+    const context: ContextMenuContext = {
+      field: column.field,
+      column,
+      selectedRows: this.getSelectedRows(),
+      selectedCells: this.getSelectedCells(),
+      grid: this,
+    };
+
+    // Get menu items (custom or default)
+    const menuConfig = this.options.contextMenu;
+    const showDefault = menuConfig?.showDefaultItems !== false;
+    const customItems = menuConfig?.headerItems || [];
+
+    // Default menu items
+    const defaultItems: ContextMenuItem[] = [
+      { id: 'sort-asc', label: '오름차순 정렬', icon: '↑', action: () => this.sort(column.field, 'asc') },
+      { id: 'sort-desc', label: '내림차순 정렬', icon: '↓', action: () => this.sort(column.field, 'desc') },
+      { id: 'sort-clear', label: '정렬 해제', icon: '✕', action: () => this.clearSort() },
+      { type: 'separator' },
+      { id: 'hide', label: '컬럼 숨기기', icon: '👁', action: () => this.hideColumn(column.field) },
+      { id: 'autofit', label: '컬럼 너비 자동', icon: '↔', action: () => this.autoFitColumn(column.field) },
+      { id: 'autofit-all', label: '모든 컬럼 자동', icon: '⇔', action: () => this.autoFitAllColumns() },
+      { type: 'separator' },
+      { id: 'fix-left', label: '왼쪽에 고정', icon: '◀', action: () => this.fixColumn(column.field, 'left') },
+      { id: 'unfix', label: '고정 해제', icon: '◇', action: () => this.fixColumn(column.field, false) },
     ];
 
+    // Combine items
+    let items: ContextMenuItem[] = [];
+    if (showDefault) {
+      items = [...defaultItems];
+      if (customItems.length > 0) {
+        items.push({ type: 'separator' });
+        items.push(...customItems);
+      }
+    } else {
+      items = customItems;
+    }
+
+    // Render menu items
     items.forEach(item => {
+      // Check visibility
+      const isVisible = typeof item.visible === 'function' 
+        ? item.visible(context) 
+        : item.visible !== false;
+      if (!isVisible) return;
+
       if (item.type === 'separator') {
         const sep = createElement('div', 'velox-column-menu-separator');
         menu.appendChild(sep);
       } else {
         const menuItem = createElement('div', 'velox-column-menu-item');
-        menuItem.innerHTML = `<span class="velox-column-menu-icon">${item.icon}</span>${item.label}`;
-        menuItem.addEventListener('click', () => {
-          item.action!();
-          this.closeColumnMenu();
-        });
+        if (item.className) addClass(menuItem, item.className);
+        
+        // Check disabled state
+        const isDisabled = typeof item.disabled === 'function'
+          ? item.disabled(context)
+          : item.disabled === true;
+        if (isDisabled) addClass(menuItem, 'velox-column-menu-item--disabled');
+
+        // Build item content
+        let html = '';
+        if (item.icon) html += `<span class="velox-column-menu-icon">${item.icon}</span>`;
+        html += `<span class="velox-column-menu-label">${item.label || ''}</span>`;
+        if (item.shortcut) html += `<span class="velox-column-menu-shortcut">${item.shortcut}</span>`;
+        menuItem.innerHTML = html;
+
+        if (!isDisabled) {
+          menuItem.addEventListener('click', () => {
+            item.action?.(context);
+            this.closeColumnMenu();
+          });
+        }
         menu.appendChild(menuItem);
       }
     });
@@ -2331,6 +2393,7 @@ export class VeloxGrid implements VeloxGridInstance {
     this.columnMenuPopup = menu;
     this.rootElement.appendChild(menu);
 
+    // Add outside click listener with delay to avoid immediate close
     setTimeout(() => document.addEventListener('click', this.handleOutsideClick), 0);
   }
 
@@ -2338,6 +2401,10 @@ export class VeloxGrid implements VeloxGridInstance {
     if (this.columnMenuPopup) {
       this.columnMenuPopup.remove();
       this.columnMenuPopup = null;
+    }
+    // Only remove listener if no popups are open
+    if (!this.filterPopup) {
+      document.removeEventListener('click', this.handleOutsideClick);
     }
   }
 

@@ -1,9 +1,34 @@
-fix: invalidate column cache on show/hide/resize operations
+feat: customizable context menu and outside click close
 
-- Add invalidateColumnCache() call to showColumn()
-- Add invalidateColumnCache() call to hideColumn()  
-- Add invalidateColumnCache() call to setColumnWidth()
-- Add invalidateColumnCache() call to autoFitColumn()
+1. Context Menu Customization:
+   - Add ContextMenuItem, ContextMenuContext, ContextMenuOptions types
+   - Support custom headerItems in contextMenu options
+   - Support showDefaultItems option (true by default)
+   - Support disabled and visible callbacks per item
+   - Support shortcut display in menu items
+   - Support custom className for menu items
 
-This fixes the column visibility toggle not working properly
-due to cached column arrays not being refreshed.
+2. Outside Click Menu Close:
+   - Fix handleOutsideClick to close both filter popup and column menu
+   - Add proper listener cleanup in closeColumnMenu()
+   - Avoid removing listener when other popups still open
+
+Usage example:
+```typescript
+const grid = new VeloxGrid(container, {
+  columns: [...],
+  contextMenu: {
+    showDefaultItems: true,
+    headerItems: [
+      { id: 'custom', label: 'Custom Action', icon: '⚡', action: (ctx) => {...} },
+      { type: 'separator' },
+      { 
+        id: 'conditional', 
+        label: 'Conditional Item',
+        disabled: (ctx) => ctx.selectedRows.length === 0,
+        action: (ctx) => {...}
+      }
+    ]
+  }
+});
+```

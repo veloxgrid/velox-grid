@@ -1700,6 +1700,7 @@ export class VeloxGrid implements VeloxGridInstance {
     const column = this.state.columns.find(c => c.field === field);
     if (column) {
       column.width = width;
+      this.invalidateColumnCache();
       this.render();
       this.events.onColumnResize?.(field, width);
     }
@@ -1707,12 +1708,20 @@ export class VeloxGrid implements VeloxGridInstance {
 
   showColumn(field: string): void {
     const column = this.state.columns.find(c => c.field === field);
-    if (column) { column.visible = true; this.render(); }
+    if (column) {
+      column.visible = true;
+      this.invalidateColumnCache();
+      this.render();
+    }
   }
 
   hideColumn(field: string): void {
     const column = this.state.columns.find(c => c.field === field);
-    if (column) { column.visible = false; this.render(); }
+    if (column) {
+      column.visible = false;
+      this.invalidateColumnCache();
+      this.render();
+    }
   }
 
   setColumns(columns: ColumnDefinition[]): void {
@@ -1738,6 +1747,7 @@ export class VeloxGrid implements VeloxGridInstance {
     });
     
     column.width = Math.min(maxWidth, 500);
+    this.invalidateColumnCache();
     this.render();
     this.events.onColumnResize?.(field, column.width);
   }

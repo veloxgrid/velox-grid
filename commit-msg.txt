@@ -1,14 +1,9 @@
-refactor: modularize core components (Phase 10-11)
+fix: invalidate column cache on show/hide/resize operations
 
-- Add GridHistory for Undo/Redo management
-- Add GridSelection for selection/checkbar handling
-- Add GridVirtualScroll for virtual scroll calculations
-- Add GridEditor for cell editing
-- Add GridKeyboard for keyboard navigation
-- Add GridColumnManager with column caching
-- Add GridDataManager for data operations
-- Phase 10: Column reorder, column menu, fix/unfix
-- Phase 11: Row drag & drop
-- Update PROGRESS.md with new architecture
+- Add invalidateColumnCache() call to showColumn()
+- Add invalidateColumnCache() call to hideColumn()  
+- Add invalidateColumnCache() call to setColumnWidth()
+- Add invalidateColumnCache() call to autoFitColumn()
 
-Bundle size: ~59KB (gzip ~15KB)
+This fixes the column visibility toggle not working properly
+due to cached column arrays not being refreshed.

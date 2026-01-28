@@ -83,8 +83,8 @@
 
   <script src="../dist/velox-grid.iife.js"></script>
   <script>
-    // VeloxGrid는 전역 객체로 노출됨
-    const { VeloxGrid } = window.VeloxGrid;
+    // VeloxGrid.VeloxGrid로 클래스에 접근
+    var VeloxGridClass = VeloxGrid.VeloxGrid;
 
     // 에러 로그 함수
     function logError(gridId, event) {
@@ -99,7 +99,7 @@
     }
 
     // 예제 1: Required & MinLength
-    const grid1 = new VeloxGrid('#grid1', {
+    var grid1 = new VeloxGridClass('#grid1', {
       columns: [
         { 
           field: 'name', 
@@ -144,7 +144,7 @@
     });
 
     // 예제 2: Number Range
-    const grid2 = new VeloxGrid('#grid2', {
+    var grid2 = new VeloxGridClass('#grid2', {
       columns: [
         { field: 'product', header: '상품명', width: 150 },
         { 
@@ -193,7 +193,7 @@
     });
 
     // 예제 3: Custom Validator
-    const grid3 = new VeloxGrid('#grid3', {
+    var grid3 = new VeloxGridClass('#grid3', {
       columns: [
         { field: 'username', header: '사용자명', width: 150, editable: true },
         { 

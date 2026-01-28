@@ -54,6 +54,7 @@ import {
   type ImportResult,
 } from '../utils/export';
 import { GridHistory } from './GridHistory';
+import { GridValidator } from './GridValidator';
 
 const DEFAULT_OPTIONS: Partial<GridOptions> = {
   rowHeight: 40,
@@ -481,7 +482,19 @@ export class VeloxGrid implements VeloxGridInstance {
     if (this.options.sortable && column.sortable !== false) {
       const sortIcon = createElement('span', 'velox-sort-icon');
       const sortState = this.state.sort.find(s => s.field === column.field);
-      if (sortState?.direction) addClass(sortIcon, `velox-sort-icon--${sortState.direction}`);
+      
+      // Heroicons: bars-arrow-up / bars-arrow-down
+      if (sortState?.direction === 'asc') {
+        addClass(sortIcon, 'velox-sort-icon--asc');
+        sortIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" /></svg>`;
+      } else if (sortState?.direction === 'desc') {
+        addClass(sortIcon, 'velox-sort-icon--desc');
+        sortIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
+      } else {
+        // 정렬 안된 상태: 위아래 화살표 (기본)
+        sortIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
+      }
+      
       contentWrapper.appendChild(sortIcon);
       contentWrapper.addEventListener('click', (e) => { 
         e.stopPropagation(); 
@@ -493,7 +506,8 @@ export class VeloxGrid implements VeloxGridInstance {
 
     if (this.options.filterable && column.filterable !== false) {
       const filterBtn = createElement('button', 'velox-filter-btn');
-      filterBtn.innerHTML = '▼';
+      // Heroicons: funnel (outline)
+      filterBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>`;
       const hasFilter = this.state.filter?.conditions.some(c => c.field === column.field);
       if (hasFilter) addClass(filterBtn, 'velox-filter-btn--active');
       filterBtn.addEventListener('click', (e) => { e.stopPropagation(); this.showFilterPopup(column, filterBtn); });
@@ -1630,6 +1644,37 @@ export class VeloxGrid implements VeloxGridInstance {
       if (newValue !== String(originalValue ?? '')) {
         const column = this.state.columns.find(c => c.field === field);
         const displayRow = this.state.displayData[rowIndex];
+        
+        // Phase 12.1: Validation
+        if (column?.validation && column.validation.length > 0) {
+          const parsedValue = column.type === 'number' ? parseFloat(newValue) : newValue;
+          const validationResult = GridValidator.validate(parsedValue, column.validation, displayRow);
+          
+          if (!validationResult.valid) {
+            // Validation failed - show error
+            if (cell) {
+              addClass(cell as HTMLElement, 'velox-cell--invalid');
+              
+              // Show error tooltip
+              const errors = validationResult.errors.map(e => e.message).join(', ');
+              (cell as HTMLElement).title = errors;
+            }
+            
+            // Fire validation error event
+            this.events.onValidationError?.({
+              rowIndex,
+              field,
+              value: parsedValue,
+              errors: validationResult.errors.map(e => e.message)
+            });
+            
+            // Keep editing mode
+            input.focus();
+            return;
+          }
+        }
+        
+        // Validation passed - save the value
         const dataIndex = this.state.data.indexOf(displayRow);
         if (dataIndex >= 0) {
           this.state.data[dataIndex][field] = column?.type === 'number' ? parseFloat(newValue) : newValue;

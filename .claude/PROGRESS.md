@@ -69,6 +69,11 @@
 - ✅ Row Drag & Drop (순서 변경)
 - ✅ moveRow() API
 
+### Phase 12: 셀 기능 확장 (v0.7.0) 🚧 진행중
+- ✅ Cell Validation (입력값 검증) - 2025-01-28 완료
+- ⏳ Custom Cell Editor (드롭다운, 날짜 등)
+- ⏳ Cell Tooltip
+
 ---
 
 ## 🛠️ 코드 모듈화 (v0.6.0)
@@ -112,9 +117,9 @@ interface ColumnCache {
 
 ### 🔴 High Priority
 
-#### Phase 12: 셀 기능 확장 (v0.7.0)
+#### Phase 12: 셀 기능 확장 (v0.7.0) 🚧 진행중
 ```
-- [ ] Cell Validation (입력값 검증)
+- ✅ Cell Validation (입력값 검증) - 2025-01-28 완료
 - [ ] Custom Cell Editor (드롭다운, 날짜 등)
 - [ ] Cell Tooltip
 ```
@@ -317,3 +322,253 @@ D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 Phase 12 시작해줘
 ```
 velox-grid 프로젝트 진행상황 파일 읽고 [원하는 작업] 해줘
 ```
+
+---
+
+## 💡 Phase 12.1 상세: Cell Validation (2025-01-28)
+
+### 구현 내용
+
+#### 1. ValidationRule 타입 추가 (`src/types/index.ts`)
+```typescript
+export interface ValidationRule {
+  type: 'required' | 'min' | 'max' | 'minLength' | 'maxLength' | 'pattern' | 'custom';
+  value?: number | string | RegExp;
+  message: string;
+  validator?: (value: CellValue, row: RowData) => boolean | string;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: Array<{ field: string; message: string }>;
+}
+```
+
+#### 2. GridValidator 모듈 생성 (`src/core/GridValidator.ts`)
+- `validate()`: 단일 값 검증
+- `validateRow()`: 전체 행 검증
+- `validateAll()`: 전체 데이터 검증
+- 지원하는 검증 규칙:
+  - `required`: 필수 입력
+  - `min/max`: 숫자 범위
+  - `minLength/maxLength`: 문자열 길이
+  - `pattern`: 정규식 패턴
+  - `custom`: 커스텀 validator 함수
+
+#### 3. VeloxGrid 통합
+- `endEdit()` 메서드에 validation 로직 추가
+- 검증 실패 시:
+  - 셀에 `.velox-cell--invalid` 클래스 추가 (빨간 테두리)
+  - `title` 속성에 에러 메시지 표시 (tooltip)
+  - `onValidationError` 이벤트 발생
+  - 편집 모드 유지 (저장 취소)
+
+#### 4. CSS 스타일 추가 (`src/styles/velox-grid.css`)
+```css
+.velox-cell--invalid {
+  border: 2px solid #f44336 !important;
+  background-color: #ffebee !important;
+}
+
+.velox-validation-tooltip {
+  /* 에러 메시지 툴팁 스타일 */
+}
+```
+
+#### 5. 새로운 이벤트
+```typescript
+interface GridEvents {
+  onValidationError?: (event: {
+    rowIndex: number;
+    field: string;
+    value: CellValue;
+    errors: string[];
+  }) => void;
+}
+```
+
+### 사용 예제
+
+```typescript
+const grid = new VeloxGrid('#grid', {
+  columns: [
+    {
+      field: 'email',
+      header: '이메일',
+      editable: true,
+      validation: [
+        { type: 'required', message: '이메일은 필수입니다' },
+        { 
+          type: 'pattern', 
+          value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, 
+          message: '올바른 이메일 형식이 아닙니다' 
+        }
+      ]
+    },
+    {
+      field: 'age',
+      header: '나이',
+      type: 'number',
+      editable: true,
+      validation: [
+        { type: 'min', value: 19, message: '19세 이상만 가능합니다' },
+        { type: 'max', value: 65, message: '65세 이하만 가능합니다' }
+      ]
+    },
+    {
+      field: 'password',
+      header: '비밀번호',
+      editable: true,
+      validation: [
+        { type: 'minLength', value: 8, message: '최소 8자 이상' },
+        {
+          type: 'custom',
+          message: '영문, 숫자, 특수문자 포함 필요',
+          validator: (value) => {
+            const str = String(value);
+            return /[a-zA-Z]/.test(str) && 
+                   /[0-9]/.test(str) && 
+                   /[!@#$%^&*]/.test(str);
+          }
+        }
+      ]
+    }
+  ],
+  // ...
+}, {
+  onValidationError: (event) => {
+    console.log('Validation failed:', event);
+  }
+});
+```
+
+### 테스트 파일
+- `examples/validation-test.html`: 3가지 validation 시나리오 데모
+  1. Required & MinLength & Pattern (이메일, 전화번호)
+  2. Number Range & Pattern (가격, 수량, 상품코드)
+  3. Custom Validator (비밀번호, 비밀번호 확인, 나이)
+
+### 번들 크기 영향
+- 약 1.5KB 추가 (GridValidator 모듈)
+- 총 번들 크기: ~60KB (gzip ~15KB)
+
+---
+
+## 🔜 Phase 12-15 개발 로드맵
+
+### Phase 12.2: Custom Cell Editor
+**우선순위: 높음** | **상태: 계획 중**
+
+```typescript
+type EditorType = 'text' | 'number' | 'select' | 'date' | 'checkbox' | 'custom';
+
+interface EditorOptions {
+  type: EditorType;
+  options?: Array<{ value: CellValue; label: string }>; // select용
+  min?: number;
+  max?: number;
+  step?: number;
+  format?: string; // date용
+  renderer?: (cell: HTMLElement, value: CellValue, save: (v: CellValue) => void) => void;
+}
+
+interface ColumnDefinition {
+  editor?: EditorOptions;
+}
+```
+
+**구현 계획:**
+1. `src/core/GridEditorFactory.ts` 생성
+   - `createEditor(type, options): HTMLElement`
+   - Select, Date, Checkbox 에디터 구현
+2. VeloxGrid.ts의 `renderEditCell()` 수정
+   - EditorFactory를 사용하여 에디터 생성
+
+### Phase 12.3: Cell Tooltip
+**우선순위: 중간** | **상태: 계획 중**
+
+```typescript
+interface ColumnDefinition {
+  tooltip?: boolean | ((value: CellValue, row: RowData) => string);
+}
+```
+
+**구현 계획:**
+1. 마우스 hover 시 툴팁 표시
+2. 긴 텍스트 자동 툴팁
+3. 커스텀 툴팁 콜백 지원
+
+---
+
+### Phase 13: Footer Summary & Group Summary
+**우선순위: 중간** | **예상 작업량: 높음** | **상태: 계획 중**
+
+#### 13.1 Footer Summary
+```typescript
+interface FooterOptions {
+  visible: boolean;
+  height?: number;
+}
+
+interface ColumnDefinition {
+  footer?: {
+    type: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'custom';
+    formatter?: (value: number, data: RowData[]) => string;
+    calculator?: (data: RowData[], field: string) => CellValue;
+  };
+}
+
+interface GridOptions {
+  footer?: FooterOptions;
+}
+```
+
+**구현 계획:**
+1. `src/core/GridFooter.ts` 생성 - 집계 계산 로직
+2. VeloxGrid.ts에 푸터 영역 추가
+3. CSS 스타일 추가
+
+#### 13.2 Row Grouping (선택적)
+```typescript
+interface GroupOptions {
+  field: string;
+  collapsed?: boolean;
+  aggregates?: Array<{
+    field: string;
+    type: 'sum' | 'avg' | 'count' | 'min' | 'max';
+  }>;
+}
+```
+
+---
+
+### Phase 14: React Wrapper
+**우선순위: 높음** | **예상 작업량: 중간** | **상태: 계획 중**
+
+```typescript
+interface VeloxGridProps {
+  columns: ColumnDefinition[];
+  data: RowData[];
+  options?: Partial<GridOptions>;
+  onDataChange?: (data: RowData[]) => void;
+  onSelectionChange?: (rows: number[]) => void;
+  onCellEdit?: (event: CellEditEvent) => void;
+}
+```
+
+**구현 계획:**
+1. `src/react/VeloxGridReact.tsx` 생성
+2. `src/react/index.ts` exports
+3. React peer dependency 추가
+4. 별도 빌드 설정
+
+---
+
+### Phase 15: Performance & Polish
+**우선순위: 중간** | **예상 작업량: 중간** | **상태: 계획 중**
+
+**계획:**
+1. 성능 최적화 (requestAnimationFrame, 벤치마크)
+2. 접근성 (ARIA, 스크린 리더)
+3. 테마 시스템 (Dark 테마)
+4. 문서화 (API 문서, Storybook)

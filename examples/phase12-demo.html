@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid - Phase 12: Cell Validation</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 { color: #1976d2; }
+    h2 { color: #424242; margin-top: 30px; }
+    .info {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .grid-container {
+      margin-bottom: 30px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    .error-log {
+      background: #fff3e0;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .error-item {
+      padding: 5px;
+      border-bottom: 1px solid #ffe0b2;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 VeloxGrid Phase 12: Cell Validation</h1>
+  
+  <div class="info">
+    <strong>테스트 방법:</strong>
+    <ul>
+      <li>셀을 더블클릭하여 편집 모드로 진입</li>
+      <li>유효하지 않은 값을 입력하고 Enter를 누르면 빨간 테두리와 에러 메시지 표시</li>
+      <li>유효한 값을 입력하면 정상적으로 저장됨</li>
+    </ul>
+  </div>
+
+  <h2>예제 1: Required & MinLength Validation</h2>
+  <div class="grid-container">
+    <div id="grid1" style="height: 400px;"></div>
+  </div>
+  <div class="error-log" id="error-log-1">
+    <strong>Validation Errors:</strong>
+    <div id="errors-1"></div>
+  </div>
+
+  <h2>예제 2: Number Range & Pattern Validation</h2>
+  <div class="grid-container">
+    <div id="grid2" style="height: 400px;"></div>
+  </div>
+  <div class="error-log" id="error-log-2">
+    <strong>Validation Errors:</strong>
+    <div id="errors-2"></div>
+  </div>
+
+  <h2>예제 3: Custom Validator</h2>
+  <div class="grid-container">
+    <div id="grid3" style="height: 400px;"></div>
+  </div>
+  <div class="error-log" id="error-log-3">
+    <strong>Validation Errors:</strong>
+    <div id="errors-3"></div>
+  </div>
+
+  <script src="../dist/velox-grid.iife.js"></script>
+  <script>
+    // VeloxGrid는 전역 객체로 노출됨
+    const { VeloxGrid } = window.VeloxGrid;
+
+    // 에러 로그 함수
+    function logError(gridId, event) {
+      const errorContainer = document.getElementById('errors-' + gridId);
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error-item';
+      errorDiv.innerHTML = 
+        '<strong>[' + new Date().toLocaleTimeString() + ']</strong> ' +
+        'Row ' + event.rowIndex + ', Field: ' + event.field + '<br>' +
+        'Errors: ' + event.errors.join(', ');
+      errorContainer.insertBefore(errorDiv, errorContainer.firstChild);
+    }
+
+    // 예제 1: Required & MinLength
+    const grid1 = new VeloxGrid('#grid1', {
+      columns: [
+        { 
+          field: 'name', 
+          header: '이름', 
+          width: 150, 
+          editable: true,
+          validation: [
+            { type: 'required', message: '이름은 필수입니다' },
+            { type: 'minLength', value: 2, message: '이름은 최소 2글자 이상이어야 합니다' }
+          ]
+        },
+        { 
+          field: 'email', 
+          header: '이메일', 
+          width: 200, 
+          editable: true,
+          validation: [
+            { type: 'required', message: '이메일은 필수입니다' },
+            { type: 'pattern', value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '올바른 이메일 형식이 아닙니다' }
+          ]
+        },
+        { 
+          field: 'phone', 
+          header: '전화번호', 
+          width: 150, 
+          editable: true,
+          validation: [
+            { type: 'pattern', value: /^\d{3}-\d{4}-\d{4}$/, message: '전화번호 형식: 010-1234-5678' }
+          ]
+        },
+        { field: 'department', header: '부서', width: 120 }
+      ],
+      data: [
+        { name: '김철수', email: 'kim@example.com', phone: '010-1234-5678', department: '개발팀' },
+        { name: '이영희', email: 'lee@example.com', phone: '010-2345-6789', department: '디자인팀' },
+        { name: '박민수', email: 'park@example.com', phone: '010-3456-7890', department: '기획팀' }
+      ],
+      height: 400,
+      editable: true
+    }, {
+      onValidationError: function(event) { logError(1, event); }
+    });
+
+    // 예제 2: Number Range
+    const grid2 = new VeloxGrid('#grid2', {
+      columns: [
+        { field: 'product', header: '상품명', width: 150 },
+        { 
+          field: 'price', 
+          header: '가격', 
+          width: 120, 
+          type: 'number',
+          editable: true,
+          validation: [
+            { type: 'required', message: '가격은 필수입니다' },
+            { type: 'min', value: 0, message: '가격은 0 이상이어야 합니다' },
+            { type: 'max', value: 1000000, message: '가격은 100만원 이하여야 합니다' }
+          ]
+        },
+        { 
+          field: 'quantity', 
+          header: '수량', 
+          width: 100, 
+          type: 'number',
+          editable: true,
+          validation: [
+            { type: 'required', message: '수량은 필수입니다' },
+            { type: 'min', value: 1, message: '수량은 최소 1개 이상이어야 합니다' },
+            { type: 'max', value: 100, message: '수량은 최대 100개까지 가능합니다' }
+          ]
+        },
+        { 
+          field: 'code', 
+          header: '상품코드', 
+          width: 150, 
+          editable: true,
+          validation: [
+            { type: 'pattern', value: /^[A-Z]{3}-\d{4}$/, message: '상품코드 형식: ABC-1234' }
+          ]
+        }
+      ],
+      data: [
+        { product: '노트북', price: 1200000, quantity: 5, code: 'LAP-1001' },
+        { product: '마우스', price: 25000, quantity: 50, code: 'MOU-2001' },
+        { product: '키보드', price: 80000, quantity: 30, code: 'KEY-3001' }
+      ],
+      height: 400,
+      editable: true
+    }, {
+      onValidationError: function(event) { logError(2, event); }
+    });
+
+    // 예제 3: Custom Validator
+    const grid3 = new VeloxGrid('#grid3', {
+      columns: [
+        { field: 'username', header: '사용자명', width: 150, editable: true },
+        { 
+          field: 'password', 
+          header: '비밀번호', 
+          width: 150, 
+          editable: true,
+          validation: [
+            { type: 'required', message: '비밀번호는 필수입니다' },
+            { type: 'minLength', value: 8, message: '비밀번호는 최소 8자 이상이어야 합니다' },
+            { 
+              type: 'custom', 
+              message: '비밀번호는 영문, 숫자, 특수문자를 포함해야 합니다',
+              validator: function(value) {
+                const str = String(value);
+                const hasLetter = /[a-zA-Z]/.test(str);
+                const hasNumber = /[0-9]/.test(str);
+                const hasSpecial = /[!@#$%^&*]/.test(str);
+                return hasLetter && hasNumber && hasSpecial;
+              }
+            }
+          ]
+        },
+        { 
+          field: 'confirmPassword', 
+          header: '비밀번호 확인', 
+          width: 150, 
+          editable: true,
+          validation: [
+            { type: 'required', message: '비밀번호 확인은 필수입니다' },
+            { 
+              type: 'custom', 
+              message: '비밀번호가 일치하지 않습니다',
+              validator: function(value, row) {
+                return value === row.password;
+              }
+            }
+          ]
+        },
+        { 
+          field: 'age', 
+          header: '나이', 
+          width: 100, 
+          type: 'number',
+          editable: true,
+          validation: [
+            { 
+              type: 'custom', 
+              message: '나이는 19세 이상 65세 이하여야 합니다',
+              validator: function(value) {
+                const age = Number(value);
+                return age >= 19 && age <= 65;
+              }
+            }
+          ]
+        }
+      ],
+      data: [
+        { username: 'user1', password: 'Pass123!', confirmPassword: 'Pass123!', age: 25 },
+        { username: 'user2', password: 'Secure456@', confirmPassword: 'Secure456@', age: 35 },
+        { username: 'user3', password: 'MyPass789#', confirmPassword: 'MyPass789#', age: 45 }
+      ],
+      height: 400,
+      editable: true
+    }, {
+      onValidationError: function(event) { logError(3, event); }
+    });
+  </script>
+</body>
+</html>

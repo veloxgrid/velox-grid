@@ -240,3 +240,57 @@ D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 [작업내용] 해줘
 ```
 velox-grid 프로젝트 Phase N 진행해줘
 ```
+
+---
+
+## 📚 개발 가이드라인
+
+### 코딩 컨벤션
+1. **TypeScript 엄격 모드** 준수
+2. **모든 public 메서드**에 JSDoc 주석
+3. **한글 주석** 사용 (기술 용어는 영어)
+4. **CSS 클래스명**: `velox-{component}--{modifier}` 형식
+5. **이벤트명**: `on{Event}` 형식 (예: `onCellClick`)
+
+### Git 커밋 메시지 타입
+```
+feat: 새 기능 추가
+fix: 버그 수정
+refactor: 리팩토링
+docs: 문서 수정
+style: 코드 포맷팅
+test: 테스트 추가
+chore: 빌드/설정 변경
+```
+
+### 파일 생성 시 헤더
+```typescript
+/**
+ * VeloxGrid - {모듈명}
+ * @description {설명}
+ * Phase {N}: {기능명}
+ */
+```
+
+### Phase 작업 시작 방법
+1. **Phase 선택**: PROGRESS.md에서 다음 Phase 확인
+2. **타입 먼저 정의**: `src/types/index.ts`에 필요한 타입 추가
+3. **모듈 생성**: `src/core/Grid{Name}.ts` 파일 생성 (필요시)
+4. **VeloxGrid.ts 통합**: 메인 클래스에 기능 연결
+5. **CSS 추가**: `src/styles/velox-grid.css`에 스타일 추가
+6. **데모 생성**: `examples/phase{N}-demo.html` 작성 (IIFE 형태)
+7. **빌드 & 테스트**: `npm run build`로 확인
+8. **문서 업데이트**: README.md, PROGRESS.md
+9. **커밋**: 의미있는 단위로 커밋
+
+### 주의사항
+1. **VeloxGrid.ts 크기**: 현재 ~2600줄. 새 기능은 별도 모듈로 분리 권장
+2. **번들 크기**: 60KB 이하 유지 목표
+3. **의존성**: 외부 라이브러리 추가 지양 (SheetJS 제외)
+4. **하위 호환성**: 기존 API 변경 시 주의
+
+### 주요 파일 위치
+- 메인 클래스: `src/core/VeloxGrid.ts`
+- 타입 정의: `src/types/index.ts`
+- 스타일: `src/styles/velox-grid.css`
+- 빌드 설정: `vite.config.ts`

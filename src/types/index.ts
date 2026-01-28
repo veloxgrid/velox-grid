@@ -17,6 +17,22 @@ export type CellValue = string | number | boolean | Date | null | undefined;
 export type RowData = Record<string, CellValue>;
 
 // ============================================
+// Validation Types (Phase 12.1)
+// ============================================
+
+export interface ValidationRule {
+  type: 'required' | 'min' | 'max' | 'minLength' | 'maxLength' | 'pattern' | 'custom';
+  value?: number | string | RegExp;
+  message: string;
+  validator?: (value: CellValue, row: RowData) => boolean | string;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: Array<{ field: string; message: string }>;
+}
+
+// ============================================
 // Column Definition
 // ============================================
 
@@ -57,6 +73,8 @@ export interface ColumnDefinition {
   visible?: boolean;
   /** Fixed position */
   fixed?: 'left' | 'right' | false;
+  /** Validation rules (Phase 12.1) */
+  validation?: ValidationRule[];
 }
 
 // ============================================
@@ -404,6 +422,9 @@ export interface GridEvents {
   onCellEditStart?: (rowIndex: number, field: string, value: CellValue) => void;
   onCellEditEnd?: (event: CellEditEvent) => void;
   onCellEditCancel?: (rowIndex: number, field: string) => void;
+
+  // Validation events (Phase 12.1)
+  onValidationError?: (event: { rowIndex: number; field: string; value: CellValue; errors: string[] }) => void;
 
   // Clipboard events (Phase 9)
   onCopy?: (data: string[][]) => void;

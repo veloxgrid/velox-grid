@@ -13,6 +13,7 @@ export { GridEditor } from './GridEditor';
 export { GridKeyboard } from './GridKeyboard';
 export { GridColumnManager } from './GridColumnManager';
 export { GridDataManager } from './GridDataManager';
+export { GridValidator } from './GridValidator';
 
 // Re-export types
 export type { HistoryOptions } from './GridHistory';

@@ -1,0 +1,44 @@
+/**
+ * VeloxGrid - Tooltip Styles
+ * Phase 8: CSS Modularization (Phase 12.3)
+ */
+
+.velox-tooltip {
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 300px;
+  word-wrap: break-word;
+  z-index: 10000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.velox-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 10px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid rgba(0, 0, 0, 0.9);
+}
+
+/* Tooltip arrow position variants */
+.velox-tooltip--bottom::before {
+  top: -5px;
+  border-bottom: 5px solid rgba(0, 0, 0, 0.9);
+  border-top: none;
+}
+
+.velox-tooltip--top::before {
+  top: auto;
+  bottom: -5px;
+  border-top: 5px solid rgba(0, 0, 0, 0.9);
+  border-bottom: none;
+}

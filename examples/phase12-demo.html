@@ -3,25 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VeloxGrid - Phase 12.2: Custom Cell Editor Demo</title>
+  <title>VeloxGrid - Phase 12 Complete: Validation, Custom Editor, Tooltip</title>
   <link rel="stylesheet" href="../dist/velox-grid.css">
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       padding: 20px;
-      background: #f5f5f5;
-      margin: 0;
-    }
-    .container {
       max-width: 1400px;
       margin: 0 auto;
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: #f5f5f5;
     }
-    h1 {
-      color: #333;
+    h1 { 
+      color: #1976d2;
       margin-bottom: 10px;
     }
     .subtitle {
@@ -29,223 +22,305 @@
       font-size: 14px;
       margin-bottom: 30px;
     }
-    .section {
-      margin-bottom: 40px;
-    }
-    .section h2 {
-      color: #4285f4;
-      font-size: 18px;
+    h2 { 
+      color: #424242;
+      margin-top: 40px;
       margin-bottom: 15px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #4285f4;
+      font-size: 20px;
     }
-    .demo-info {
-      background: #e8f0fe;
-      border-left: 4px solid #4285f4;
-      padding: 15px;
+    .info {
+      background: #e3f2fd;
+      padding: 15px 20px;
+      border-radius: 8px;
       margin-bottom: 20px;
-      border-radius: 4px;
+      border-left: 4px solid #1976d2;
     }
-    .demo-info h3 {
-      margin-top: 0;
-      color: #1a73e8;
-      font-size: 16px;
+    .info strong {
+      color: #1976d2;
+      display: block;
+      margin-bottom: 8px;
     }
-    .demo-info ul {
-      margin: 8px 0;
-      padding-left: 20px;
+    .info ul {
+      margin: 8px 0 0 20px;
     }
-    .demo-info li {
+    .info li {
       margin: 4px 0;
-      color: #333;
     }
-    #grid1, #grid2, #grid3 {
-      height: 500px;
-      margin-bottom: 20px;
-    }
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-      flex-wrap: wrap;
-    }
-    button {
-      padding: 8px 16px;
-      background: #4285f4;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-    button:hover {
-      background: #3367d6;
-    }
-    button:active {
-      background: #2952a3;
-    }
-    .code-block {
-      background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
+    .grid-container {
+      background: white;
+      margin-bottom: 30px;
+      border-radius: 8px;
       padding: 15px;
-      margin: 10px 0;
-      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    .code-block code {
-      font-family: 'Courier New', monospace;
-      font-size: 13px;
-      color: #333;
-    }
-    .success-message {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+    .feature-badge {
+      display: inline-block;
+      background: #4caf50;
+      color: white;
+      padding: 2px 8px;
       border-radius: 4px;
-      padding: 12px;
-      margin-top: 10px;
-      display: none;
+      font-size: 11px;
+      font-weight: bold;
+      margin-left: 10px;
+      vertical-align: middle;
     }
-    .error-message {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-      border-radius: 4px;
-      padding: 12px;
-      margin-top: 10px;
-      display: none;
-    }
+    .feature-badge.validation { background: #ff9800; }
+    .feature-badge.editor { background: #2196f3; }
+    .feature-badge.tooltip { background: #9c27b0; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎨 VeloxGrid Phase 12.2: Custom Cell Editor</h1>
-    <p class="subtitle">Select, Date, Checkbox, Number 등 다양한 커스텀 에디터 데모</p>
+  <h1>🚀 VeloxGrid Phase 12 Complete Demo</h1>
+  <p class="subtitle">Cell Validation, Custom Editors & Tooltips</p>
+  
+  <div class="info">
+    <strong>✨ Phase 12 완성된 기능들:</strong>
+    <ul>
+      <li><strong>Phase 12.1:</strong> Cell Validation (입력값 검증)</li>
+      <li><strong>Phase 12.2:</strong> Custom Cell Editor (텍스트, 숫자, 드롭다운, 날짜, 체크박스)</li>
+      <li><strong>Phase 12.3:</strong> Cell Tooltip (마우스 호버 정보 표시)</li>
+    </ul>
+  </div>
 
-    <!-- Demo 1: Select Editor -->
-    <div class="section">
-      <h2>📋 Demo 1: Select 에디터 (단일 선택 & 다중 선택)</h2>
-      <div class="demo-info">
-        <h3>기능</h3>
-        <ul>
-          <li><strong>Role</strong> 컬럼: 단일 선택 Select 에디터</li>
-          <li><strong>Skills</strong> 컬럼: 다중 선택 Select 에디터 (Ctrl/Cmd + Click)</li>
-          <li>셀을 더블클릭하여 편집 모드 진입</li>
-          <li>Select 변경 시 자동 저장</li>
-        </ul>
-      </div>
-      <div class="actions">
-        <button onclick="addRowDemo1()">➕ 행 추가</button>
-        <button onclick="logDataDemo1()">📄 데이터 출력</button>
-      </div>
-      <div id="grid1"></div>
-      <div id="message1" class="success-message"></div>
-    </div>
+  <h2>
+    예제 1: 직원 정보 관리
+    <span class="feature-badge editor">Custom Editor</span>
+    <span class="feature-badge tooltip">Tooltip</span>
+  </h2>
+  <div class="info">
+    <strong>테스트:</strong>
+    <ul>
+      <li>부서: Select 드롭다운 에디터 - 셀 더블클릭</li>
+      <li>입사일: Date 에디터 - 셀 더블클릭</li>
+      <li>활성: Checkbox 에디터 - 셀 더블클릭</li>
+      <li>이메일: 마우스 호버 시 전체 텍스트 표시 (Tooltip)</li>
+    </ul>
+  </div>
+  <div class="grid-container">
+    <div id="grid1" style="height: 350px;"></div>
+  </div>
 
-    <!-- Demo 2: Date & Number Editor -->
-    <div class="section">
-      <h2>📅 Demo 2: Date & Number 에디터</h2>
-      <div class="demo-info">
-        <h3>기능</h3>
-        <ul>
-          <li><strong>Birth Date</strong>: HTML5 Date Picker</li>
-          <li><strong>Quantity</strong>: Number 에디터 (min: 1, max: 999, step: 1)</li>
-          <li><strong>Price</strong>: Number 에디터 (min: 0, step: 0.01)</li>
-          <li>Enter 키로 저장, Escape 키로 취소</li>
-        </ul>
-      </div>
-      <div class="actions">
-        <button onclick="addRowDemo2()">➕ 행 추가</button>
-        <button onclick="logDataDemo2()">📄 데이터 출력</button>
-      </div>
-      <div id="grid2"></div>
-      <div id="message2" class="success-message"></div>
-    </div>
-
-    <!-- Demo 3: Checkbox & Mixed Editors -->
-    <div class="section">
-      <h2>✅ Demo 3: Checkbox & 혼합 에디터</h2>
-      <div class="demo-info">
-        <h3>기능</h3>
-        <ul>
-          <li><strong>Active</strong>: Checkbox 에디터 (클릭 시 즉시 저장)</li>
-          <li><strong>Status</strong>: Select 에디터</li>
-          <li><strong>Priority</strong>: Number 에디터 (1-5 범위)</li>
-          <li><strong>Due Date</strong>: Date 에디터</li>
-          <li>다양한 에디터 타입이 하나의 그리드에서 작동</li>
-        </ul>
-      </div>
-      <div class="actions">
-        <button onclick="addRowDemo3()">➕ 행 추가</button>
-        <button onclick="logDataDemo3()">📄 데이터 출력</button>
-        <button onclick="toggleAllActive()">🔄 전체 Active 토글</button>
-      </div>
-      <div id="grid3"></div>
-      <div id="message3" class="success-message"></div>
-    </div>
-
-    <div class="code-block">
-      <code>
-// Select 에디터 예제
-{
-  field: 'role',
-  header: 'Role',
-  editable: true,
-  editor: {
-    type: 'select',
-    options: [
-      { value: 'developer', label: 'Developer' },
-      { value: 'designer', label: 'Designer' },
-      { value: 'manager', label: 'Manager' }
-    ]
-  }
-}
-
-// 다중 선택 Select
-{
-  field: 'skills',
-  header: 'Skills',
-  editable: true,
-  editor: {
-    type: 'select',
-    multiple: true,
-    options: [...]
-  }
-}
-
-// Date 에디터
-{
-  field: 'birthDate',
-  header: 'Birth Date',
-  editable: true,
-  editor: { type: 'date' }
-}
-
-// Number 에디터
-{
-  field: 'quantity',
-  header: 'Quantity',
-  type: 'number',
-  editable: true,
-  editor: {
-    type: 'number',
-    min: 1,
-    max: 999,
-    step: 1
-  }
-}
-
-// Checkbox 에디터
-{
-  field: 'active',
-  header: 'Active',
-  editable: true,
-  editor: { type: 'checkbox' }
-}
-      </code>
-    </div>
+  <h2>
+    예제 2: 상품 관리 (Validation + Editor)
+    <span class="feature-badge validation">Validation</span>
+    <span class="feature-badge editor">Custom Editor</span>
+  </h2>
+  <div class="info">
+    <strong>테스트:</strong>
+    <ul>
+      <li>카테고리: Select 에디터 - 셀 더블클릭</li>
+      <li>가격: Number 에디터 (min: 0, max: 1000000) + Validation</li>
+      <li>재고: Number 에디터 (step: 10) + Validation</li>
+      <li>할인율: Number 에디터 (0-100) + Validation</li>
+      <li>유효하지 않은 값 입력 시 빨간 테두리 표시</li>
+    </ul>
+  </div>
+  <div class="grid-container">
+    <div id="grid2" style="height: 350px;"></div>
   </div>
 
   <script src="../dist/velox-grid.iife.js"></script>
   <script>
+    var VeloxGridClass = VeloxGrid.VeloxGrid;
+
+    // 예제 1: 직원 정보 관리
+    var grid1 = new VeloxGridClass('#grid1', {
+      columns: [
+        { 
+          field: 'name', 
+          header: '이름', 
+          width: 120,
+          editable: true
+        },
+        { 
+          field: 'department', 
+          header: '부서', 
+          width: 150,
+          editable: true,
+          editor: {
+            type: 'select',
+            options: [
+              { value: '개발팀', label: '개발팀' },
+              { value: '디자인팀', label: '디자인팀' },
+              { value: '기획팀', label: '기획팀' },
+              { value: '마케팅팀', label: '마케팅팀' },
+              { value: '인사팀', label: '인사팀' }
+            ]
+          }
+        },
+        { 
+          field: 'email', 
+          header: '이메일', 
+          width: 200,
+          tooltip: true  // Auto tooltip for long text
+        },
+        { 
+          field: 'hireDate', 
+          header: '입사일', 
+          width: 130,
+          type: 'date',
+          editable: true,
+          editor: {
+            type: 'date'
+          }
+        },
+        { 
+          field: 'active', 
+          header: '활성', 
+          width: 80,
+          editable: true,
+          align: 'center',
+          editor: {
+            type: 'checkbox'
+          },
+          renderer: function(value) {
+            return value ? '✓ 활성' : '✗ 비활성';
+          }
+        },
+        { 
+          field: 'salary', 
+          header: '연봉', 
+          width: 120,
+          type: 'number',
+          formatter: function(value) {
+            return value ? value.toLocaleString() + '만원' : '';
+          }
+        }
+      ],
+      data: [
+        { 
+          name: '김철수', 
+          department: '개발팀', 
+          email: 'kim.chulsoo@company.com',
+          hireDate: new Date('2020-03-15'),
+          active: true,
+          salary: 5000
+        },
+        { 
+          name: '이영희', 
+          department: '디자인팀', 
+          email: 'lee.younghee@company.com',
+          hireDate: new Date('2021-06-01'),
+          active: true,
+          salary: 4500
+        },
+        { 
+          name: '박민수', 
+          department: '기획팀', 
+          email: 'park.minsoo.very.long.email@company.com',
+          hireDate: new Date('2019-01-10'),
+          active: false,
+          salary: 5500
+        },
+        { 
+          name: '정수진', 
+          department: '마케팅팀', 
+          email: 'jung.soojin@company.com',
+          hireDate: new Date('2022-09-20'),
+          active: true,
+          salary: 4000
+        }
+      ],
+      height: 350,
+      editable: true
+    });
+
+    // 예제 2: 상품 관리
+    var grid2 = new VeloxGridClass('#grid2', {
+      columns: [
+        { 
+          field: 'name', 
+          header: '상품명', 
+          width: 150
+        },
+        { 
+          field: 'category', 
+          header: '카테고리', 
+          width: 120,
+          editable: true,
+          editor: {
+            type: 'select',
+            options: [
+              { value: '전자제품', label: '전자제품' },
+              { value: '의류', label: '의류' },
+              { value: '식품', label: '식품' },
+              { value: '도서', label: '도서' },
+              { value: '생활용품', label: '생활용품' }
+            ]
+          }
+        },
+        { 
+          field: 'price', 
+          header: '가격', 
+          width: 120,
+          type: 'number',
+          editable: true,
+          editor: {
+            type: 'number',
+            min: 0,
+            max: 1000000,
+            step: 1000
+          },
+          validation: [
+            { type: 'required', message: '가격은 필수입니다' },
+            { type: 'min', value: 0, message: '가격은 0 이상이어야 합니다' },
+            { type: 'max', value: 1000000, message: '가격은 100만원 이하여야 합니다' }
+          ],
+          formatter: function(value) {
+            return value != null ? value.toLocaleString() + '원' : '';
+          }
+        },
+        { 
+          field: 'stock', 
+          header: '재고', 
+          width: 100,
+          type: 'number',
+          editable: true,
+          editor: {
+            type: 'number',
+            min: 0,
+            step: 10
+          },
+          validation: [
+            { type: 'min', value: 0, message: '재고는 0 이상이어야 합니다' }
+          ]
+        },
+        { 
+          field: 'discount', 
+          header: '할인율(%)', 
+          width: 110,
+          type: 'number',
+          editable: true,
+          editor: {
+            type: 'number',
+            min: 0,
+            max: 100,
+            step: 5
+          },
+          validation: [
+            { type: 'min', value: 0, message: '할인율은 0 이상' },
+            { type: 'max', value: 100, message: '할인율은 100 이하' }
+          ]
+        }
+      ],
+      data: [
+        { name: '노트북', category: '전자제품', price: 1200000, stock: 50, discount: 10 },
+        { name: '티셔츠', category: '의류', price: 29000, stock: 200, discount: 20 },
+        { name: '사과', category: '식품', price: 5000, stock: 1000, discount: 0 },
+        { name: '소설책', category: '도서', price: 15000, stock: 100, discount: 15 },
+        { name: '수건', category: '생활용품', price: 8000, stock: 300, discount: 5 }
+      ],
+      height: 350,
+      editable: true
+    }, {
+      onValidationError: function(event) {
+        console.log('Validation Error:', event);
+      }
+    });
+
+    console.log('Phase 12 Complete Demo loaded successfully!');
+    console.log('⚠️  VeloxGrid.ts 수정이 필요합니다. 일부 기능이 작동하지 않을 수 있습니다.');
+    console.log('VELOXGRID_MODIFICATION_GUIDE.md를 참고하여 VeloxGrid.ts를 수정해주세요.');
+  </script>
+</body>
+</html>

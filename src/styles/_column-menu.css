@@ -1,0 +1,101 @@
+/**
+ * VeloxGrid - Column Menu Styles
+ * Phase 8: CSS Modularization (Phase 10)
+ */
+
+/* Column drag handle */
+.velox-column-drag-handle {
+  cursor: grab;
+  color: var(--velox-text-secondary);
+  font-size: 12px;
+  padding: 0 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  user-select: none;
+}
+.velox-header-cell:hover .velox-column-drag-handle {
+  opacity: 0.6;
+}
+.velox-column-drag-handle:hover {
+  opacity: 1 !important;
+  color: var(--velox-primary-color);
+}
+.velox-column-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Column menu button */
+.velox-column-menu-btn {
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--velox-text-secondary);
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  border-radius: 4px;
+}
+.velox-header-cell:hover .velox-column-menu-btn {
+  opacity: 0.6;
+}
+.velox-column-menu-btn:hover {
+  opacity: 1 !important;
+  color: var(--velox-primary-color);
+  background: var(--velox-row-hover-bg);
+}
+
+/* Column menu popup */
+.velox-column-menu {
+  position: absolute;
+  min-width: 180px;
+  background: var(--velox-bg-color);
+  border: var(--velox-border-width) solid var(--velox-border-color);
+  border-radius: 6px;
+  box-shadow: var(--velox-shadow);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.velox-column-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--velox-text-color);
+  transition: background 0.15s;
+}
+.velox-column-menu-item:hover {
+  background: var(--velox-row-hover-bg);
+}
+.velox-column-menu-item--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.velox-column-menu-item--disabled:hover {
+  background: transparent;
+}
+
+.velox-column-menu-icon {
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.velox-column-menu-label {
+  flex: 1;
+}
+
+.velox-column-menu-shortcut {
+  font-size: 11px;
+  color: var(--velox-text-secondary);
+  margin-left: 12px;
+}
+
+.velox-column-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--velox-border-color);
+}

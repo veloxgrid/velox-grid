@@ -1,0 +1,204 @@
+/**
+ * VeloxGrid - Header Styles
+ * Phase 8: CSS Modularization
+ */
+
+.velox-header {
+  display: flex;
+  flex-shrink: 0;
+  background: var(--velox-header-bg);
+  border-bottom: var(--velox-border-width) solid var(--velox-border-color);
+  min-height: var(--velox-header-height);
+}
+
+.velox-header--fixed { overflow: hidden; }
+.velox-header-row { display: flex; width: 100%; }
+
+.velox-header-cell {
+  display: flex;
+  align-items: center;
+  padding: var(--velox-cell-padding);
+  font-weight: var(--velox-header-font-weight);
+  color: var(--velox-header-text-color);
+  border-right: var(--velox-border-width) solid var(--velox-border-color);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  gap: 4px;
+}
+
+.velox-header-cell:last-child { border-right: none; }
+
+.velox-header-content { 
+  display: flex; 
+  align-items: center; 
+  flex: 1; 
+  min-width: 0; 
+  cursor: default; 
+}
+
+.velox-header-cell--sortable .velox-header-content { cursor: pointer; }
+.velox-header-cell--sortable .velox-header-content:hover { color: var(--velox-primary-color); }
+.velox-header-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.velox-header-cell--align-left { justify-content: flex-start; }
+.velox-header-cell--align-center { justify-content: center; }
+.velox-header-cell--align-right { justify-content: flex-end; }
+
+/* Sort icon - Heroicons SVG */
+.velox-sort-icon { 
+  display: inline-flex; 
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px; 
+  opacity: 0.4; 
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.velox-sort-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.velox-header-cell--sorted .velox-sort-icon { 
+  opacity: 1; 
+  color: var(--velox-primary-color); 
+}
+.velox-sort-icon--asc { 
+  opacity: 1;
+  color: var(--velox-primary-color); 
+}
+.velox-sort-icon--desc { 
+  opacity: 1;
+  color: var(--velox-primary-color); 
+}
+
+/* Filter button - Heroicons SVG (funnel) */
+.velox-filter-btn {
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  width: 20px; 
+  height: 20px; 
+  padding: 2px; 
+  margin-left: 4px;
+  border: none; 
+  border-radius: 3px; 
+  background: transparent;
+  color: var(--velox-text-secondary); 
+  cursor: pointer; 
+  opacity: 0.5; 
+  transition: var(--velox-transition); 
+  flex-shrink: 0;
+}
+.velox-filter-btn svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.velox-filter-btn:hover { 
+  opacity: 1; 
+  background: rgba(0, 0, 0, 0.08); 
+}
+.velox-filter-btn--active { 
+  opacity: 1; 
+  background: rgba(25, 118, 210, 0.15); 
+  color: var(--velox-primary-color);
+}
+
+/* Resize handle */
+.velox-resize-handle {
+  position: absolute; 
+  right: 0; 
+  top: 0; 
+  bottom: 0; 
+  width: 6px;
+  cursor: col-resize; 
+  background: transparent; 
+  z-index: 1;
+}
+.velox-resize-handle:hover { background: var(--velox-primary-color); }
+
+/* Checkbox cell in header */
+.velox-checkbox-cell { 
+  width: 44px; 
+  min-width: 44px; 
+  max-width: 44px; 
+  justify-content: center; 
+  padding: 0; 
+}
+.velox-checkbox-cell--disabled { opacity: 0.5; }
+.velox-checkbox-label { 
+  font-size: 12px; 
+  color: var(--velox-text-secondary); 
+}
+
+.velox-checkbox {
+  appearance: none; 
+  width: var(--velox-checkbox-size); 
+  height: var(--velox-checkbox-size);
+  border: 2px solid var(--velox-border-color); 
+  border-radius: 3px;
+  background: var(--velox-bg-color); 
+  cursor: pointer;
+  transition: var(--velox-transition); 
+  position: relative;
+}
+.velox-checkbox:hover { border-color: var(--velox-primary-light); }
+.velox-checkbox:checked { 
+  background: var(--velox-primary-color); 
+  border-color: var(--velox-primary-color); 
+}
+.velox-checkbox:disabled { cursor: not-allowed; opacity: 0.5; }
+.velox-checkbox:checked::after {
+  content: ''; 
+  position: absolute; 
+  left: 5px; 
+  top: 2px;
+  width: 4px; 
+  height: 8px; 
+  border: solid white; 
+  border-width: 0 2px 2px 0; 
+  transform: rotate(45deg);
+}
+.velox-checkbox:indeterminate { 
+  background: var(--velox-primary-color); 
+  border-color: var(--velox-primary-color); 
+}
+.velox-checkbox:indeterminate::after {
+  content: ''; 
+  position: absolute; 
+  left: 3px; 
+  top: 6px; 
+  width: 8px; 
+  height: 2px; 
+  background: white;
+}
+
+/* Radio style */
+.velox-checkbox[type="radio"] { border-radius: 50%; }
+.velox-checkbox[type="radio"]:checked::after {
+  content: ''; 
+  position: absolute; 
+  left: 4px; 
+  top: 4px;
+  width: 6px; 
+  height: 6px; 
+  border: none; 
+  border-radius: 50%; 
+  background: white; 
+  transform: none;
+}
+
+/* Row number cell in header */
+.velox-rownumber-cell {
+  width: 50px; 
+  min-width: 50px; 
+  max-width: 50px; 
+  justify-content: center;
+  color: var(--velox-text-secondary); 
+  font-size: 12px; 
+  background: var(--velox-header-bg);
+}

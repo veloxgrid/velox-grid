@@ -1,0 +1,60 @@
+/**
+ * VeloxGrid - Base Layout
+ * Phase 8: CSS Modularization
+ */
+
+.velox-grid {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--velox-font-family);
+  font-size: var(--velox-font-size);
+  color: var(--velox-text-color);
+  background: var(--velox-bg-color);
+  border: var(--velox-border-width) solid var(--velox-border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.velox-grid:focus {
+  border-color: var(--velox-primary-color);
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+.velox-grid *, .velox-grid *::before, .velox-grid *::after { box-sizing: border-box; }
+
+.velox-wrapper { display: flex; flex: 1; overflow: hidden; }
+.velox-main { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-width: 0; }
+
+.velox-fixed-left {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-right: 2px solid var(--velox-border-color);
+  background: var(--velox-bg-color);
+  z-index: 2;
+  box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+}
+
+.velox-fixed-left .velox-body--fixed { overflow: hidden; }
+
+/* Empty state */
+.velox-empty { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  padding: 40px 20px; 
+  color: var(--velox-text-secondary); 
+}
+
+/* Utility classes */
+.velox-hidden { display: none !important; }
+.velox-no-select { user-select: none; }
+
+/* Scrollbar */
+.velox-body::-webkit-scrollbar { width: 8px; height: 8px; }
+.velox-body::-webkit-scrollbar-track { background: var(--velox-header-bg); }
+.velox-body::-webkit-scrollbar-thumb { background: #bdbdbd; border-radius: 4px; }
+.velox-body::-webkit-scrollbar-thumb:hover { background: #9e9e9e; }

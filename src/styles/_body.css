@@ -1,0 +1,55 @@
+/**
+ * VeloxGrid - Body & Cell Styles
+ * Phase 8: CSS Modularization
+ */
+
+.velox-body { 
+  flex: 1; 
+  overflow: auto; 
+  position: relative; 
+}
+.velox-body--fixed { 
+  overflow-y: hidden; 
+  overflow-x: hidden; 
+}
+.velox-body-inner { 
+  position: relative; 
+  min-width: 100%; 
+}
+
+.velox-row {
+  display: flex;
+  border-bottom: var(--velox-border-width) solid var(--velox-border-color);
+  background: var(--velox-row-bg);
+  min-height: var(--velox-row-height);
+  height: var(--velox-row-height);
+}
+
+.velox-row:last-child { border-bottom: none; }
+.velox-row--alt { background: var(--velox-row-alt-bg); }
+.velox-row:hover { background: var(--velox-row-hover-bg); }
+.velox-row--selected { background: var(--velox-row-selected-bg); }
+.velox-row--selected:hover { background: var(--velox-row-selected-bg); }
+.velox-row--checked { background: var(--velox-row-checked-bg); }
+.velox-row--checked:hover { background: var(--velox-row-checked-bg); }
+
+.velox-cell {
+  display: flex; 
+  align-items: center; 
+  padding: var(--velox-cell-padding);
+  border-right: var(--velox-border-width) solid var(--velox-border-color);
+  overflow: hidden; 
+  white-space: nowrap; 
+  position: relative;
+}
+.velox-cell:last-child { border-right: none; }
+.velox-cell--align-left { justify-content: flex-start; }
+.velox-cell--align-center { justify-content: center; }
+.velox-cell--align-right { justify-content: flex-end; }
+.velox-cell--editable { cursor: text; }
+.velox-cell--editing { padding: 0; }
+.velox-cell-content { 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  white-space: nowrap; 
+}

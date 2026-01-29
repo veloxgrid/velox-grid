@@ -1,0 +1,95 @@
+/**
+ * VeloxGrid - Filter Popup Styles
+ * Phase 8: CSS Modularization
+ */
+
+.velox-filter-popup {
+  position: absolute; 
+  min-width: 220px; 
+  padding: 12px;
+  background: var(--velox-bg-color); 
+  border: var(--velox-border-width) solid var(--velox-border-color);
+  border-radius: 6px; 
+  box-shadow: var(--velox-shadow); 
+  z-index: 1000;
+}
+
+.velox-filter-operator {
+  width: 100%; 
+  padding: 8px; 
+  margin-bottom: 8px;
+  border: var(--velox-border-width) solid var(--velox-border-color);
+  border-radius: 4px; 
+  font-size: 13px; 
+  background: var(--velox-bg-color);
+}
+
+.velox-filter-input {
+  width: 100%; 
+  padding: 8px; 
+  margin-bottom: 8px;
+  border: var(--velox-border-width) solid var(--velox-border-color); 
+  border-radius: 4px; 
+  font-size: 13px;
+}
+.velox-filter-input:focus { 
+  outline: none; 
+  border-color: var(--velox-primary-color); 
+}
+
+.velox-filter-list {
+  max-height: 150px; 
+  overflow-y: auto; 
+  margin-bottom: 8px;
+  border: var(--velox-border-width) solid var(--velox-border-color); 
+  border-radius: 4px;
+}
+
+.velox-filter-list-label {
+  padding: 6px 8px; 
+  font-size: 11px; 
+  color: var(--velox-text-secondary);
+  background: var(--velox-header-bg); 
+  border-bottom: var(--velox-border-width) solid var(--velox-border-color);
+}
+
+.velox-filter-list-item {
+  padding: 6px 8px; 
+  font-size: 13px; 
+  cursor: pointer;
+  border-bottom: var(--velox-border-width) solid var(--velox-border-color);
+}
+.velox-filter-list-item:last-child { border-bottom: none; }
+.velox-filter-list-item:hover { background: var(--velox-row-hover-bg); }
+
+.velox-filter-buttons { 
+  display: flex; 
+  gap: 8px; 
+}
+
+.velox-filter-apply, .velox-filter-clear {
+  flex: 1; 
+  padding: 8px 12px; 
+  border: none; 
+  border-radius: 4px; 
+  font-size: 13px; 
+  cursor: pointer; 
+  transition: var(--velox-transition);
+}
+
+.velox-filter-apply { 
+  background: var(--velox-primary-color); 
+  color: white; 
+}
+.velox-filter-apply:hover { 
+  background: var(--velox-primary-light); 
+}
+
+.velox-filter-clear { 
+  background: var(--velox-header-bg); 
+  color: var(--velox-text-color); 
+  border: var(--velox-border-width) solid var(--velox-border-color); 
+}
+.velox-filter-clear:hover { 
+  background: #e0e0e0; 
+}

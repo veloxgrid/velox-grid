@@ -1,0 +1,75 @@
+/**
+ * VeloxGrid - Drag & Drop Styles
+ * Phase 8: CSS Modularization (Phase 10-11)
+ */
+
+/* Column drag indicator */
+.velox-column-drag-indicator {
+  padding: 8px 16px;
+  background: var(--velox-primary-color);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 10000;
+  white-space: nowrap;
+}
+
+/* Column drop target */
+.velox-header-cell--drop-target {
+  background: var(--velox-primary-light) !important;
+  border-left: 3px solid var(--velox-primary-color) !important;
+}
+
+/* Row drag handle */
+.velox-row-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-width: 24px;
+  cursor: grab;
+  color: var(--velox-text-secondary);
+  font-size: 14px;
+  opacity: 0.3;
+  transition: opacity 0.2s;
+  user-select: none;
+}
+.velox-row:hover .velox-row-drag-handle {
+  opacity: 0.7;
+}
+.velox-row-drag-handle:hover {
+  opacity: 1 !important;
+  color: var(--velox-primary-color);
+}
+.velox-row-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Row drag indicator */
+.velox-row-drag-indicator {
+  padding: 8px 16px;
+  background: var(--velox-primary-color);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 10000;
+  white-space: nowrap;
+}
+
+/* Row dragging state */
+.velox-row--dragging {
+  opacity: 0.5;
+  background: var(--velox-header-bg) !important;
+}
+
+/* Row drop target */
+.velox-row--drop-target {
+  border-top: 3px solid var(--velox-primary-color) !important;
+  background: rgba(66, 133, 244, 0.1) !important;
+}

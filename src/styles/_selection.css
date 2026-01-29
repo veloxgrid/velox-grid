@@ -1,0 +1,28 @@
+/**
+ * VeloxGrid - Selection Styles
+ * Phase 8: CSS Modularization
+ */
+
+/* Cell Selection */
+.velox-cell--selected { 
+  background: var(--velox-cell-selected-bg); 
+}
+.velox-cell--focused { 
+  outline: 2px solid var(--velox-cell-focused-border); 
+  outline-offset: -2px; 
+  z-index: 1; 
+}
+.velox-cell--selected.velox-cell--focused { 
+  background: var(--velox-cell-selected-bg); 
+}
+
+/* Cell with tooltip indicator */
+.velox-cell--has-tooltip {
+  cursor: help;
+}
+
+.velox-cell--has-tooltip .velox-cell-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,14 +1,375 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-01-26
+> 마지막 업데이트: 2025-01-29
 
 ## 📊 프로젝트 개요
 
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
-- **현재 버전**: v0.6.0
-- **번들 크기**: ~59KB (gzip ~15KB)
+- **현재 버전**: v0.7.0
+- **번들 크기**: 69KB (gzip 17.6KB)
 - **라이선스**: MIT
+
+---
+
+## 🚨 다음 작업: 코드 구조 최적화 (v0.8.0) - Step 1 완료 ✅
+
+> **작업 목표**: VeloxGrid.ts (2,776줄)와 velox-grid.css (731줄) 파일을 모듈화하여 유지보수성 향상
+> **Step 1 완료**: CSS 모듈화 완료 (2025-01-29)
+> **다음 단계**: Step 2 - GridRenderer.ts 분리
+
+### 📊 현재 상태 분석
+
+#### VeloxGrid.ts 현황 (94KB, 2,776줄)
+파일이 너무 커서 단일 책임 원칙(SRP) 위반. 다음 기능들이 하나의 파일에 혼재:
+
+| 기능 영역 | 예상 라인 | 분리 대상 모듈 |
+|----------|----------|---------------|
+| 렌더링 (Header, Body, Cell) | ~600줄 | `GridRenderer.ts` |
+| 이벤트 핸들링 | ~400줄 | `GridEventManager.ts` |
+| Filter 팝업 | ~150줄 | `GridFilterPopup.ts` |
+| Column 메뉴 | ~100줄 | `GridColumnMenu.ts` |
+| Drag & Drop (Column, Row) | ~200줄 | `GridDragManager.ts` |
+| Export/Import | ~100줄 | `GridExportManager.ts` |
+| Public API (Data, Selection, Edit 등) | ~800줄 | 유지 (Facade) |
+| 나머지 (초기화, 상태관리) | ~400줄 | 유지 |
+
+#### velox-grid.css 현황 (20KB, 731줄)
+단일 CSS 파일에 모든 컴포넌트 스타일 포함:
+
+| 스타일 영역 | 예상 라인 | 분리 대상 파일 |
+|------------|----------|---------------|
+| 기본 구조 (Grid, Wrapper) | ~80줄 | `_base.css` |
+| Header 스타일 | ~100줄 | `_header.css` |
+| Body/Cell 스타일 | ~120줄 | `_body.css` |
+| Selection 스타일 | ~60줄 | `_selection.css` |
+| Filter 팝업 | ~80줄 | `_filter.css` |
+| Column 메뉴 | ~60줄 | `_column-menu.css` |
+| Drag & Drop | ~50줄 | `_drag.css` |
+| Editor 스타일 | ~80줄 | `_editor.css` |
+| Tooltip | ~40줄 | `_tooltip.css` |
+| Loading | ~30줄 | `_loading.css` |
+
+---
+
+### 📁 제안 아키텍처
+
+#### TypeScript 구조 (src/core/)
+```
+src/core/
+├── VeloxGrid.ts           # Facade 클래스 (~800줄 목표)
+├── GridRenderer.ts        # NEW: 렌더링 담당
+├── GridEventManager.ts    # NEW: 이벤트 통합 관리
+├── GridFilterPopup.ts     # NEW: 필터 팝업 UI
+├── GridColumnMenu.ts      # NEW: 컬럼 메뉴 UI
+├── GridDragManager.ts     # NEW: 드래그 앤 드롭 통합
+├── GridExportManager.ts   # NEW: Export/Import 통합
+├── GridHistory.ts         # 기존 유지
+├── GridSelection.ts       # 기존 유지
+├── GridVirtualScroll.ts   # 기존 유지
+├── GridEditor.ts          # 기존 유지
+├── GridEditorFactory.ts   # 기존 유지
+├── GridKeyboard.ts        # 기존 유지
+├── GridColumnManager.ts   # 기존 유지
+├── GridDataManager.ts     # 기존 유지
+├── GridValidator.ts       # 기존 유지
+├── GridTooltip.ts         # 기존 유지
+└── index.ts               # 모듈 exports
+```
+
+#### CSS 구조 (src/styles/)
+```
+src/styles/
+├── velox-grid.css         # 메인 진입점 (@import)
+├── _variables.css         # CSS 변수
+├── _base.css              # 기본 레이아웃
+├── _header.css            # 헤더 스타일
+├── _body.css              # 바디/셀 스타일
+├── _selection.css         # 선택 스타일
+├── _filter.css            # 필터 팝업
+├── _column-menu.css       # 컬럼 메뉴
+├── _drag.css              # 드래그 앤 드롭
+├── _editor.css            # 에디터
+├── _tooltip.css           # 툴팁
+└── _loading.css           # 로딩
+```
+
+---
+
+### 📋 작업 단계 (Sonnet 작업용)
+
+#### Step 1: CSS 모듈화 (완료) ✅
+CSS는 상대적으로 안전하게 분리 가능. vite는 CSS @import를 자동 번들링.
+
+1. ✅ `src/styles/_variables.css` 생성 - CSS 변수 분리 (33줄)
+2. ✅ `src/styles/_base.css` 생성 - 기본 레이아웃 (61줄)
+3. ✅ `src/styles/_header.css` 생성 - 헤더 스타일 (205줄)
+4. ✅ `src/styles/_body.css` 생성 - 바디/셀 스타일 (56줄)
+5. ✅ `src/styles/_selection.css` 생성 - 선택 스타일 (29줄)
+6. ✅ `src/styles/_filter.css` 생성 - 필터 팝업 (96줄)
+7. ✅ `src/styles/_column-menu.css` 생성 - 컬럼 메뉴 (102줄)
+8. ✅ `src/styles/_drag.css` 생성 - 드래그 앤 드롭 (76줄)
+9. ✅ `src/styles/_editor.css` 생성 - 에디터 (182줄)
+10. ✅ `src/styles/_tooltip.css` 생성 - 툴팁 (45줄)
+11. ✅ `src/styles/_loading.css` 생성 - 로딩 (40줄)
+12. ✅ `velox-grid.css`를 @import 모음으로 변경 (40줄)
+13. ✅ 빌드 테스트: 번들 크기 15.38KB (gzip 3.06KB) - 기존과 동일
+14. ✅ 개발 서버 테스트: 정상 동작 확인
+
+**작업 시간**: 15분
+**위험도**: 낮음 (CSS만 분리, 기능 변경 없음)
+**번들 크기**: 변화 없음 (Vite가 자동 번들링)
+
+#### Step 2: GridRenderer.ts 분리
+VeloxGrid.ts에서 렌더링 관련 메서드 추출
+
+**추출 대상 메서드:**
+```typescript
+// GridRenderer.ts로 이동
+- render()
+- renderHeader()
+- renderBody()
+- createHeaderCell()
+- createHeaderCheckbarCell()
+- createRowBase()
+- createCell()
+- renderEditCell()
+- updateRowValidationState()
+```
+
+**예상 작업 시간**: 1시간
+**위험도**: 중간 (메서드 간 의존성 주의)
+
+#### Step 3: GridEventManager.ts 분리
+이벤트 핸들링 로직 통합
+
+**추출 대상 메서드:**
+```typescript
+// GridEventManager.ts로 이동
+- attachEvents()
+- handleRowClick()
+- handleCellClick()
+- handleRowSelection()
+- handleCellSelection()
+- handleRowDoubleClick()
+- handleKeyDown() // GridKeyboard와 통합 검토
+```
+
+**예상 작업 시간**: 45분
+**위험도**: 중간
+
+#### Step 4: GridFilterPopup.ts 분리
+필터 팝업 UI 독립
+
+**추출 대상 메서드:**
+```typescript
+// GridFilterPopup.ts로 이동
+- openFilterPopup()
+- closeFilterPopup()
+- applyColumnFilter()
+- removeColumnFilter()
+- handleOutsideClick() (filter 관련 부분)
+```
+
+**예상 작업 시간**: 30분
+**위험도**: 낮음
+
+#### Step 5: GridColumnMenu.ts 분리
+컬럼 메뉴 UI 독립
+
+**추출 대상 메서드:**
+```typescript
+// GridColumnMenu.ts로 이동
+- openColumnMenu()
+- closeColumnMenu()
+- handleOutsideClick() (menu 관련 부분)
+```
+
+**예상 작업 시간**: 20분
+**위험도**: 낮음
+
+#### Step 6: GridDragManager.ts 분리
+드래그 앤 드롭 통합
+
+**추출 대상 메서드:**
+```typescript
+// GridDragManager.ts로 이동
+- startColumnDrag()
+- handleColumnDragMove()
+- handleColumnDragEnd()
+- startRowDrag()
+- handleRowDragMove()
+- handleRowDragEnd()
+- handleResizeStart()
+- handleResizeMove()
+- handleResizeEnd()
+```
+
+**예상 작업 시간**: 45분
+**위험도**: 중간
+
+---
+
+### 🔧 리팩토링 패턴
+
+#### Facade 패턴 유지
+VeloxGrid.ts는 Facade로 유지하며, 내부 모듈을 조율:
+
+```typescript
+// VeloxGrid.ts (리팩토링 후)
+export class VeloxGrid implements VeloxGridInstance {
+  private renderer: GridRenderer;
+  private eventManager: GridEventManager;
+  private filterPopup: GridFilterPopup;
+  private columnMenu: GridColumnMenu;
+  private dragManager: GridDragManager;
+  private history: GridHistory;
+  // ... 기존 모듈들
+
+  constructor(...) {
+    // 모듈 초기화
+    this.renderer = new GridRenderer(this);
+    this.eventManager = new GridEventManager(this);
+    this.filterPopup = new GridFilterPopup(this);
+    // ...
+  }
+
+  // Public API는 VeloxGrid에 유지
+  render(): void {
+    this.renderer.render();
+  }
+}
+```
+
+#### 컨텍스트 전달 패턴
+각 모듈은 VeloxGrid 인스턴스 또는 필요한 컨텍스트만 전달받음:
+
+```typescript
+// GridRenderer.ts
+export class GridRenderer {
+  constructor(private grid: VeloxGrid) {}
+  
+  render(): void {
+    // this.grid.getState(), this.grid.getOptions() 등 사용
+  }
+}
+```
+
+---
+
+### ⚠️ 주의사항
+
+1. **번들 크기 모니터링**
+   - 분리 전후 번들 크기 비교 필수
+   - Tree-shaking이 제대로 작동하는지 확인
+
+2. **순환 참조 방지**
+   - 모듈 간 import 방향 단방향 유지
+   - VeloxGrid → 각 모듈 (역방향 금지)
+
+3. **테스트**
+   - 각 단계 완료 후 데모 페이지 테스트
+   - 기존 기능 regression 확인
+
+4. **Git 커밋**
+   - 각 Step 완료 시 커밋
+   - 문제 발생 시 롤백 용이하도록
+
+---
+
+### 📈 예상 효과 (유지보수성)
+
+| 지표 | 현재 | 목표 |
+|------|------|------|
+| VeloxGrid.ts 라인 수 | 2,776줄 | ~800줄 |
+| 단일 모듈 최대 라인 | 2,776줄 | ~400줄 |
+| CSS 파일 수 | 1개 | 11개 (논리적 분리) |
+| 빌드 후 CSS | 1개 | 1개 (자동 번들) |
+| 유지보수성 | 낮음 | 높음 |
+| 기능 추가 용이성 | 어려움 | 쉬움 |
+
+---
+
+### ❓ 모듈화 vs 경량화: 번들 크기에 미치는 영향
+
+#### 결론: 모듈화는 경량화에 직접적 도움이 되지 않음
+
+**모듈화 후 번들 크기 예상:**
+```
+현재:  69.01 KB (gzip: 17.62 KB)
+예상:  69~70 KB (gzip: 17.5~18 KB) ← 거의 동일 또는 미세 증가
+```
+
+#### 이유
+
+1. **Vite/Rollup 번들링 특성**
+   - 빌드 시 모든 모듈이 하나의 파일로 합쳐짐
+   - 파일 분리는 개발 편의성일 뿐, 최종 번들에는 영향 없음
+
+2. **오히려 미세 증가 가능**
+   - 모듈 간 import/export 문 추가
+   - 클래스 인스턴스 생성 코드 추가
+   - 단, gzip 압축 후에는 차이 미미
+
+3. **Tree-shaking은 현재 구조에서 제한적**
+   - VeloxGrid는 단일 클래스로 모든 기능 포함
+   - 사용자가 특정 기능만 import하는 구조가 아님
+   - 전체 라이브러리를 import하므로 tree-shaking 효과 없음
+
+#### 실제 경량화를 원한다면?
+
+**Option A: 기능별 플러그인 아키텍처 (대규모 리팩토링)**
+```typescript
+// 핵심만 포함된 VeloxGridCore (~30KB)
+import { VeloxGridCore } from 'velox-grid/core';
+
+// 필요한 플러그인만 추가
+import { ExcelPlugin } from 'velox-grid/plugins/excel';
+import { DragPlugin } from 'velox-grid/plugins/drag';
+
+const grid = new VeloxGridCore('#container', options);
+grid.use(ExcelPlugin);
+grid.use(DragPlugin);
+```
+
+**Option B: 코드 최적화 (중간 수준)**
+- 중복 코드 제거
+- 불필요한 헬퍼 함수 정리
+- SVG 아이콘 최적화 (현재 inline SVG 사용 중)
+- 예상 절감: 5~10KB
+
+**Option C: 외부 의존성 분리 (이미 적용됨)**
+- SheetJS는 이미 선택적 외부 의존성
+- 현재 zero-dependency 구조 유지 중
+
+#### 권장 사항
+
+| 목표 | 권장 작업 | 효과 |
+|------|----------|------|
+| 유지보수성 향상 | 모듈화 (현재 계획) | ⭐⭐⭐⭐⭐ |
+| 번들 크기 감소 (소폭) | 코드 최적화 | 5~10KB 절감 |
+| 번들 크기 감소 (대폭) | 플러그인 아키텍처 | 30~50% 절감 가능 |
+
+**현재 번들 크기(69KB, gzip 17KB)는 데이터 그리드 라이브러리로서 매우 경량:**
+- AG Grid: ~300KB+
+- Handsontable: ~400KB+
+- RealGrid: ~200KB+
+
+➡️ **모듈화는 경량화가 아닌 "개발 생산성"을 위한 작업입니다.**
+
+---
+
+### 🚀 작업 시작 방법
+
+```
+.claude/PROGRESS.md 읽고 Step 1 CSS 모듈화 시작해줘
+```
+
+또는
+
+```
+VeloxGrid 최적화 Step 2 GridRenderer 분리 진행해줘
+```
 
 ---
 

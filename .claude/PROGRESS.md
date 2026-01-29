@@ -120,12 +120,12 @@ CSS는 상대적으로 안전하게 분리 가능. vite는 CSS @import를 자동
 **위험도**: 낮음 (CSS만 분리, 기능 변경 없음)
 **번들 크기**: 변화 없음 (Vite가 자동 번들링)
 
-#### Step 2: GridRenderer.ts 분리
+#### Step 2: GridRenderer.ts 분리 (완료) ✅
 VeloxGrid.ts에서 렌더링 관련 메서드 추출
 
-**추출 대상 메서드:**
+**추출 완료 메서드:**
 ```typescript
-// GridRenderer.ts로 이동
+// GridRenderer.ts로 이동 완료
 - render()
 - renderHeader()
 - renderBody()
@@ -133,30 +133,39 @@ VeloxGrid.ts에서 렌더링 관련 메서드 추출
 - createHeaderCheckbarCell()
 - createRowBase()
 - createCell()
-- renderEditCell()
+- createCheckbarCell()
+- updateLoadingState()
 - updateRowValidationState()
 ```
 
-**예상 작업 시간**: 1시간
+**작업 시간**: 40분
 **위험도**: 중간 (메서드 간 의존성 주의)
+**번들 크기**: 변화 없음 (69.01 KB, gzip 17.62 KB)
 
-#### Step 3: GridEventManager.ts 분리
+#### Step 3: GridEventManager.ts 분리 (완료) ✅
 이벤트 핸들링 로직 통합
 
-**추출 대상 메서드:**
+**추출 완료 메서드:**
 ```typescript
-// GridEventManager.ts로 이동
+// GridEventManager.ts로 이동 완료
 - attachEvents()
+- detachEvents()
 - handleRowClick()
 - handleCellClick()
-- handleRowSelection()
-- handleCellSelection()
 - handleRowDoubleClick()
-- handleKeyDown() // GridKeyboard와 통합 검토
+- handleKeyDown()
+- handleArrowKey()
+- handleEnterKey()
+- handleTabKey()
+- handleResize()
+- handleScroll()
+- scrollCellIntoView()
+- scrollRowIntoView()
 ```
 
-**예상 작업 시간**: 45분
+**작업 시간**: 35분
 **위험도**: 중간
+**번들 크기**: 변화 없음 (69.01 KB, gzip 17.62 KB)
 
 #### Step 4: GridFilterPopup.ts 분리
 필터 팝업 UI 독립

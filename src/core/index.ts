@@ -16,6 +16,8 @@ export { GridDataManager } from './GridDataManager';
 export { GridValidator } from './GridValidator';
 export { GridEditorFactory } from './GridEditorFactory';
 export { GridTooltip } from './GridTooltip';
+export { GridRenderer } from './GridRenderer';
+export { GridEventManager } from './GridEventManager';
 
 // Re-export types
 export type { HistoryOptions } from './GridHistory';

@@ -1,12 +1,15 @@
 {
   "name": "velox-grid",
   "version": "0.7.0",
-  "description": "A fast, lightweight, and framework-agnostic data grid library",
+  "description": "A fast, lightweight, and framework-agnostic data grid library with validation, custom editors, and tooltips",
   "main": "dist/velox-grid.js",
   "module": "dist/velox-grid.esm.js",
   "types": "dist/types/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "vite",
@@ -15,21 +18,34 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .ts",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "grid",
     "data-grid",
     "table",
     "datagrid",
+    "spreadsheet",
     "vanilla",
     "typescript",
     "framework-agnostic",
+    "virtual-scroll",
+    "cell-selection",
     "validation",
     "custom-editor",
-    "tooltip"
+    "tooltip",
+    "undo-redo",
+    "excel-export",
+    "drag-drop",
+    "keyboard-navigation",
+    "lightweight",
+    "zero-dependencies"
   ],
-  "author": "bumki",
+  "author": {
+    "name": "bumki",
+    "email": "ki89.choi@samsung.com"
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.19.30",
@@ -44,10 +60,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bumki/velox-grid.git"
+    "url": "git+https://github.com/bumki/velox-grid.git"
   },
   "bugs": {
     "url": "https://github.com/bumki/velox-grid/issues"
   },
-  "homepage": "https://github.com/bumki/velox-grid#readme"
+  "homepage": "https://github.com/bumki/velox-grid#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  }
 }

@@ -1,40 +1,40 @@
-docs: 문서 한글화 및 프로젝트 정보 수정
+docs: ROADMAP.md 최신화 및 미래 계획 중심으로 재구성
 
-문서 한글화:
-- README.md를 한글로 전면 수정
-- CHANGELOG.md를 한글로 전면 수정
-- 모든 설명과 가이드를 한글로 작성
-- 코드 예제 및 기술 용어는 영어 유지
+변경 사항:
+- 완료된 Phase 내용 제거 (PROGRESS.md로 이동)
+- 현재 상태(v0.7.0) 요약 추가
+- 향후 계획에 집중한 구성
 
-프로젝트 정보 수정:
-- GitHub 경로 변경: bumki → bart-idea
-- 작성자 변경: bumki → bart
-- 모든 링크 업데이트
+Phase 13: 집계 및 요약 (v0.8.0):
+- Footer Summary 상세 설명
+- Group Summary 계획
+- 예상 작업량 및 번들 크기 영향
 
-.claude/RULES.md 대폭 강화:
-- 문서 작성 규칙 명시 (한글 사용, GitHub 경로, 작성자)
-- Claude AI 작업 도구 규칙 상세화
-  * 파일 시스템 작업 (read, write, edit)
-  * 명령 실행 규칙 (cmd 필수, PowerShell 금지)
-  * 경로 이동 방법 (cd /d 필수)
-- Git 작업 규칙 상세화
-  * 커밋 메시지 파일 사용 규칙 (인코딩 문제)
-  * 올바른/잘못된 방법 예제 추가
-  * 커밋 타입 및 형식 가이드
-- 작업 진행 순서 체크리스트
-- npm 명령어 및 빌드 정보
-- Phase 작업 체크리스트
-- 코딩 컨벤션 및 주의사항
-- 프로젝트 현황 업데이트 (v0.7.0)
+Phase 14: React 래퍼 (v0.9.0):
+- React Component 계획
+- React Hooks 지원
+- 별도 번들 제공 방안
 
-변경된 파일:
-- README.md (한글 전환, bart-idea 경로)
-- CHANGELOG.md (한글 전환, bart-idea 경로)
-- package.json (author: bart, GitHub: bart-idea)
-- .claude/RULES.md (대폭 강화 및 업데이트)
+Phase 15: 고급 기능:
+- Column Group (다단계 헤더)
+- Row Grouping (행 그룹화)
+- Row Detail (행 상세)
 
-목적:
-- 일관된 한글 문서 제공
-- 정확한 프로젝트 정보 반영
-- 다음 작업 시 참고할 명확한 규칙 수립
-- Claude AI의 효율적인 작업을 위한 가이드라인
+v1.0.0 목표:
+- 성능 최적화
+- 접근성 (ARIA, WCAG 2.1 AA)
+- 테마 시스템 (Dark, Compact, Material)
+- 문서화 강화
+- 품질 보증 (테스트 커버리지 80%+)
+
+장기 비전 (v2.0+):
+- 데이터 시각화 (차트, 히트맵)
+- 서버 사이드 통합
+- 고급 편집 기능 (셀 병합, 수식)
+- 모바일 최적화
+- 플러그인 시스템
+
+문서 구조:
+- 진행 상황: PROGRESS.md (상세 개발 이력)
+- 향후 계획: ROADMAP.md (미래 비전)
+- 변경 이력: CHANGELOG.md (버전별 변경사항)

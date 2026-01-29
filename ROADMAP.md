@@ -1,264 +1,310 @@
-# VeloxGrid Feature Roadmap
+# VeloxGrid 로드맵
 
-> VeloxGrid 개발 로드맵 및 Feature 목록
+> VeloxGrid의 향후 개발 계획 및 기능 로드맵
 
-## 📋 목차
-
-- [완료된 Phase](#-완료된-phase-v010--v030)
-- [예정된 Phase](#-예정된-phase-v040-)
-- [우선순위별 정리](#-우선순위별-정리)
+**현재 버전**: v0.7.0  
+**마지막 업데이트**: 2025-01-29
 
 ---
 
-## ✅ 완료된 Phase (v0.1.0 ~ v0.3.0)
+## 🎯 프로젝트 목표
 
-| Phase | 기능 | 상태 | 버전 |
-|-------|------|------|------|
-| **Phase 1** | 기본 기능 (테이블 렌더링, 컬럼 정의) | ✅ 완료 | v0.1.0 |
-| **Phase 2** | 체크박스/선택 (행 선택, 다중 선택) | ✅ 완료 | v0.1.0 |
-| **Phase 3** | 정렬/필터링 | ✅ 완료 | v0.1.0 |
-| **Phase 4** | 편집 기능 (인라인 편집) | ✅ 완료 | v0.1.0 |
-| **Phase 5** | 가상 스크롤 (대용량 데이터 100,000+ 행) | ✅ 완료 | v0.2.0 |
-| **Phase 6** | 컬럼 고정, 헤더 필터 UI | ✅ 완료 | v0.2.0 |
-| **Phase 7** | Selection 고도화 (Cell/Block Selection, CheckBar 분리, Keyboard Navigation) | ✅ 완료 | v0.3.0 |
+VeloxGrid는 빠르고 가벼우며 프레임워크 독립적인 데이터 그리드 라이브러리를 목표로 합니다.
+
+### 핵심 가치
+- ⚡ **성능**: 가상 스크롤로 100,000+ 행 처리
+- 📦 **경량화**: 70KB 이하 유지 (gzip ~18KB)
+- 🎯 **독립성**: Zero Dependencies (선택적 SheetJS 제외)
+- 🔧 **확장성**: 모듈화된 아키텍처
+- 🌐 **범용성**: Framework Agnostic
 
 ---
 
-## ✅ Phase 7 상세 (v0.3.0) - Selection 고도화
+## 📊 현재 상태 (v0.7.0)
 
-### 구현 완료된 기능
+### 완료된 주요 기능
+- ✅ 가상 스크롤 (Phase 5)
+- ✅ 셀/블록 선택 (Phase 7)
+- ✅ Excel Export/Import (Phase 8)
+- ✅ Undo/Redo (Phase 9)
+- ✅ 컬럼/행 재정렬 (Phase 10-11)
+- ✅ 셀 검증 & 커스텀 에디터 (Phase 12)
 
-| Feature | 설명 | 상태 |
-|---------|------|------|
-| **SelectionStyle 확장** | `'row'` / `'cell'` / `'block'` / `'none'` | ✅ 완료 |
-| **Cell Selection** | 개별 셀 선택 지원 | ✅ 완료 |
-| **Block Selection** | 마우스 드래그로 셀 범위 선택 (엑셀 스타일) | ✅ 완료 |
-| **CheckBar 분리** | Selection과 Check 기능 분리 | ✅ 완료 |
-| **Exclusive Check** | 라디오 버튼 스타일 (단일 체크) | ✅ 완료 |
-| **Checkable Callback** | 조건부 체크 가능 여부 | ✅ 완료 |
-| **Keyboard Navigation** | 화살표 키로 셀 이동 | ✅ 완료 |
-| **Loading State** | 로딩 인디케이터 | ✅ 완료 |
-| **Clipboard 기본** | Copy/Paste/Cut | ✅ 완료 |
-| **Auto Fit Column** | 컬럼 너비 자동 조절 | ✅ 완료 |
+### 번들 크기
+- **UMD**: 69.0 KB (gzip: 17.6 KB)
+- **ESM**: 93.8 KB (gzip: 21.1 KB)
+- **CSS**: 15.4 KB (gzip: 3.1 KB)
 
-### 새로운 Options
+---
 
+## 🗺️ 향후 로드맵
+
+### 🔴 Phase 13: 집계 및 요약 (v0.8.0) - 높은 우선순위
+
+**예상 시기**: 2025년 2월
+
+#### Footer Summary
 ```typescript
-interface GridOptions {
-  selectable: boolean;
-  selectionMode: 'none' | 'single' | 'multiple' | 'extended';
-  selectionStyle: 'row' | 'cell' | 'block' | 'none';
-  
-  checkBar: {
-    visible: boolean;
-    exclusive: boolean;      // true면 라디오 버튼 스타일
-    showAll: boolean;        // 헤더에 전체 선택 체크박스
-    checkableCallback?: (rowData: RowData, rowIndex: number) => boolean;
+interface FooterOptions {
+  visible: boolean;
+  height?: number;
+}
+
+interface ColumnDefinition {
+  footer?: {
+    type: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'custom';
+    formatter?: (value: number, data: RowData[]) => string;
+    calculator?: (data: RowData[], field: string) => CellValue;
   };
-  
-  loading: boolean;
-  loadingMessage: string;
 }
 ```
 
-### 새로운 API
+**주요 기능**
+- 컬럼별 합계, 평균, 개수, 최소값, 최대값 계산
+- 커스텀 집계 함수 지원
+- 푸터 영역 UI 추가
+- 가상 스크롤과 동기화
 
+#### Group Summary (선택적)
+- 그룹별 소계 표시
+- 접기/펼치기 기능
+- 다단계 그룹 지원
+
+**예상 작업량**: 중간~높음  
+**번들 크기 영향**: +5~8KB 예상
+
+---
+
+### 🔴 Phase 14: React 래퍼 (v0.9.0) - 높은 우선순위
+
+**예상 시기**: 2025년 3월
+
+#### React Component
 ```typescript
-// Cell Selection
-selectCell(rowIndex: number, field: string, selected?: boolean): void;
-getSelectedCells(): CellIndex[];
-setFocusedCell(rowIndex: number, field: string): void;
-getFocusedCell(): CellIndex | null;
-setSelection(selection: Selection): void;
-getSelection(): Selection | null;
-getSelectionData(): CellValue[][];
+import { VeloxGridReact } from 'velox-grid/react';
 
-// CheckBar API
-checkItem(index: number, checked?: boolean): void;
-checkItems(indices: number[], checked?: boolean): void;
-checkAll(checked?: boolean): void;
-uncheckAll(): void;
-getCheckedItems(): number[];
-getCheckedData(): RowData[];
-isItemChecked(index: number): boolean;
-isItemCheckable(index: number): boolean;
-
-// Column
-autoFitColumn(field: string): void;
-autoFitAllColumns(): void;
-
-// Scroll
-scrollToCell(rowIndex: number, field: string): void;
-
-// Loading
-setLoading(loading: boolean): void;
-
-// Clipboard
-copy(): void;
-paste(): void;
-cut(): void;
+function App() {
+  return (
+    <VeloxGridReact
+      columns={columns}
+      data={data}
+      onCellEdit={handleEdit}
+      onSelectionChange={handleSelection}
+    />
+  );
+}
 ```
 
-### 키보드 단축키
+**주요 기능**
+- React 컴포넌트 래퍼
+- React Hooks (useVeloxGrid)
+- Props와 이벤트 통합
+- TypeScript 타입 지원 강화
+- 별도 번들 제공 (선택적 로드)
 
-| 단축키 | 동작 |
-|--------|------|
-| `Arrow Keys` | 셀 이동 |
-| `Shift + Arrow` | 선택 영역 확장 |
-| `Ctrl + A` | 전체 선택 |
-| `Ctrl + C` | 복사 |
-| `Ctrl + V` | 붙여넣기 |
-| `Ctrl + X` | 잘라내기 |
-| `Enter / F2` | 편집 시작 |
-| `Escape` | 편집 취소 |
-| `Space` | 체크 토글 |
-| `Home / End` | 첫/끝 셀 |
-| `Ctrl + Home/End` | 첫/끝 행 |
-| `Page Up/Down` | 페이지 이동 |
+**예상 작업량**: 중간  
+**번들 크기**: 별도 패키지 (~10KB)
 
 ---
 
-## 🔜 예정된 Phase (v0.4.0 ~)
+### 🟡 Phase 15: 고급 기능 - 중간 우선순위
 
-### Phase 8: Excel Export/Import
+**예상 시기**: 2025년 4월~5월
 
-| Feature | 설명 | Priority |
-|---------|------|----------|
-| **Excel Export** | 그리드 데이터를 .xlsx 파일로 내보내기 | 🔴 High |
-| **Excel Import** | .xlsx 파일 데이터를 그리드로 가져오기 | 🔴 High |
-| **CSV Export/Import** | CSV 형식 지원 | 🟡 Medium |
-| **Export Options** | 헤더 포함, 선택된 행만, 필터된 행만 등 | 🟡 Medium |
-
----
-
-### Phase 9: 클립보드 & 키보드 고도화
-
-| Feature | 설명 | Priority |
-|---------|------|----------|
-| **Enter/Tab 이동** | 편집 완료 후 다음 셀 이동 | 🟡 Medium |
-| **Delete Key** | 선택 행/셀 삭제 | 🟡 Medium |
-| **Undo/Redo** | Ctrl+Z / Ctrl+Y | 🟢 Low |
-
----
-
-### Phase 10: 컬럼 기능 확장
-
-| Feature | 설명 | Priority |
-|---------|------|----------|
-| **Column Reorder** | 드래그로 컬럼 순서 변경 | 🟡 Medium |
-| **Column Group** | 다단계 헤더 그룹 | 🟡 Medium |
-| **Column Menu** | 컬럼 헤더 컨텍스트 메뉴 | 🟡 Medium |
-
----
-
-### Phase 11: 행 기능 확장
-
-| Feature | 설명 | Priority |
-|---------|------|----------|
-| **Row Grouping** | 특정 필드 기준 행 그룹화 | 🟡 Medium |
-| **Row Drag & Drop** | 드래그로 행 순서 변경 | 🟡 Medium |
-| **Row Detail** | 행 확장하여 상세 정보 표시 | 🟢 Low |
-
----
-
-### Phase 12: 셀 기능 확장
-
-| Feature | 설명 | Priority |
-|---------|------|----------|
-| **Cell Validation** | 입력값 검증 | 🔴 High |
-| **Custom Cell Editor** | 커스텀 에디터 (드롭다운, 날짜 등) | 🔴 High |
-| **Cell Tooltip** | 셀 호버 시 툴팁 표시 | 🟡 Medium |
-
----
-
-### Phase 13: 합계/집계
-
-| Feature | 설명 | Priority |
-|---------|------|----------|
-| **Footer Summary** | 하단에 합계/평균/개수 표시 | 🔴 High |
-| **Group Summary** | 그룹별 소계 | 🟡 Medium |
-
----
-
-### Phase 14: Framework 래퍼
-
-| Feature | 설명 | Priority |
-|---------|------|----------|
-| **React Component** | React 전용 컴포넌트 | 🔴 High |
-| **Vue Component** | Vue 3 전용 컴포넌트 | 🟡 Medium |
-
----
-
-## 📊 우선순위별 정리
-
-### 🔴 High Priority (v0.4.0 ~ v0.5.0)
-
-| # | Feature | Phase | 예상 버전 |
-|---|---------|-------|-----------|
-| 1 | Excel Export | Phase 8 | v0.4.0 |
-| 2 | Excel Import | Phase 8 | v0.4.0 |
-| 3 | Cell Validation | Phase 12 | v0.5.0 |
-| 4 | Custom Cell Editor | Phase 12 | v0.5.0 |
-| 5 | Footer Summary | Phase 13 | v0.5.0 |
-| 6 | React Component | Phase 14 | v0.6.0 |
-
-### 🟡 Medium Priority (v0.5.0 ~ v0.7.0)
-
-| # | Feature | Phase |
-|---|---------|-------|
-| 1 | CSV Export/Import | Phase 8 |
-| 2 | Enter/Tab 이동 | Phase 9 |
-| 3 | Column Reorder | Phase 10 |
-| 4 | Row Grouping | Phase 11 |
-| 5 | Vue Component | Phase 14 |
-
----
-
-## 🚀 권장 구현 순서
-
-### v0.4.0 - Excel & CSV
+#### 15.1 Column Group (다단계 헤더)
+```typescript
+interface ColumnGroup {
+  header: string;
+  columns: (ColumnDefinition | ColumnGroup)[];
+}
 ```
-├── Excel Export (SheetJS)
-├── Excel Import
-├── CSV Export/Import
-└── Export Options
+- 2~3단계 헤더 그룹
+- 그룹별 정렬/필터
+- 그룹 컬럼 이동
+
+#### 15.2 Row Grouping (행 그룹화)
+```typescript
+interface GroupOptions {
+  field: string;
+  collapsed?: boolean;
+  sortOrder?: 'asc' | 'desc';
+  aggregates?: AggregateConfig[];
+}
+```
+- 필드 기준 행 그룹화
+- 접기/펼치기
+- 그룹별 소계
+- 다단계 그룹
+
+#### 15.3 Row Detail (행 상세)
+```typescript
+interface RowDetailOptions {
+  renderer: (row: RowData) => HTMLElement | string;
+  height?: number | 'auto';
+}
+```
+- 행 확장 시 상세 정보 표시
+- 커스텀 렌더러
+- 중첩 그리드 지원
+
+**예상 작업량**: 높음  
+**번들 크기 영향**: +10~15KB
+
+---
+
+### 🟢 Phase 16: Vue 래퍼 (v1.0.0) - 낮은 우선순위
+
+**예상 시기**: 2025년 하반기
+
+#### Vue 3 Component
+```vue
+<template>
+  <VeloxGrid
+    :columns="columns"
+    :data="data"
+    @cell-edit="handleEdit"
+  />
+</template>
 ```
 
-### v0.5.0 - 편집 고도화
-```
-├── Cell Validation
-├── Custom Editor (dropdown, date)
-├── Footer Summary
-└── Cell Tooltip
-```
-
-### v0.6.0 - React 래퍼
-```
-├── React Component
-├── Hooks (useVeloxGrid)
-├── TypeScript 지원 강화
-└── Dark Theme
-```
+**주요 기능**
+- Vue 3 Composition API
+- Reactive 데이터 바인딩
+- v-model 지원
+- TypeScript 지원
 
 ---
 
-## 📝 참고 사항
+## 🎨 v1.0.0 목표
 
-### 경쟁 제품 비교
+**예상 시기**: 2025년 하반기
 
-| Feature | RealGrid | AG Grid | VeloxGrid |
-|---------|----------|---------|-----------|
+### 안정화 및 최적화
+
+#### 성능 최적화
+- [ ] 렌더링 최적화 (requestAnimationFrame)
+- [ ] 메모리 사용 최적화
+- [ ] 번들 크기 최적화 (Tree-shaking)
+- [ ] 벤치마크 및 성능 테스트
+
+#### 접근성 (Accessibility)
+- [ ] ARIA 속성 추가
+- [ ] 키보드 내비게이션 완성
+- [ ] 스크린 리더 지원
+- [ ] 고대비 모드 지원
+- [ ] WCAG 2.1 AA 준수
+
+#### 테마 시스템
+- [ ] Dark 테마
+- [ ] Compact 테마
+- [ ] Material Design 테마
+- [ ] CSS Variables 확장
+- [ ] 테마 빌더 도구
+
+#### 문서화
+- [ ] API 전체 문서
+- [ ] 예제 갤러리
+- [ ] 마이그레이션 가이드
+- [ ] 성능 가이드
+- [ ] Storybook 통합
+
+#### 품질 보증
+- [ ] 단위 테스트 커버리지 80%+
+- [ ] E2E 테스트
+- [ ] 브라우저 호환성 테스트
+- [ ] 모바일 터치 지원
+
+---
+
+## 🚀 릴리즈 전략
+
+### 버전 정책
+- **Major (x.0.0)**: Breaking Changes, 주요 아키텍처 변경
+- **Minor (0.x.0)**: 새로운 기능 추가, 하위 호환성 유지
+- **Patch (0.0.x)**: 버그 수정, 문서 업데이트
+
+### 릴리즈 주기
+- **Phase 완료 시**: Minor 버전 업데이트
+- **버그 수정**: 필요 시 Patch 버전 업데이트
+- **주요 마일스톤**: Major 버전 업데이트
+
+---
+
+## 📈 경쟁 제품 비교 목표
+
+| 기능 | RealGrid | AG Grid | VeloxGrid v1.0 목표 |
+|------|----------|---------|---------------------|
 | Virtual Scroll | ✅ | ✅ | ✅ |
-| Cell Selection | ✅ | ✅ | ✅ (v0.3.0) |
-| Block Selection | ✅ | ✅ | ✅ (v0.3.0) |
-| CheckBar 분리 | ✅ | ✅ | ✅ (v0.3.0) |
-| Keyboard Navigation | ✅ | ✅ | ✅ (v0.3.0) |
-| Excel Export | ✅ | ✅ (Enterprise) | 🔜 |
-| Row Grouping | ✅ | ✅ | 🔜 |
-| React Support | ❌ | ✅ | 🔜 |
-| 번들 크기 | ~500KB | ~1MB | ~30KB |
-| 라이선스 | 상용 | 상용 | MIT |
+| Cell/Block Selection | ✅ | ✅ | ✅ |
+| Excel Export/Import | ✅ | ✅ (Enterprise) | ✅ |
+| Cell Validation | ✅ | ✅ | ✅ |
+| Custom Editors | ✅ | ✅ | ✅ |
+| Row Grouping | ✅ | ✅ | ✅ (v1.0) |
+| Column Grouping | ✅ | ✅ | ✅ (v1.0) |
+| Footer Summary | ✅ | ✅ | ✅ (v0.8) |
+| React Support | ❌ | ✅ | ✅ (v0.9) |
+| Vue Support | ❌ | ✅ | ✅ (v1.0) |
+| 번들 크기 | ~500KB | ~1MB | **~80KB** |
+| 라이선스 | 상용 | 상용 (Community는 무료) | **MIT (무료)** |
 
 ---
 
-*Last Updated: 2025-01-24 (Phase 7 완료)*
+## 🎯 장기 비전 (v2.0+)
+
+### 고급 데이터 시각화
+- 차트 통합 (인라인 차트)
+- 히트맵
+- 스파크라인
+- 조건부 서식 강화
+
+### 서버 사이드 통합
+- 서버 사이드 정렬/필터링
+- 무한 스크롤 (페이지네이션)
+- 실시간 데이터 업데이트 (WebSocket)
+
+### 고급 편집 기능
+- 셀 병합
+- 복수 행/열 삽입/삭제
+- 드래그 앤 드롭 데이터 이동
+- 수식 지원 (Excel-like)
+
+### 모바일 최적화
+- 터치 제스처
+- 반응형 레이아웃
+- 모바일 전용 UI
+
+### 플러그인 시스템
+- 커스텀 플러그인 API
+- 써드파티 통합
+- 마켓플레이스
+
+---
+
+## 💡 커뮤니티 기여
+
+### 환영하는 기여
+- 버그 리포트
+- 기능 제안
+- 문서 개선
+- 예제 추가
+- 테스트 작성
+- 성능 최적화
+
+### 기여 방법
+1. GitHub 이슈 생성
+2. Pull Request 제출
+3. 토론 참여
+
+---
+
+## 📞 피드백
+
+로드맵에 대한 의견이나 제안이 있으시면:
+- [GitHub Issues](https://github.com/bart-idea/velox-grid/issues)
+- [GitHub Discussions](https://github.com/bart-idea/velox-grid/discussions)
+
+---
+
+**이 로드맵은 계획이며 변경될 수 있습니다.**
+
+*마지막 업데이트: 2025-01-29 (v0.7.0 기준)*

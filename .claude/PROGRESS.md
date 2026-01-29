@@ -167,55 +167,62 @@ VeloxGrid.ts에서 렌더링 관련 메서드 추출
 **위험도**: 중간
 **번들 크기**: 변화 없음 (69.01 KB, gzip 17.62 KB)
 
-#### Step 4: GridFilterPopup.ts 분리
+#### Step 4: GridFilterPopup.ts 분리 (완료) ✅
 필터 팝업 UI 독립
 
-**추출 대상 메서드:**
+**추출 완료 메서드:**
 ```typescript
-// GridFilterPopup.ts로 이동
-- openFilterPopup()
+// GridFilterPopup.ts로 이동 완료
+- showFilterPopup()
 - closeFilterPopup()
 - applyColumnFilter()
 - removeColumnFilter()
-- handleOutsideClick() (filter 관련 부분)
+- handleOutsideClick() (filter 관련)
+- isOpen()
 ```
 
-**예상 작업 시간**: 30분
+**작업 시간**: 25분
 **위험도**: 낮음
+**번들 크기**: 변화 없음 (69.01 KB, gzip 17.62 KB)
 
-#### Step 5: GridColumnMenu.ts 분리
+#### Step 5: GridColumnMenu.ts 분리 (완료) ✅
 컬럼 메뉴 UI 독립
 
-**추출 대상 메서드:**
+**추출 완료 메서드:**
 ```typescript
-// GridColumnMenu.ts로 이동
-- openColumnMenu()
+// GridColumnMenu.ts로 이동 완료
+- showColumnMenu()
 - closeColumnMenu()
-- handleOutsideClick() (menu 관련 부분)
+- handleOutsideClick() (menu 관련)
+- isOpen()
 ```
 
-**예상 작업 시간**: 20분
+**작업 시간**: 20분
 **위험도**: 낮음
+**번들 크기**: 변화 없음 (69.01 KB, gzip 17.62 KB)
 
-#### Step 6: GridDragManager.ts 분리
+#### Step 6: GridDragManager.ts 분리 (완료) ✅
 드래그 앤 드롭 통합
 
-**추출 대상 메서드:**
+**추출 완료 메서드:**
 ```typescript
-// GridDragManager.ts로 이동
+// GridDragManager.ts로 이동 완료
 - startColumnDrag()
 - handleColumnDragMove()
 - handleColumnDragEnd()
 - startRowDrag()
 - handleRowDragMove()
 - handleRowDragEnd()
-- handleResizeStart()
+- startResize()
 - handleResizeMove()
 - handleResizeEnd()
+- isColumnDragging(), isRowDragging(), isResizing()
+- cleanup()
 ```
 
-**예상 작업 시간**: 45분
+**작업 시간**: 40분
 **위험도**: 중간
+**번들 크기**: 변화 없음 (69.01 KB, gzip 17.62 KB)
 
 ---
 

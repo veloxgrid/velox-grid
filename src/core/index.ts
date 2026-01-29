@@ -18,6 +18,9 @@ export { GridEditorFactory } from './GridEditorFactory';
 export { GridTooltip } from './GridTooltip';
 export { GridRenderer } from './GridRenderer';
 export { GridEventManager } from './GridEventManager';
+export { GridFilterPopup } from './GridFilterPopup';
+export { GridColumnMenu } from './GridColumnMenu';
+export { GridDragManager } from './GridDragManager';
 
 // Re-export types
 export type { HistoryOptions } from './GridHistory';

@@ -1,6 +1,6 @@
 {
   "name": "velox-grid",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A fast, lightweight, and framework-agnostic data grid library",
   "main": "dist/velox-grid.js",
   "module": "dist/velox-grid.esm.js",
@@ -24,7 +24,10 @@
     "datagrid",
     "vanilla",
     "typescript",
-    "framework-agnostic"
+    "framework-agnostic",
+    "validation",
+    "custom-editor",
+    "tooltip"
   ],
   "author": "bumki",
   "license": "MIT",

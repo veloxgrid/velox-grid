@@ -12,7 +12,7 @@
 
 export type ValueType = 'text' | 'number' | 'boolean' | 'date' | 'datetime';
 
-export type CellValue = string | number | boolean | Date | null | undefined;
+export type CellValue = string | number | boolean | Date | string[] | null | undefined;
 
 export type RowData = Record<string, CellValue>;
 
@@ -30,6 +30,38 @@ export interface ValidationRule {
 export interface ValidationResult {
   valid: boolean;
   errors: Array<{ field: string; message: string }>;
+}
+
+// ============================================
+// Custom Editor Types (Phase 12.2)
+// ============================================
+
+export type EditorType = 'text' | 'number' | 'select' | 'date' | 'checkbox' | 'custom';
+
+export interface SelectOption {
+  value: CellValue;
+  label: string;
+}
+
+export interface EditorOptions {
+  /** Editor type */
+  type: EditorType;
+  /** Options for select editor */
+  options?: SelectOption[];
+  /** Min value for number editor */
+  min?: number;
+  /** Max value for number editor */
+  max?: number;
+  /** Step for number editor */
+  step?: number;
+  /** Date format string (e.g., 'YYYY-MM-DD') */
+  format?: string;
+  /** Custom renderer function */
+  renderer?: (cell: HTMLElement, value: CellValue, save: (v: CellValue) => void, cancel: () => void) => void;
+  /** Allow multiple selection (for select editor) */
+  multiple?: boolean;
+  /** Placeholder text */
+  placeholder?: string;
 }
 
 // ============================================
@@ -75,6 +107,10 @@ export interface ColumnDefinition {
   fixed?: 'left' | 'right' | false;
   /** Validation rules (Phase 12.1) */
   validation?: ValidationRule[];
+  /** Custom editor options (Phase 12.2) */
+  editor?: EditorOptions;
+  /** Cell tooltip (Phase 12.3) - boolean for auto tooltip, function for custom */
+  tooltip?: boolean | ((value: CellValue, row: RowData) => string);
 }
 
 // ============================================

@@ -14,6 +14,8 @@ export { GridKeyboard } from './GridKeyboard';
 export { GridColumnManager } from './GridColumnManager';
 export { GridDataManager } from './GridDataManager';
 export { GridValidator } from './GridValidator';
+export { GridEditorFactory } from './GridEditorFactory';
+export { GridTooltip } from './GridTooltip';
 
 // Re-export types
 export type { HistoryOptions } from './GridHistory';

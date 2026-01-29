@@ -69,10 +69,10 @@
 - ✅ Row Drag & Drop (순서 변경)
 - ✅ moveRow() API
 
-### Phase 12: 셀 기능 확장 (v0.7.0) 🚧 진행중
-- ✅ Cell Validation (입력값 검증) - 2025-01-28 완료
-- ⏳ Custom Cell Editor (드롭다운, 날짜 등)
-- ⏳ Cell Tooltip
+### Phase 12: 셀 기능 확장 (v0.7.0) ✅ 완료 - 2025-01-29
+- ✅ Cell Validation (입력값 검증)
+- ✅ Custom Cell Editor (드롭다운, 날짜 등)
+- ✅ Cell Tooltip
 
 ---
 
@@ -148,13 +148,13 @@ interface ColumnCache {
 
 ---
 
-## 📊 빌드 결과 (v0.6.0)
+## 📊 빌드 결과 (v0.7.0)
 
 ```
-velox-grid.js:      58.94 KB (gzip: 14.92 KB)
-velox-grid.esm.js:  79.31 KB (gzip: 17.52 KB)
-velox-grid.iife.js: 58.77 KB (gzip: 14.85 KB)
-velox-grid.css:     12.26 KB (gzip:  2.50 KB)
+velox-grid.js:      69.01 KB (gzip: 17.62 KB)
+velox-grid.esm.js:  93.79 KB (gzip: 21.12 KB)
+velox-grid.iife.js: 68.85 KB (gzip: 17.54 KB)
+velox-grid.css:     15.40 KB (gzip:  3.05 KB)
 ```
 
 ### 번들 크기 변화
@@ -163,8 +163,9 @@ velox-grid.css:     12.26 KB (gzip:  2.50 KB)
 | v0.5.0 | 50.5KB | 12.9KB |
 | v0.5.1 | 50.7KB | 13.1KB |
 | v0.6.0 | 58.9KB | 14.9KB |
+| v0.7.0 | 69.0KB | 17.6KB |
 
-> Phase 10-11 기능 추가로 번들 크기 증가 (~8KB)
+> Phase 12 기능 추가로 번들 크기 증가 (~10KB)
 
 ---
 

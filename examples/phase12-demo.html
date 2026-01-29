@@ -3,264 +3,249 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VeloxGrid - Phase 12: Cell Validation</title>
+  <title>VeloxGrid - Phase 12.2: Custom Cell Editor Demo</title>
   <link rel="stylesheet" href="../dist/velox-grid.css">
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
       padding: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
+      background: #f5f5f5;
+      margin: 0;
     }
-    h1 { color: #1976d2; }
-    h2 { color: #424242; margin-top: 30px; }
-    .info {
-      background: #e3f2fd;
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+    .section h2 {
+      color: #4285f4;
+      font-size: 18px;
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #4285f4;
+    }
+    .demo-info {
+      background: #e8f0fe;
+      border-left: 4px solid #4285f4;
       padding: 15px;
+      margin-bottom: 20px;
       border-radius: 4px;
+    }
+    .demo-info h3 {
+      margin-top: 0;
+      color: #1a73e8;
+      font-size: 16px;
+    }
+    .demo-info ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+    .demo-info li {
+      margin: 4px 0;
+      color: #333;
+    }
+    #grid1, #grid2, #grid3 {
+      height: 500px;
       margin-bottom: 20px;
     }
-    .grid-container {
-      margin-bottom: 30px;
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 8px 16px;
+      background: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #3367d6;
+    }
+    button:active {
+      background: #2952a3;
+    }
+    .code-block {
+      background: #f8f9fa;
       border: 1px solid #e0e0e0;
       border-radius: 4px;
-      padding: 10px;
+      padding: 15px;
+      margin: 10px 0;
+      overflow-x: auto;
     }
-    .error-log {
-      background: #fff3e0;
-      padding: 10px;
+    .code-block code {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #333;
+    }
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
       border-radius: 4px;
+      padding: 12px;
       margin-top: 10px;
-      font-family: monospace;
-      font-size: 12px;
-      max-height: 200px;
-      overflow-y: auto;
+      display: none;
     }
-    .error-item {
-      padding: 5px;
-      border-bottom: 1px solid #ffe0b2;
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 4px;
+      padding: 12px;
+      margin-top: 10px;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>🔍 VeloxGrid Phase 12: Cell Validation</h1>
-  
-  <div class="info">
-    <strong>테스트 방법:</strong>
-    <ul>
-      <li>셀을 더블클릭하여 편집 모드로 진입</li>
-      <li>유효하지 않은 값을 입력하고 Enter를 누르면 빨간 테두리와 에러 메시지 표시</li>
-      <li>유효한 값을 입력하면 정상적으로 저장됨</li>
-    </ul>
-  </div>
+  <div class="container">
+    <h1>🎨 VeloxGrid Phase 12.2: Custom Cell Editor</h1>
+    <p class="subtitle">Select, Date, Checkbox, Number 등 다양한 커스텀 에디터 데모</p>
 
-  <h2>예제 1: Required & MinLength Validation</h2>
-  <div class="grid-container">
-    <div id="grid1" style="height: 400px;"></div>
-  </div>
-  <div class="error-log" id="error-log-1">
-    <strong>Validation Errors:</strong>
-    <div id="errors-1"></div>
-  </div>
+    <!-- Demo 1: Select Editor -->
+    <div class="section">
+      <h2>📋 Demo 1: Select 에디터 (단일 선택 & 다중 선택)</h2>
+      <div class="demo-info">
+        <h3>기능</h3>
+        <ul>
+          <li><strong>Role</strong> 컬럼: 단일 선택 Select 에디터</li>
+          <li><strong>Skills</strong> 컬럼: 다중 선택 Select 에디터 (Ctrl/Cmd + Click)</li>
+          <li>셀을 더블클릭하여 편집 모드 진입</li>
+          <li>Select 변경 시 자동 저장</li>
+        </ul>
+      </div>
+      <div class="actions">
+        <button onclick="addRowDemo1()">➕ 행 추가</button>
+        <button onclick="logDataDemo1()">📄 데이터 출력</button>
+      </div>
+      <div id="grid1"></div>
+      <div id="message1" class="success-message"></div>
+    </div>
 
-  <h2>예제 2: Number Range & Pattern Validation</h2>
-  <div class="grid-container">
-    <div id="grid2" style="height: 400px;"></div>
-  </div>
-  <div class="error-log" id="error-log-2">
-    <strong>Validation Errors:</strong>
-    <div id="errors-2"></div>
-  </div>
+    <!-- Demo 2: Date & Number Editor -->
+    <div class="section">
+      <h2>📅 Demo 2: Date & Number 에디터</h2>
+      <div class="demo-info">
+        <h3>기능</h3>
+        <ul>
+          <li><strong>Birth Date</strong>: HTML5 Date Picker</li>
+          <li><strong>Quantity</strong>: Number 에디터 (min: 1, max: 999, step: 1)</li>
+          <li><strong>Price</strong>: Number 에디터 (min: 0, step: 0.01)</li>
+          <li>Enter 키로 저장, Escape 키로 취소</li>
+        </ul>
+      </div>
+      <div class="actions">
+        <button onclick="addRowDemo2()">➕ 행 추가</button>
+        <button onclick="logDataDemo2()">📄 데이터 출력</button>
+      </div>
+      <div id="grid2"></div>
+      <div id="message2" class="success-message"></div>
+    </div>
 
-  <h2>예제 3: Custom Validator</h2>
-  <div class="grid-container">
-    <div id="grid3" style="height: 400px;"></div>
-  </div>
-  <div class="error-log" id="error-log-3">
-    <strong>Validation Errors:</strong>
-    <div id="errors-3"></div>
+    <!-- Demo 3: Checkbox & Mixed Editors -->
+    <div class="section">
+      <h2>✅ Demo 3: Checkbox & 혼합 에디터</h2>
+      <div class="demo-info">
+        <h3>기능</h3>
+        <ul>
+          <li><strong>Active</strong>: Checkbox 에디터 (클릭 시 즉시 저장)</li>
+          <li><strong>Status</strong>: Select 에디터</li>
+          <li><strong>Priority</strong>: Number 에디터 (1-5 범위)</li>
+          <li><strong>Due Date</strong>: Date 에디터</li>
+          <li>다양한 에디터 타입이 하나의 그리드에서 작동</li>
+        </ul>
+      </div>
+      <div class="actions">
+        <button onclick="addRowDemo3()">➕ 행 추가</button>
+        <button onclick="logDataDemo3()">📄 데이터 출력</button>
+        <button onclick="toggleAllActive()">🔄 전체 Active 토글</button>
+      </div>
+      <div id="grid3"></div>
+      <div id="message3" class="success-message"></div>
+    </div>
+
+    <div class="code-block">
+      <code>
+// Select 에디터 예제
+{
+  field: 'role',
+  header: 'Role',
+  editable: true,
+  editor: {
+    type: 'select',
+    options: [
+      { value: 'developer', label: 'Developer' },
+      { value: 'designer', label: 'Designer' },
+      { value: 'manager', label: 'Manager' }
+    ]
+  }
+}
+
+// 다중 선택 Select
+{
+  field: 'skills',
+  header: 'Skills',
+  editable: true,
+  editor: {
+    type: 'select',
+    multiple: true,
+    options: [...]
+  }
+}
+
+// Date 에디터
+{
+  field: 'birthDate',
+  header: 'Birth Date',
+  editable: true,
+  editor: { type: 'date' }
+}
+
+// Number 에디터
+{
+  field: 'quantity',
+  header: 'Quantity',
+  type: 'number',
+  editable: true,
+  editor: {
+    type: 'number',
+    min: 1,
+    max: 999,
+    step: 1
+  }
+}
+
+// Checkbox 에디터
+{
+  field: 'active',
+  header: 'Active',
+  editable: true,
+  editor: { type: 'checkbox' }
+}
+      </code>
+    </div>
   </div>
 
   <script src="../dist/velox-grid.iife.js"></script>
   <script>
-    // VeloxGrid.VeloxGrid로 클래스에 접근
-    var VeloxGridClass = VeloxGrid.VeloxGrid;
-
-    // 에러 로그 함수
-    function logError(gridId, event) {
-      const errorContainer = document.getElementById('errors-' + gridId);
-      const errorDiv = document.createElement('div');
-      errorDiv.className = 'error-item';
-      errorDiv.innerHTML = 
-        '<strong>[' + new Date().toLocaleTimeString() + ']</strong> ' +
-        'Row ' + event.rowIndex + ', Field: ' + event.field + '<br>' +
-        'Errors: ' + event.errors.join(', ');
-      errorContainer.insertBefore(errorDiv, errorContainer.firstChild);
-    }
-
-    // 예제 1: Required & MinLength
-    var grid1 = new VeloxGridClass('#grid1', {
-      columns: [
-        { 
-          field: 'name', 
-          header: '이름', 
-          width: 150, 
-          editable: true,
-          validation: [
-            { type: 'required', message: '이름은 필수입니다' },
-            { type: 'minLength', value: 2, message: '이름은 최소 2글자 이상이어야 합니다' }
-          ]
-        },
-        { 
-          field: 'email', 
-          header: '이메일', 
-          width: 200, 
-          editable: true,
-          validation: [
-            { type: 'required', message: '이메일은 필수입니다' },
-            { type: 'pattern', value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '올바른 이메일 형식이 아닙니다' }
-          ]
-        },
-        { 
-          field: 'phone', 
-          header: '전화번호', 
-          width: 150, 
-          editable: true,
-          validation: [
-            { type: 'pattern', value: /^\d{3}-\d{4}-\d{4}$/, message: '전화번호 형식: 010-1234-5678' }
-          ]
-        },
-        { field: 'department', header: '부서', width: 120 }
-      ],
-      data: [
-        { name: '김철수', email: 'kim@example.com', phone: '010-1234-5678', department: '개발팀' },
-        { name: '이영희', email: 'lee@example.com', phone: '010-2345-6789', department: '디자인팀' },
-        { name: '박민수', email: 'park@example.com', phone: '010-3456-7890', department: '기획팀' }
-      ],
-      height: 400,
-      editable: true
-    }, {
-      onValidationError: function(event) { logError(1, event); }
-    });
-
-    // 예제 2: Number Range
-    var grid2 = new VeloxGridClass('#grid2', {
-      columns: [
-        { field: 'product', header: '상품명', width: 150 },
-        { 
-          field: 'price', 
-          header: '가격', 
-          width: 120, 
-          type: 'number',
-          editable: true,
-          validation: [
-            { type: 'required', message: '가격은 필수입니다' },
-            { type: 'min', value: 0, message: '가격은 0 이상이어야 합니다' },
-            { type: 'max', value: 1000000, message: '가격은 100만원 이하여야 합니다' }
-          ]
-        },
-        { 
-          field: 'quantity', 
-          header: '수량', 
-          width: 100, 
-          type: 'number',
-          editable: true,
-          validation: [
-            { type: 'required', message: '수량은 필수입니다' },
-            { type: 'min', value: 1, message: '수량은 최소 1개 이상이어야 합니다' },
-            { type: 'max', value: 100, message: '수량은 최대 100개까지 가능합니다' }
-          ]
-        },
-        { 
-          field: 'code', 
-          header: '상품코드', 
-          width: 150, 
-          editable: true,
-          validation: [
-            { type: 'pattern', value: /^[A-Z]{3}-\d{4}$/, message: '상품코드 형식: ABC-1234' }
-          ]
-        }
-      ],
-      data: [
-        { product: '노트북', price: 1200000, quantity: 5, code: 'LAP-1001' },
-        { product: '마우스', price: 25000, quantity: 50, code: 'MOU-2001' },
-        { product: '키보드', price: 80000, quantity: 30, code: 'KEY-3001' }
-      ],
-      height: 400,
-      editable: true
-    }, {
-      onValidationError: function(event) { logError(2, event); }
-    });
-
-    // 예제 3: Custom Validator
-    var grid3 = new VeloxGridClass('#grid3', {
-      columns: [
-        { field: 'username', header: '사용자명', width: 150, editable: true },
-        { 
-          field: 'password', 
-          header: '비밀번호', 
-          width: 150, 
-          editable: true,
-          validation: [
-            { type: 'required', message: '비밀번호는 필수입니다' },
-            { type: 'minLength', value: 8, message: '비밀번호는 최소 8자 이상이어야 합니다' },
-            { 
-              type: 'custom', 
-              message: '비밀번호는 영문, 숫자, 특수문자를 포함해야 합니다',
-              validator: function(value) {
-                const str = String(value);
-                const hasLetter = /[a-zA-Z]/.test(str);
-                const hasNumber = /[0-9]/.test(str);
-                const hasSpecial = /[!@#$%^&*]/.test(str);
-                return hasLetter && hasNumber && hasSpecial;
-              }
-            }
-          ]
-        },
-        { 
-          field: 'confirmPassword', 
-          header: '비밀번호 확인', 
-          width: 150, 
-          editable: true,
-          validation: [
-            { type: 'required', message: '비밀번호 확인은 필수입니다' },
-            { 
-              type: 'custom', 
-              message: '비밀번호가 일치하지 않습니다',
-              validator: function(value, row) {
-                return value === row.password;
-              }
-            }
-          ]
-        },
-        { 
-          field: 'age', 
-          header: '나이', 
-          width: 100, 
-          type: 'number',
-          editable: true,
-          validation: [
-            { 
-              type: 'custom', 
-              message: '나이는 19세 이상 65세 이하여야 합니다',
-              validator: function(value) {
-                const age = Number(value);
-                return age >= 19 && age <= 65;
-              }
-            }
-          ]
-        }
-      ],
-      data: [
-        { username: 'user1', password: 'Pass123!', confirmPassword: 'Pass123!', age: 25 },
-        { username: 'user2', password: 'Secure456@', confirmPassword: 'Secure456@', age: 35 },
-        { username: 'user3', password: 'MyPass789#', confirmPassword: 'MyPass789#', age: 45 }
-      ],
-      height: 400,
-      editable: true
-    }, {
-      onValidationError: function(event) { logError(3, event); }
-    });
-  </script>
-</body>
-</html>

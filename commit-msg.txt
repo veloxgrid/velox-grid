@@ -1,34 +1,45 @@
-feat: Phase 12.1 Cell Validation 구현
+feat(phase12): complete Phase 12 - Cell features v0.7.0
 
-[Phase 12.1] Cell Validation 기능 추가
+Phase 12.1: Cell Validation
+- Add GridValidator module with 7 validation types
+- Support required, min/max, length, pattern, custom validators
+- Add validation UI feedback (red border, tooltip)
+- Add onValidationError event
 
-구현 내용:
-1. ValidationRule, ValidationResult 타입 추가
-   - required, min, max, minLength, maxLength, pattern, custom 지원
-   
-2. GridValidator 모듈 생성 (src/core/GridValidator.ts)
-   - validate(): 단일 값 검증
-   - validateRow(): 전체 행 검증
-   - validateAll(): 전체 데이터 검증
-   
-3. VeloxGrid.ts 통합
-   - endEdit() 메서드에 validation 로직 추가
-   - 검증 실패 시 셀에 invalid 스타일 적용
-   - onValidationError 이벤트 추가
-   
-4. CSS 스타일 추가
-   - .velox-cell--invalid: 빨간 테두리 + 연한 빨간 배경
-   - .velox-validation-tooltip: 에러 메시지 툴팁
-   
-5. 테스트 파일 추가
-   - examples/validation-test.html: 3가지 시나리오 데모
+Phase 12.2: Custom Cell Editor
+- Add GridEditorFactory module
+- Support 5 editor types: text, number, select, date, checkbox, custom
+- Add editor-specific CSS styles
+- Integrate with VeloxGrid renderEditCell()
 
-주요 기능:
-- 필수 입력 검증 (required)
-- 숫자 범위 검증 (min/max)
-- 문자열 길이 검증 (minLength/maxLength)
-- 정규식 패턴 검증 (pattern)
-- 커스텀 validator 함수 (custom)
-- 다른 필드 참조 가능 (예: 비밀번호 확인)
+Phase 12.3: Cell Tooltip
+- Add GridTooltip module
+- Support auto-tooltip for truncated text
+- Support custom tooltip callback
+- Dynamic positioning with viewport awareness
 
-번들 크기: ~60KB (gzip ~15KB) [+1.5KB]
+Code Quality:
+- Fix TypeScript warnings (unused variables)
+- Clean build with no errors
+
+Bundle Size:
+- UMD: 69.01 KB (gzip: 17.62 KB)
+- ESM: 93.79 KB (gzip: 21.12 KB)
+- CSS: 15.40 KB (gzip: 3.05 KB)
+
+Files Added:
+- src/core/GridValidator.ts
+- src/core/GridEditorFactory.ts
+- src/core/GridTooltip.ts
+- examples/phase12-complete-demo.html
+- BUILD_TEST_REPORT.md
+- PHASE12_COMPLETE.md
+
+Files Modified:
+- src/core/VeloxGrid.ts (Phase 12 integration)
+- src/types/index.ts (new types)
+- src/styles/velox-grid.css (Phase 12 styles)
+- src/core/index.ts (exports)
+- package.json (v0.7.0)
+- src/index.ts (VERSION 0.7.0)
+- .claude/PROGRESS.md (updated)

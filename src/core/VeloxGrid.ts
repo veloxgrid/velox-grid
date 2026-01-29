@@ -55,6 +55,8 @@ import {
 } from '../utils/export';
 import { GridHistory } from './GridHistory';
 import { GridValidator } from './GridValidator';
+import { GridEditorFactory } from './GridEditorFactory';
+import { GridTooltip } from './GridTooltip';
 
 const DEFAULT_OPTIONS: Partial<GridOptions> = {
   rowHeight: 40,
@@ -159,6 +161,7 @@ export class VeloxGrid implements VeloxGridInstance {
 
   // Undo/Redo - using GridHistory (refactored)
   private history: GridHistory;
+  private tooltip: GridTooltip | null = null;
 
   constructor(
     container: HTMLElement | string,
@@ -233,6 +236,8 @@ export class VeloxGrid implements VeloxGridInstance {
     }
 
     this.build();
+    // Phase 12.3: Initialize tooltip
+    this.tooltip = new GridTooltip(this.rootElement);
     this.render();
     this.attachEvents();
     this.events.onReady?.(this);
@@ -750,6 +755,23 @@ export class VeloxGrid implements VeloxGridInstance {
         this.updateBlockSelection(rowIndex, column.field);
       }
     });
+
+    // Phase 12.3: Add tooltip event listeners
+    if (column.tooltip && this.tooltip) {
+      addClass(cell, 'velox-cell--has-tooltip');
+      
+      cell.addEventListener('mouseenter', () => {
+        if (this.tooltip) {
+          this.tooltip.show(cell, value, rowData, column);
+        }
+      });
+      
+      cell.addEventListener('mouseleave', () => {
+        if (this.tooltip) {
+          this.tooltip.hide();
+        }
+      });
+    }
 
     return cell;
   }
@@ -1614,40 +1636,136 @@ export class VeloxGrid implements VeloxGridInstance {
 
   private renderEditCell(rowIndex: number, field: string, value: CellValue): void {
     const row = this.bodyInner.querySelector(`[data-row-index="${rowIndex}"]`);
-    const cell = row?.querySelector(`[data-field="${field}"]`);
+    const cell = row?.querySelector(`[data-field="${field}"]`) as HTMLElement;
     if (!cell) return;
+
     const column = this.state.columns.find(c => c.field === field);
-    addClass(cell as HTMLElement, 'velox-cell--editing');
-    const input = createElement('input', 'velox-edit-input') as HTMLInputElement;
-    input.type = column?.type === 'number' ? 'number' : 'text';
-    input.value = value != null ? String(value) : '';
-    cell.innerHTML = '';
-    cell.appendChild(input);
-    input.focus();
-    input.select();
-    input.addEventListener('blur', () => this.endEdit(true));
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); this.endEdit(true); }
-      else if (e.key === 'Escape') { e.preventDefault(); this.cancelEdit(); }
-    });
+    if (!column) return;
+
+    addClass(cell, 'velox-cell--editing');
+
+    // Phase 12.2: Use GridEditorFactory if editor is specified
+    if (column.editor) {
+      const editor = GridEditorFactory.createEditor(
+        value,
+        column.editor,
+        (newValue) => {
+          // Save callback
+          this.state.edit.editing = false;
+          const row = this.state.displayData[rowIndex];
+          if (row) {
+            const dataIndex = this.state.data.indexOf(row);
+            if (dataIndex >= 0) {
+              this.state.data[dataIndex][field] = newValue;
+            }
+          }
+          this.applyDataTransformations();
+          this.render();
+          
+          const event = this.events as any;
+          if (event.onCellEditEnd) {
+            event.onCellEditEnd({
+              rowIndex,
+              field,
+              oldValue: value,
+              newValue,
+              row: this.state.displayData[rowIndex]
+            });
+          }
+        },
+        () => {
+          // Cancel callback
+          this.cancelEdit();
+        }
+      );
+
+      cell.innerHTML = '';
+      cell.appendChild(editor);
+      
+      // Focus the editor
+      setTimeout(() => {
+        if (editor instanceof HTMLInputElement || editor instanceof HTMLSelectElement) {
+          editor.focus();
+          if (editor instanceof HTMLInputElement && editor.type === 'text') {
+            editor.select();
+          }
+        }
+      }, 0);
+    } else {
+      // 기존 text input 방식
+      const input = createElement('input', 'velox-edit-input') as HTMLInputElement;
+      input.type = column.type === 'number' ? 'number' : 'text';
+      input.value = value != null ? String(value) : '';
+
+      cell.innerHTML = '';
+      cell.appendChild(input);
+      input.focus();
+      input.select();
+
+      input.addEventListener('blur', () => this.endEdit(true));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.endEdit(true);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          this.cancelEdit();
+        }
+      });
+    }
   }
 
   endEdit(save = true): void {
     if (!this.state.edit.editing) return;
     const { rowIndex, field, originalValue } = this.state.edit;
     if (rowIndex === null || field === null) return;
+    
     const row = this.bodyInner.querySelector(`[data-row-index="${rowIndex}"]`);
     const cell = row?.querySelector(`[data-field="${field}"]`);
-    const input = cell?.querySelector('.velox-edit-input') as HTMLInputElement;
-    if (save && input) {
-      const newValue = input.value;
-      if (newValue !== String(originalValue ?? '')) {
-        const column = this.state.columns.find(c => c.field === field);
-        const displayRow = this.state.displayData[rowIndex];
-        
+    
+    if (save && cell) {
+      const column = this.state.columns.find(c => c.field === field);
+      const displayRow = this.state.displayData[rowIndex];
+      
+      // Phase 12.2: Get value from different editor types
+      let newValue: CellValue = originalValue;
+      
+      const input = cell.querySelector('.velox-edit-input') as HTMLInputElement;
+      const select = cell.querySelector('.velox-editor--select') as HTMLSelectElement;
+      const checkbox = cell.querySelector('.velox-editor--checkbox input[type="checkbox"]') as HTMLInputElement;
+      const dateInput = cell.querySelector('.velox-editor--date') as HTMLInputElement;
+      const numberInput = cell.querySelector('.velox-editor--number') as HTMLInputElement;
+      
+      if (checkbox) {
+        // Checkbox editor
+        newValue = checkbox.checked;
+      } else if (select) {
+        // Select editor
+        if (select.multiple) {
+          newValue = Array.from(select.selectedOptions).map(opt => opt.value);
+        } else {
+          newValue = select.value;
+        }
+      } else if (dateInput) {
+        // Date editor
+        newValue = dateInput.value;
+      } else if (numberInput) {
+        // Number editor
+        newValue = numberInput.value === '' ? null : Number(numberInput.value);
+      } else if (input) {
+        // Default text/number input
+        newValue = input.value;
+      }
+      
+      // Check if value changed
+      const valueChanged = JSON.stringify(newValue) !== JSON.stringify(originalValue);
+      
+      if (valueChanged) {
         // Phase 12.1: Validation
         if (column?.validation && column.validation.length > 0) {
-          const parsedValue = column.type === 'number' ? parseFloat(newValue) : newValue;
+          const parsedValue = column.type === 'number' && typeof newValue === 'string' 
+            ? parseFloat(newValue) 
+            : newValue;
           const validationResult = GridValidator.validate(parsedValue, column.validation, displayRow);
           
           if (!validationResult.valid) {
@@ -1668,28 +1786,37 @@ export class VeloxGrid implements VeloxGridInstance {
               errors: validationResult.errors.map(e => e.message)
             });
             
-            // Keep editing mode
-            input.focus();
+            // Keep editing mode - focus input
+            if (input) input.focus();
+            else if (select) select.focus();
+            else if (dateInput) dateInput.focus();
+            else if (numberInput) numberInput.focus();
             return;
           }
         }
         
         // Validation passed - save the value
+        const parsedValue = column?.type === 'number' && typeof newValue === 'string'
+          ? parseFloat(newValue)
+          : newValue;
+        
         const dataIndex = this.state.data.indexOf(displayRow);
         if (dataIndex >= 0) {
-          this.state.data[dataIndex][field] = column?.type === 'number' ? parseFloat(newValue) : newValue;
+          this.state.data[dataIndex][field] = parsedValue;
         }
+        
         this.events.onCellEditEnd?.({
           rowIndex,
           field,
           oldValue: originalValue,
-          newValue: column?.type === 'number' ? parseFloat(newValue) : newValue,
+          newValue: parsedValue,
           row: this.state.displayData[rowIndex]
         });
       }
     } else {
       this.events.onCellEditCancel?.(rowIndex, field);
     }
+    
     this.state.edit = { editing: false, rowIndex: null, field: null, originalValue: null };
     this.applyDataTransformations();
     this.render();
@@ -2638,6 +2765,11 @@ export class VeloxGrid implements VeloxGridInstance {
     // Clean up cached canvas
     this.measureCanvas = null;
     this.measureContext = null;
+    // Phase 12.3: Cleanup tooltip
+    if (this.tooltip) {
+      this.tooltip.destroy();
+      this.tooltip = null;
+    }
     this.container.innerHTML = '';
     this.events.onDestroy?.();
   }

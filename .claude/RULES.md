@@ -5,9 +5,169 @@
 ## 📁 프로젝트 정보
 
 - **프로젝트 경로**: `D:\Dev\git\velox-grid`
-- **GitHub**: `https://github.com/bart-idea/velox-grid.git`
-- **사용자**: 범키 (ki89.choi@samsung.com)
+- **GitHub**: https://github.com/bart-idea/velox-grid
+- **작성자**: bart (ki89.choi@samsung.com)
 - **OS**: Windows
+- **현재 버전**: v0.7.0
+
+---
+
+## 📋 문서 작성 규칙
+
+### 기본 원칙
+- ✅ **모든 문서는 한글로 작성**
+- ✅ 기술 용어는 영어 유지 (예: API, TypeScript, Git)
+- ✅ 코드 예제는 영어로 작성 (변수명, 주석 제외)
+- ✅ GitHub 경로: https://github.com/bart-idea/velox-grid
+- ✅ 작성자: bart
+
+### 주요 문서
+| 파일 | 언어 | 용도 |
+|------|------|------|
+| README.md | 한글 | 프로젝트 소개, 사용법 |
+| CHANGELOG.md | 한글 | 버전 변경 이력 |
+| ROADMAP.md | 한글 | 향후 계획 |
+| .claude/PROGRESS.md | 한글 | 개발 진행 상황 |
+| .claude/RULES.md | 한글 | 이 파일 |
+
+---
+
+## 🛠️ Claude AI 작업 도구 규칙
+
+### 파일 시스템 작업
+
+#### ✅ 파일 읽기
+```
+도구: Filesystem:read_file
+용도: 파일 내용 읽기
+옵션: head, tail, offset 사용 가능
+```
+
+#### ✅ 파일 쓰기
+```
+도구: Filesystem:write_file
+용도: 새 파일 생성 또는 전체 덮어쓰기
+주의: 기존 파일 덮어쓰므로 신중하게 사용
+```
+
+#### ✅ 파일 수정
+```
+도구: Filesystem:edit_file
+용도: 파일 일부 수정 (str_replace)
+규칙:
+  - oldText와 newText는 정확히 일치해야 함
+  - 공백, 들여쓰기까지 정확히 매칭
+  - 큰 변경은 여러 번 나눠서 수정
+```
+
+#### ✅ 디렉토리 작업
+```
+도구: Filesystem:list_directory
+용도: 디렉토리 내용 확인
+```
+
+### 명령 실행 규칙
+
+#### ✅ Shell 선택
+```
+Windows: cmd (필수)
+사용 금지: powershell (인코딩 문제)
+```
+
+#### ✅ 경로 이동
+```cmd
+:: 올바른 방법
+cd /d D:\Dev\git\velox-grid
+
+:: 잘못된 방법 (드라이브 변경 안됨)
+cd D:\Dev\git\velox-grid
+```
+
+#### ✅ 명령 실행
+```
+도구: Desktop Commander:start_process
+shell: cmd (필수)
+timeout_ms: 작업에 맞게 설정
+
+예제:
+command: cd /d D:\Dev\git\velox-grid & npm run build
+shell: cmd
+timeout_ms: 30000
+```
+
+---
+
+## 💾 Git 작업 규칙
+
+### 기본 명령어
+
+```cmd
+:: 1. 상태 확인
+cd /d D:\Dev\git\velox-grid & git status
+
+:: 2. 변경사항 스테이징
+cd /d D:\Dev\git\velox-grid & git add -A
+
+:: 3. 커밋 (파일 사용)
+cd /d D:\Dev\git\velox-grid & git commit -F commit-msg.txt
+
+:: 4. 푸시
+cd /d D:\Dev\git\velox-grid & git push origin main
+
+:: 5. 로그 확인
+cd /d D:\Dev\git\velox-grid & git log --oneline -5
+```
+
+### ⚠️ 중요: 커밋 메시지 작성 규칙
+
+**한글이나 특수문자가 포함된 커밋 메시지는 반드시 파일을 통해 전달해야 합니다.**
+
+#### ❌ 잘못된 방법 (오류 발생)
+```cmd
+git commit -m "feat: 한글 메시지"
+git commit -m "feat: Phase 12 완료"
+```
+
+#### ✅ 올바른 방법
+```cmd
+1. commit-msg.txt 파일 생성 (Filesystem:write_file 사용)
+2. git commit -F commit-msg.txt 실행
+3. 커밋 후 commit-msg.txt는 자동으로 git에 의해 처리됨
+```
+
+### 커밋 메시지 형식
+
+```
+feat(phaseN): 간략한 영문 설명 vX.X.X
+
+상세 설명 (한글 가능):
+- 변경 내용 1
+- 변경 내용 2
+- 변경 내용 3
+
+Bundle Size:
+- UMD: XX.XX KB (gzip: XX.XX KB)
+
+Files Added:
+- src/core/NewModule.ts
+- examples/demo.html
+
+Files Modified:
+- src/core/VeloxGrid.ts
+- src/types/index.ts
+```
+
+### Git 커밋 타입
+
+| 타입 | 설명 | 예시 |
+|------|------|------|
+| feat | 새 기능 추가 | `feat(phase12): add cell validation` |
+| fix | 버그 수정 | `fix: resolve tooltip positioning` |
+| refactor | 리팩토링 | `refactor: modularize grid components` |
+| docs | 문서 수정 | `docs: update README with v0.7.0 features` |
+| style | 코드 포맷팅 | `style: apply prettier formatting` |
+| test | 테스트 추가 | `test: add validation tests` |
+| chore | 빌드/설정 변경 | `chore: update vite config` |
 
 ---
 
@@ -15,255 +175,119 @@
 
 ### 1. 작업 시작 전
 ```
-1. PROGRESS.md 파일 읽기
+1. .claude/PROGRESS.md 파일 읽기
 2. 현재 버전 및 완료된 Phase 확인
 3. 다음 작업할 Phase 내용 파악
+4. .claude/RULES.md 확인 (이 파일)
 ```
 
 ### 2. 코드 작업
 ```
 1. 타입 정의 먼저 수정 (src/types/index.ts)
-2. 핵심 로직 구현 (src/core/VeloxGrid.ts)
-3. 필요시 유틸리티 추가 (src/utils/)
-4. 버전 업데이트 (package.json, src/index.ts)
+2. 필요시 새 모듈 생성 (src/core/Grid*.ts)
+3. 핵심 로직 구현 (src/core/VeloxGrid.ts)
+4. CSS 스타일 추가 (src/styles/velox-grid.css)
+5. 버전 업데이트 (package.json, src/index.ts)
 ```
 
 ### 3. 빌드 및 테스트
 ```
 1. npm run build 실행
 2. 빌드 오류 확인 및 수정
-3. 데모 페이지 생성 (examples/phaseN-demo.html)
+3. TypeScript 경고 수정
+4. 데모 페이지 생성 (examples/phaseN-demo.html)
+5. 개발 서버 실행 (npm run dev)
 ```
 
 ### 4. 문서 업데이트
 ```
-1. README.md 업데이트 (새 기능, API, Changelog)
-2. PROGRESS.md 업데이트 (완료 표시, 다음 작업)
+1. README.md 업데이트 (새 기능, API 추가)
+2. CHANGELOG.md 업데이트 (버전 이력 추가)
+3. .claude/PROGRESS.md 업데이트 (완료 표시)
+4. package.json 메타데이터 확인
 ```
 
 ### 5. Git 커밋 및 푸시
 ```
-1. git add -A
-2. git commit (커밋 메시지 파일 사용)
-3. git push origin main
+1. commit-msg.txt 파일 작성
+2. git add -A
+3. git commit -F commit-msg.txt
+4. git push origin main
+5. commit-msg.txt는 자동 처리됨
 ```
 
 ---
 
-## 💾 Git 명령어 사용 규칙
-
-### 기본 설정
-```cmd
-cd /d D:\Dev\git\velox-grid
-```
-
-### 커밋 메시지 규칙
-Windows CMD에서 한글이나 특수문자가 포함된 커밋 메시지는 **파일을 통해** 전달해야 함:
-
-```cmd
-:: 잘못된 방법 (오류 발생)
-git commit -m "feat: 한글 메시지"
-
-:: 올바른 방법
-1. commit-msg.txt 파일 생성
-2. git commit -F commit-msg.txt
-3. del commit-msg.txt
-```
-
-### 커밋 메시지 형식
-```
-feat(phaseN): 간단한 영문 설명 vX.X.X
-
-- 세부 변경 내용 1
-- 세부 변경 내용 2
-- 세부 변경 내용 3
-```
+## 📦 npm 명령어
 
 ### 자주 사용하는 명령어
+
 ```cmd
-:: 상태 확인
-git status
+:: 개발 서버 실행 (포트 5173 또는 다음 사용 가능한 포트)
+cd /d D:\Dev\git\velox-grid & npm run dev
 
-:: 스테이징
-git add -A
+:: 프로덕션 빌드
+cd /d D:\Dev\git\velox-grid & npm run build
 
-:: 커밋 (파일 사용)
-git commit -F commit-msg.txt
+:: 타입 정의 생성
+cd /d D:\Dev\git\velox-grid & npm run build:types
 
-:: 푸시
-git push origin main
+:: 미리보기
+cd /d D:\Dev\git\velox-grid & npm run preview
 
-:: 로그 확인
-git log --oneline -5
-```
-
----
-
-## 🖥️ CMD 명령어 사용 규칙
-
-### 필수 설정
-- **Shell**: `cmd` (PowerShell 아님)
-- **경로 이동**: `cd /d D:\경로` (드라이브 변경 시 /d 필수)
-- **인코딩**: UTF-8 문제로 한글 출력이 깨질 수 있음
-
-### npm 명령어
-```cmd
-:: 빌드
-cd /d D:\Dev\git\velox-grid && npm run build
-
-:: 개발 서버
-cd /d D:\Dev\git\velox-grid && npm run dev
+:: 린트
+cd /d D:\Dev\git\velox-grid & npm run lint
 
 :: 테스트
-cd /d D:\Dev\git\velox-grid && npm run test
+cd /d D:\Dev\git\velox-grid & npm run test
 ```
 
-### 파일 검색 (findstr)
-```cmd
-:: 파일 내용 검색
-findstr /n "검색어" 파일경로
+### 빌드 출력 파일
 
-:: 대소문자 무시
-findstr /i /n "검색어" 파일경로
-
-:: 여러 패턴
-findstr /n "패턴1\|패턴2" 파일경로
 ```
-
-### 주의사항
-- `head`, `tail`, `grep` 등 Unix 명령어는 Windows에서 사용 불가
-- 파이프(`|`)와 리다이렉션(`>`) 사용 시 주의
-- 긴 출력은 `2>&1`로 stderr도 캡처
-
----
-
-## 📝 대화 요약 방법
-
-### 컴팩션 시 포함할 정보
-```
-1. [PROJECT STATUS] 현재 버전, 완료된 Phase
-2. [SESSION ACTIONS] 이번 대화에서 수행한 작업
-3. [FILES MODIFIED] 수정된 파일 목록
-4. [BUILD RESULTS] 빌드 결과 (번들 크기)
-5. [GIT COMMITS] 커밋 해시 및 메시지
-6. [NEXT STEPS] 다음 작업 사항
-```
-
-### 중요 파일 경로
-```
-D:\Dev\git\velox-grid\.claude\PROGRESS.md   # 진행 상황
-D:\Dev\git\velox-grid\.claude\RULES.md      # 이 파일
-D:\Dev\git\velox-grid\src\core\VeloxGrid.ts # 핵심 코드
-D:\Dev\git\velox-grid\src\types\index.ts    # 타입 정의
-D:\Dev\git\velox-grid\package.json          # 버전 정보
-D:\Dev\git\velox-grid\README.md             # 문서
+dist/
+├── velox-grid.js         # UMD (브라우저 직접 사용)
+├── velox-grid.esm.js     # ESM (import 사용)
+├── velox-grid.iife.js    # IIFE (스크립트 태그)
+├── velox-grid.css        # 스타일시트
+└── types/                # TypeScript 타입 정의
 ```
 
 ---
 
-## 🏗️ 빌드 정보
-
-### 빌드 명령어
-```cmd
-cd /d D:\Dev\git\velox-grid && npm run build
-```
-
-### 출력 파일
-```
-dist/velox-grid.js      # UMD (브라우저 직접)
-dist/velox-grid.esm.js  # ESM (import용)
-dist/velox-grid.iife.js # IIFE (스크립트 태그용)
-dist/velox-grid.css     # 스타일
-dist/types/             # TypeScript 타입 정의
-```
-
-### 버전 업데이트 위치
-```
-package.json         → "version": "X.X.X"
-src/index.ts         → export const VERSION = 'X.X.X';
-```
-
----
-
-## 📋 Phase 작업 체크리스트
+## 🎯 Phase 작업 체크리스트
 
 새로운 Phase 시작 시:
 
-- [ ] PROGRESS.md에서 요구사항 확인
+- [ ] .claude/PROGRESS.md에서 요구사항 확인
 - [ ] src/types/index.ts 타입 추가/수정
-- [ ] src/core/VeloxGrid.ts 기능 구현
-- [ ] src/utils/ 유틸리티 추가 (필요시)
+- [ ] 새 모듈 생성 (필요시, src/core/)
+- [ ] src/core/VeloxGrid.ts 기능 통합
+- [ ] src/styles/velox-grid.css 스타일 추가
+- [ ] src/core/index.ts exports 추가
 - [ ] npm run build 성공 확인
+- [ ] TypeScript 경고 제거
 - [ ] examples/phaseN-demo.html 데모 페이지 생성
 - [ ] package.json 버전 업데이트
 - [ ] src/index.ts VERSION 업데이트
-- [ ] README.md 문서 업데이트
-- [ ] PROGRESS.md 상태 업데이트
-- [ ] git commit & push
+- [ ] README.md 문서 업데이트 (한글)
+- [ ] CHANGELOG.md 버전 추가 (한글)
+- [ ] .claude/PROGRESS.md 상태 업데이트
+- [ ] commit-msg.txt 작성
+- [ ] git commit -F commit-msg.txt
+- [ ] git push origin main
 
 ---
 
-## ⚠️ 주의사항
+## 📝 코딩 컨벤션
 
-### 파일 수정 시
-1. **str_replace** 사용 시 정확한 문자열 매칭 필요
-2. 큰 파일은 **offset/length**로 부분 읽기
-3. 새 파일 생성은 **write_file** 사용
+### TypeScript
+- **엄격 모드** 준수
+- **모든 public 메서드**에 JSDoc 주석 (한글)
+- **타입 정의** 명확히 작성
+- **any 사용 지양**
 
-### 빌드 오류 시
-1. TypeScript 타입 오류 먼저 확인
-2. import 경로 확인
-3. 순환 참조 확인
-
-### Git 오류 시
-1. 한글/특수문자 → 파일로 커밋 메시지 전달
-2. 충돌 시 → git status로 상태 확인
-
----
-
-## 🔗 참고 링크
-
-- [RealGrid API 참고](https://docs.realgrid.com/)
-- [AG Grid 참고](https://www.ag-grid.com/javascript-data-grid/)
-- [SheetJS 문서](https://docs.sheetjs.com/)
-
----
-
-## 📞 대화 시작 템플릿
-
-```
-D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 [작업내용] 해줘
-```
-
-또는
-
-```
-velox-grid 프로젝트 Phase N 진행해줘
-```
-
----
-
-## 📚 개발 가이드라인
-
-### 코딩 컨벤션
-1. **TypeScript 엄격 모드** 준수
-2. **모든 public 메서드**에 JSDoc 주석
-3. **한글 주석** 사용 (기술 용어는 영어)
-4. **CSS 클래스명**: `velox-{component}--{modifier}` 형식
-5. **이벤트명**: `on{Event}` 형식 (예: `onCellClick`)
-
-### Git 커밋 메시지 타입
-```
-feat: 새 기능 추가
-fix: 버그 수정
-refactor: 리팩토링
-docs: 문서 수정
-style: 코드 포맷팅
-test: 테스트 추가
-chore: 빌드/설정 변경
-```
-
-### 파일 생성 시 헤더
+### 파일 헤더
 ```typescript
 /**
  * VeloxGrid - {모듈명}
@@ -272,25 +296,141 @@ chore: 빌드/설정 변경
  */
 ```
 
-### Phase 작업 시작 방법
-1. **Phase 선택**: PROGRESS.md에서 다음 Phase 확인
-2. **타입 먼저 정의**: `src/types/index.ts`에 필요한 타입 추가
-3. **모듈 생성**: `src/core/Grid{Name}.ts` 파일 생성 (필요시)
-4. **VeloxGrid.ts 통합**: 메인 클래스에 기능 연결
-5. **CSS 추가**: `src/styles/velox-grid.css`에 스타일 추가
-6. **데모 생성**: `examples/phase{N}-demo.html` 작성 (IIFE 형태)
-7. **빌드 & 테스트**: `npm run build`로 확인
-8. **문서 업데이트**: README.md, PROGRESS.md
-9. **커밋**: 의미있는 단위로 커밋
+### CSS
+- **클래스명**: `velox-{component}--{modifier}` (BEM 스타일)
+- **예시**: `velox-cell--selected`, `velox-edit-input`
 
-### 주의사항
-1. **VeloxGrid.ts 크기**: 현재 ~2600줄. 새 기능은 별도 모듈로 분리 권장
-2. **번들 크기**: 60KB 이하 유지 목표
-3. **의존성**: 외부 라이브러리 추가 지양 (SheetJS 제외)
-4. **하위 호환성**: 기존 API 변경 시 주의
+### 이벤트
+- **이벤트명**: `on{Event}` 형식
+- **예시**: `onCellClick`, `onValidationError`
 
-### 주요 파일 위치
-- 메인 클래스: `src/core/VeloxGrid.ts`
-- 타입 정의: `src/types/index.ts`
-- 스타일: `src/styles/velox-grid.css`
-- 빌드 설정: `vite.config.ts`
+### 주석
+- **한글 주석** 사용
+- 기술 용어는 영어 유지
+- **예시**: `// 셀 검증을 위한 Validator 모듈`
+
+---
+
+## ⚠️ 주의사항
+
+### 파일 수정 시
+1. **Filesystem:edit_file** 사용 시 정확한 문자열 매칭 필요
+2. 큰 파일은 **head/tail/offset**으로 부분 읽기
+3. 새 파일 생성은 **Filesystem:write_file** 사용
+4. 파일 경로는 항상 **절대 경로** 사용
+
+### 빌드 오류 시
+1. TypeScript 타입 오류 먼저 확인
+2. import 경로 확인
+3. 순환 참조 확인
+4. 사용하지 않는 변수 제거
+
+### Git 오류 시
+1. 한글/특수문자 → **commit-msg.txt 파일 사용 필수**
+2. 충돌 시 → `git status`로 상태 확인
+3. 푸시 실패 시 → `git pull` 먼저 실행
+
+### CMD 사용 시
+1. 경로 이동 시 **`cd /d`** 사용
+2. `&`로 명령어 체이닝
+3. PowerShell 사용 금지
+4. 긴 출력은 timeout 늘려서 대응
+
+---
+
+## 📂 중요 파일 경로
+
+### 프로젝트 루트
+```
+D:\Dev\git\velox-grid\
+├── README.md              # 프로젝트 소개 (한글)
+├── CHANGELOG.md           # 변경 이력 (한글)
+├── ROADMAP.md             # 로드맵 (한글)
+├── package.json           # NPM 패키지 정보
+└── .claude/
+    ├── PROGRESS.md        # 개발 진행 상황 (한글)
+    └── RULES.md           # 이 파일 (한글)
+```
+
+### 소스 코드
+```
+src/
+├── core/
+│   ├── VeloxGrid.ts       # 메인 클래스 (~2700줄)
+│   ├── GridHistory.ts     # Undo/Redo
+│   ├── GridSelection.ts   # 선택 관리
+│   ├── GridValidator.ts   # 검증 (v0.7.0)
+│   ├── GridEditorFactory.ts  # 에디터 (v0.7.0)
+│   └── GridTooltip.ts     # 툴팁 (v0.7.0)
+├── types/
+│   └── index.ts           # 타입 정의
+├── styles/
+│   └── velox-grid.css     # 스타일
+└── index.ts               # 진입점, VERSION 상수
+```
+
+---
+
+## 🔗 참고 자료
+
+### 외부 참고
+- [RealGrid API 문서](https://docs.realgrid.com/)
+- [AG Grid 문서](https://www.ag-grid.com/javascript-data-grid/)
+- [SheetJS 문서](https://docs.sheetjs.com/)
+
+### 내부 문서
+- `.claude/PROGRESS.md` - 상세 개발 진행 상황
+- `README.md` - 프로젝트 소개 및 API 문서
+- `CHANGELOG.md` - 버전별 변경 이력
+- `ROADMAP.md` - 향후 개발 계획
+
+---
+
+## 🚀 대화 시작 템플릿
+
+### Phase 작업 시작
+```
+.claude/PROGRESS.md 읽고 Phase N 시작해줘
+```
+
+### 빌드 및 테스트
+```
+빌드하고 테스트해줘
+```
+
+### 문서 정리
+```
+문서 최신화하고 Git에 반영해줘
+```
+
+### 특정 기능 구현
+```
+{기능명} 구현해줘. 필요한 파일 확인하고 시작해줘.
+```
+
+---
+
+## 📊 프로젝트 현황 (v0.7.0)
+
+### 완료된 Phase
+- ✅ Phase 1-4: 핵심 기능
+- ✅ Phase 5-6: 가상 스크롤, 컬럼 고급 기능
+- ✅ Phase 7: Selection 고도화
+- ✅ Phase 8: Excel Export/Import
+- ✅ Phase 9: 키보드 & Undo/Redo
+- ✅ Phase 10: 컬럼 재정렬 & 메뉴
+- ✅ Phase 11: 행 드래그 앤 드롭
+- ✅ Phase 12: 셀 검증, 커스텀 에디터, 툴팁
+
+### 다음 작업
+- ⏭️ Phase 13: Footer Summary, Group Summary
+- ⏭️ Phase 14: React 래퍼
+
+### 번들 크기
+- **UMD**: 69.0 KB (gzip: 17.6 KB)
+- **ESM**: 93.8 KB (gzip: 21.1 KB)
+- **CSS**: 15.4 KB (gzip: 3.1 KB)
+
+---
+
+*마지막 업데이트: 2025-01-29 (v0.7.0)*

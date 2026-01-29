@@ -1,73 +1,73 @@
-# Changelog
+# 변경 이력
 
-All notable changes to VeloxGrid will be documented in this file.
+VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
+이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
 ## [0.7.0] - 2025-01-29
 
-### Added - Phase 12: Cell Features Enhancement
+### 추가 - Phase 12: 셀 기능 확장
 
-#### Phase 12.1: Cell Validation
-- Added `GridValidator` module with 7 validation types
-- Support for `required`, `min`, `max`, `minLength`, `maxLength`, `pattern`, and `custom` validators
-- Validation UI feedback with red border and tooltip on error
-- Added `onValidationError` event
-- Validation errors keep cell in edit mode
+#### Phase 12.1: 셀 검증
+- 7가지 검증 타입을 가진 `GridValidator` 모듈 추가
+- `required`, `min`, `max`, `minLength`, `maxLength`, `pattern`, `custom` 검증자 지원
+- 오류 시 빨간 테두리와 툴팁으로 검증 UI 피드백 제공
+- `onValidationError` 이벤트 추가
+- 검증 오류 시 셀이 편집 모드 유지
 
-#### Phase 12.2: Custom Cell Editor
-- Added `GridEditorFactory` module for creating different editor types
-- Support for 5 editor types: `text`, `number`, `select`, `date`, `checkbox`, `custom`
-- Each editor type has specific CSS styling
-- Integrated with `VeloxGrid.renderEditCell()` method
-- Keyboard support (Enter, Tab, Escape) for all editors
+#### Phase 12.2: 커스텀 셀 에디터
+- 다양한 에디터 타입 생성을 위한 `GridEditorFactory` 모듈 추가
+- 5가지 에디터 타입 지원: `text`, `number`, `select`, `date`, `checkbox`, `custom`
+- 각 에디터 타입별 전용 CSS 스타일링
+- `VeloxGrid.renderEditCell()` 메서드와 통합
+- 모든 에디터에 키보드 지원 (Enter, Tab, Escape)
 
-#### Phase 12.3: Cell Tooltip
-- Added `GridTooltip` module for hover information display
-- Auto-tooltip for truncated text detection
-- Custom tooltip via callback function
-- Dynamic positioning with viewport awareness
-- Configurable show/hide delays
+#### Phase 12.3: 셀 툴팁
+- 호버 정보 표시를 위한 `GridTooltip` 모듈 추가
+- 잘린 텍스트 감지를 위한 자동 툴팁
+- 콜백 함수를 통한 커스텀 툴팁
+- 뷰포트 인식을 통한 동적 위치 설정
+- 구성 가능한 표시/숨김 지연 시간
 
-### Changed
-- Updated TypeScript types for new features
-- Enhanced CSS with Phase 12 styles (~110 lines added)
+### 변경
+- 새 기능을 위한 TypeScript 타입 업데이트
+- Phase 12 스타일로 CSS 강화 (~110줄 추가)
 
-### Fixed
-- Removed unused TypeScript variables (clean build)
-- Fixed editor type handling in `endEdit()` method
+### 수정
+- 사용하지 않는 TypeScript 변수 제거 (깔끔한 빌드)
+- `endEdit()` 메서드의 에디터 타입 처리 수정
 
-### Bundle Size
-- UMD: 69.01 KB (gzip: 17.62 KB) - increased from 58.94 KB
-- ESM: 93.79 KB (gzip: 21.12 KB) - increased from 79.31 KB
-- CSS: 15.40 KB (gzip: 3.05 KB) - increased from 12.26 KB
+### 번들 크기
+- UMD: 69.01 KB (gzip: 17.62 KB) - 58.94 KB에서 증가
+- ESM: 93.79 KB (gzip: 21.12 KB) - 79.31 KB에서 증가
+- CSS: 15.40 KB (gzip: 3.05 KB) - 12.26 KB에서 증가
 
 ---
 
 ## [0.6.0] - 2025-01-26
 
-### Added - Phase 10-11: Column & Row Features
+### 추가 - Phase 10-11: 컬럼 & 행 기능
 
-#### Phase 10: Column Features
-- Column Reorder via drag & drop
-- Column Menu (context menu) with customizable items
-- Column Fix/Unfix dynamically
-- Added `fixColumn()` and `reorderColumn()` API methods
+#### Phase 10: 컬럼 기능
+- 드래그 앤 드롭을 통한 컬럼 재정렬
+- 커스터마이징 가능한 항목이 있는 컬럼 메뉴(컨텍스트 메뉴)
+- 동적으로 컬럼 고정/고정 해제
+- `fixColumn()` 및 `reorderColumn()` API 메서드 추가
 
-#### Phase 11: Row Features
-- Row Drag & Drop for reordering
-- Added `moveRow()` API method
-- Row drag handle UI component
+#### Phase 11: 행 기능
+- 재정렬을 위한 행 드래그 앤 드롭
+- `moveRow()` API 메서드 추가
+- 행 드래그 핸들 UI 컴포넌트
 
-### Changed
-- Major refactoring: Modularized core components
-- Added `GridHistory`, `GridSelection`, `GridVirtualScroll`, `GridEditor`, `GridKeyboard`, `GridColumnManager`, `GridDataManager` modules
-- Implemented column caching system for performance
-- Unified row creation with `createRowBase()` method
+### 변경
+- 주요 리팩토링: 핵심 컴포넌트 모듈화
+- `GridHistory`, `GridSelection`, `GridVirtualScroll`, `GridEditor`, `GridKeyboard`, `GridColumnManager`, `GridDataManager` 모듈 추가
+- 성능을 위한 컬럼 캐싱 시스템 구현
+- `createRowBase()` 메서드로 행 생성 통합
 
-### Bundle Size
-- UMD: 58.94 KB (gzip: 14.92 KB) - increased from 50.50 KB
+### 번들 크기
+- UMD: 58.94 KB (gzip: 14.92 KB) - 50.50 KB에서 증가
 - ESM: 79.31 KB (gzip: 17.52 KB)
 - CSS: 12.26 KB (gzip: 2.50 KB)
 
@@ -75,120 +75,120 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - 2025-01-XX
 
-### Added - Phase 9: Keyboard & Undo/Redo Enhancement
+### 추가 - Phase 9: 키보드 & 실행 취소/다시 실행 향상
 
-- Enter/Tab navigation (auto-move to next cell after edit)
-- Delete key support (clear selected cell contents)
-- Undo/Redo functionality (Ctrl+Z / Ctrl+Y)
-- Enhanced keyboard shortcuts (Ctrl+C/V/X handling)
-- `endEditAndMove()` method for directional navigation
-- `deleteSelectedCells()` and `deleteSelectedRows()` methods
+- Enter/Tab 내비게이션 (편집 후 다음 셀로 자동 이동)
+- Delete 키 지원 (선택된 셀 내용 삭제)
+- 실행 취소/다시 실행 기능 (Ctrl+Z / Ctrl+Y)
+- 향상된 키보드 단축키 (Ctrl+C/V/X 처리)
+- 방향 내비게이션을 위한 `endEditAndMove()` 메서드
+- `deleteSelectedCells()` 및 `deleteSelectedRows()` 메서드
 
-### Changed
-- Improved keyboard event handling
-- Enhanced clipboard operations
+### 변경
+- 향상된 키보드 이벤트 처리
+- 개선된 클립보드 작업
 
-### Bundle Size
+### 번들 크기
 - UMD: 50.50 KB (gzip: 12.90 KB)
 
 ---
 
 ## [0.4.0] - 2025-01-XX
 
-### Added - Phase 8: Excel Export/Import
+### 추가 - Phase 8: Excel 내보내기/가져오기
 
-- Excel Export (.xlsx) using SheetJS
-- Excel Import from .xlsx files
-- CSV Export/Import
-- JSON Export
-- Export options (headers, selected rows, filtered rows)
-- Added `exportToExcel()`, `importFromExcel()`, `exportToCSV()`, `exportToJSON()` methods
+- SheetJS를 사용한 Excel 내보내기 (.xlsx)
+- .xlsx 파일에서 Excel 가져오기
+- CSV 내보내기/가져오기
+- JSON 내보내기
+- 내보내기 옵션 (헤더, 선택된 행, 필터된 행)
+- `exportToExcel()`, `importFromExcel()`, `exportToCSV()`, `exportToJSON()` 메서드 추가
 
-### Changed
-- SheetJS is now an optional external dependency
-- Enhanced export utilities
+### 변경
+- SheetJS는 이제 선택적 외부 의존성
+- 향상된 내보내기 유틸리티
 
 ---
 
 ## [0.3.0] - 2025-01-XX
 
-### Added - Phase 7: Selection Enhancement
+### 추가 - Phase 7: 선택 기능 향상
 
-- Cell Selection (individual cell selection)
-- Block Selection (drag to select range, Excel-style)
-- CheckBar separation (independent from Selection)
-- Exclusive Check (radio button style)
-- Checkable Callback (conditional checkability)
-- Keyboard Navigation (arrow keys)
-- Clipboard operations (Copy/Paste/Cut)
-- Loading State indicator
-- Auto Fit Column functionality
+- 셀 선택 (개별 셀 선택)
+- 블록 선택 (드래그하여 범위 선택, Excel 스타일)
+- CheckBar 분리 (Selection과 독립적)
+- 단독 체크 (라디오 버튼 스타일)
+- 체크 가능 콜백 (조건부 체크 가능 여부)
+- 키보드 내비게이션 (방향키)
+- 클립보드 작업 (복사/붙여넣기/잘라내기)
+- 로딩 상태 인디케이터
+- 자동 컬럼 너비 조정 기능
 
-### Changed
-- Enhanced selection system with multiple styles
-- Improved keyboard handling
-- Added comprehensive selection API
+### 변경
+- 다양한 스타일로 선택 시스템 향상
+- 개선된 키보드 처리
+- 포괄적인 선택 API 추가
 
 ---
 
 ## [0.2.0] - 2025-01-XX
 
-### Added - Phase 5-6: Virtual Scroll & Column Advanced Features
+### 추가 - Phase 5-6: 가상 스크롤 & 컬럼 고급 기능
 
-- Virtual Scroll for large datasets (100,000+ rows)
-- Column Fixed (pin columns to left/right)
-- Header Filter UI
+- 대용량 데이터셋을 위한 가상 스크롤 (100,000+ 행)
+- 컬럼 고정 (왼쪽/오른쪽에 컬럼 고정)
+- 헤더 필터 UI
 
-### Changed
-- Improved performance for large datasets
-- Enhanced column features
+### 변경
+- 대용량 데이터셋에 대한 성능 향상
+- 향상된 컬럼 기능
 
 ---
 
 ## [0.1.0] - 2025-01-XX
 
-### Added - Phase 1-4: Core Features
+### 추가 - Phase 1-4: 핵심 기능
 
-- Basic table rendering
-- Column definition system
-- Row selection (single/multiple)
-- Sorting (ascending/descending)
-- Filtering
-- Inline editing
-- Checkbox functionality
+- 기본 테이블 렌더링
+- 컬럼 정의 시스템
+- 행 선택 (단일/다중)
+- 정렬 (오름차순/내림차순)
+- 필터링
+- 인라인 편집
+- 체크박스 기능
 
-### Features
-- Framework agnostic (Vanilla JS)
-- TypeScript support
-- Zero dependencies (except optional SheetJS)
-- Lightweight (~30KB initial)
-
----
-
-## Future Releases
-
-### [0.8.0] - Planned
-- Footer Summary (sum, average, count)
-- Group Summary (subtotals by group)
-
-### [0.9.0] - Planned
-- React wrapper component
-- React hooks (useVeloxGrid)
-- Enhanced TypeScript types
-
-### [1.0.0] - Planned
-- Stable API
-- Comprehensive documentation
-- Performance optimizations
-- Accessibility improvements (ARIA, screen reader support)
-- Theme system (Dark theme support)
+### 기능
+- 프레임워크 독립적 (Vanilla JS)
+- TypeScript 지원
+- Zero Dependencies (선택적 SheetJS 제외)
+- 경량화 (~30KB 초기)
 
 ---
 
-[0.7.0]: https://github.com/bumki/velox-grid/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/bumki/velox-grid/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/bumki/velox-grid/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/bumki/velox-grid/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/bumki/velox-grid/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/bumki/velox-grid/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/bumki/velox-grid/releases/tag/v0.1.0
+## 향후 릴리즈
+
+### [0.8.0] - 계획됨
+- 푸터 요약 (합계, 평균, 개수)
+- 그룹 요약 (그룹별 소계)
+
+### [0.9.0] - 계획됨
+- React 래퍼 컴포넌트
+- React 훅 (useVeloxGrid)
+- 향상된 TypeScript 타입
+
+### [1.0.0] - 계획됨
+- 안정적인 API
+- 종합적인 문서
+- 성능 최적화
+- 접근성 개선 (ARIA, 스크린 리더 지원)
+- 테마 시스템 (다크 테마 지원)
+
+---
+
+[0.7.0]: https://github.com/bart-idea/velox-grid/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/bart-idea/velox-grid/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/bart-idea/velox-grid/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/bart-idea/velox-grid/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/bart-idea/velox-grid/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/bart-idea/velox-grid/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/bart-idea/velox-grid/releases/tag/v0.1.0

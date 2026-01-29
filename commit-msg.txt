@@ -1,36 +1,40 @@
-docs: organize project documentation and update to v0.7.0
+docs: 문서 한글화 및 프로젝트 정보 수정
 
-Documentation Updates:
-- Add CHANGELOG.md with complete version history (v0.1.0 to v0.7.0)
-- Update README.md with latest features and API documentation
-- Update package.json with enhanced metadata and keywords
-- Remove temporary status files (BUILD_TEST_REPORT, FINAL_STATUS, PHASE12_STATUS, PHASE12_COMPLETE)
+문서 한글화:
+- README.md를 한글로 전면 수정
+- CHANGELOG.md를 한글로 전면 수정
+- 모든 설명과 가이드를 한글로 작성
+- 코드 예제 및 기술 용어는 영어 유지
 
-README.md Changes:
-- Update to reflect v0.7.0 features (Validation, Custom Editors, Tooltip)
-- Add comprehensive API documentation
-- Add validation rules examples
-- Add custom editor examples
-- Update bundle size information
-- Enhance feature list with version tags
-- Add keyboard shortcuts table
-- Update quick start examples
+프로젝트 정보 수정:
+- GitHub 경로 변경: bumki → bart-idea
+- 작성자 변경: bumki → bart
+- 모든 링크 업데이트
 
-CHANGELOG.md (New):
-- Complete version history from v0.1.0 to v0.7.0
-- Detailed changes for each phase
-- Bundle size tracking per version
-- Future release planning
+.claude/RULES.md 대폭 강화:
+- 문서 작성 규칙 명시 (한글 사용, GitHub 경로, 작성자)
+- Claude AI 작업 도구 규칙 상세화
+  * 파일 시스템 작업 (read, write, edit)
+  * 명령 실행 규칙 (cmd 필수, PowerShell 금지)
+  * 경로 이동 방법 (cd /d 필수)
+- Git 작업 규칙 상세화
+  * 커밋 메시지 파일 사용 규칙 (인코딩 문제)
+  * 올바른/잘못된 방법 예제 추가
+  * 커밋 타입 및 형식 가이드
+- 작업 진행 순서 체크리스트
+- npm 명령어 및 빌드 정보
+- Phase 작업 체크리스트
+- 코딩 컨벤션 및 주의사항
+- 프로젝트 현황 업데이트 (v0.7.0)
 
-package.json Changes:
-- Enhance description with v0.7.0 features
-- Add comprehensive keywords for better discoverability
-- Add author email
-- Add engines requirement (node >= 16)
-- Add prepublishOnly script
-- Include CHANGELOG.md in published files
+변경된 파일:
+- README.md (한글 전환, bart-idea 경로)
+- CHANGELOG.md (한글 전환, bart-idea 경로)
+- package.json (author: bart, GitHub: bart-idea)
+- .claude/RULES.md (대폭 강화 및 업데이트)
 
-File Organization:
-- Keep: README.md, CHANGELOG.md, ROADMAP.md, .claude/PROGRESS.md
-- Remove: Temporary status and report files
-- Structure: Clean root directory with essential documentation only
+목적:
+- 일관된 한글 문서 제공
+- 정확한 프로젝트 정보 반영
+- 다음 작업 시 참고할 명확한 규칙 수립
+- Claude AI의 효율적인 작업을 위한 가이드라인

@@ -43,7 +43,7 @@
     "zero-dependencies"
   ],
   "author": {
-    "name": "bumki",
+    "name": "bart",
     "email": "ki89.choi@samsung.com"
   },
   "license": "MIT",
@@ -60,12 +60,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bumki/velox-grid.git"
+    "url": "git+https://github.com/bart-idea/velox-grid.git"
   },
   "bugs": {
-    "url": "https://github.com/bumki/velox-grid/issues"
+    "url": "https://github.com/bart-idea/velox-grid/issues"
   },
-  "homepage": "https://github.com/bumki/velox-grid#readme",
+  "homepage": "https://github.com/bart-idea/velox-grid#readme",
   "engines": {
     "node": ">=16.0.0"
   }

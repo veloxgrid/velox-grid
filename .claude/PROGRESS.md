@@ -1,22 +1,28 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-01-29
+> 마지막 업데이트: 2025-02-02
 
 ## 📊 프로젝트 개요
 
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
 - **현재 버전**: v0.7.0
-- **번들 크기**: 69KB (gzip 17.6KB)
+- **번들 크기**: 71.35KB (gzip 18.23KB)
 - **라이선스**: MIT
+- **VeloxGrid.ts 라인수**: 2,044줄 (Phase 7 완료 후)
 
 ---
 
-## 🚨 다음 작업: 코드 구조 최적화 (v0.8.0) - Step 1 완료 ✅
+## ✅ 코드 구조 최적화 (v0.8.0) - Phase 1~7 완료
 
-> **작업 목표**: VeloxGrid.ts (2,776줄)와 velox-grid.css (731줄) 파일을 모듈화하여 유지보수성 향상
-> **Step 1 완료**: CSS 모듈화 완료 (2025-01-29)
-> **다음 단계**: Step 2 - GridRenderer.ts 분리
+> **작업 목표**: VeloxGrid.ts 모듈화하여 유지보수성 향상
+> **Phase 1 완료**: GridContext 인터페이스 정의 (2025-01-30)
+> **Phase 2 완료**: VeloxGrid에 GridContext 구현 (2025-01-30)
+> **Phase 3 완료**: 모듈 생성자 수정 및 VeloxGrid 연결 (2025-01-30)
+> **Phase 4~6 완료**: 메서드 위임 및 중복 코드 정리 (2025-01-30)
+> **Phase 7 완료**: 최종 정리 및 테스트 (2025-02-02)
+> **현재 상태**: VeloxGrid.ts 2,044줄, 4개 모듈 위임 사용 중
+> **다음 단계**: Phase 13 - Footer Summary / React Wrapper 등
 
 ### 📊 현재 상태 분석
 
@@ -290,6 +296,376 @@ export class GridRenderer {
 4. **Git 커밋**
    - 각 Step 완료 시 커밋
    - 문제 발생 시 롤백 용이하도록
+
+---
+
+## 🔧 VeloxGrid.ts 리팩토링 전략 (v0.8.0)
+
+> **현재 상태**: Phase 1~7 완료 ✅
+> **결과**: VeloxGrid.ts 2,826줄 → 2,044줄 (27.7% 감소)
+> **목표**: ~800줄 (추가 모듈화 필요)
+
+### 📊 현재 모듈 현황
+
+| 모듈 | 라인 수 | 상태 | 역할 |
+|------|--------|------|------|
+| GridContext (interface) | ~180줄 | ✅ 완료 | 모듈 인터페이스 |
+| GridRenderer.ts | 482줄 | ✅ 위임 완료 | 렌더링 |
+| GridEventManager.ts | 442줄 | ❌ 제거됨 | (VeloxGrid 자체 구현 사용) |
+| GridFilterPopup.ts | 191줄 | ✅ 위임 완료 | 필터 팝업 |
+| GridColumnMenu.ts | 188줄 | ✅ 위임 완료 | 컬럼 메뉴 |
+| GridDragManager.ts | 364줄 | ✅ 위임 완료 | 드래그 & 리사이즈 |
+| VeloxGrid.ts | **2,044줄** | ✅ Phase 7 완료 | Facade |
+
+### 🎯 리팩토링 결과 (Phase 7 완료)
+
+```
+VeloxGrid.ts 변화:
+├── 시작: 2,826줄
+├── Phase 3~4 후: 2,501줄 (-325줄)
+├── Phase 5~6 후: 2,100줄 (-726줄)
+└── Phase 7 후: 2,044줄 (-782줄, 27.7% 감소) ✅
+
+번들 크기:
+├── UMD: 71.35 KB (gzip 18.23 KB)
+├── ESM: 98.05 KB (gzip 22.32 KB)
+└── CSS: 15.38 KB (gzip 3.06 KB)
+```
+
+### 📝 Phase 7 완료 내역 (2025-02-02)
+
+1. ✅ 빌드 테스트 성공
+2. ✅ 개발 서버 정상 동작 확인
+3. ✅ 코드 검토 - 현재 사용 중인 import 확인
+4. ✅ PROGRESS.md 업데이트
+
+---
+
+### 📋 리팩토링 단계 (Sonnet 작업용)
+
+#### Phase 1: GridContext 인터페이스 정의 (완료) ✅
+모듈들이 VeloxGrid 내부에 접근하기 위한 인터페이스 생성
+
+**파일**: `src/types/index.ts` (Line 637~813)
+
+**구현 완료 내용:**
+```typescript
+export interface GridContext {
+  // DOM Elements (readonly)
+  readonly rootElement: HTMLElement;
+  readonly headerElement: HTMLElement;
+  readonly bodyElement: HTMLElement;
+  readonly bodyInner: HTMLElement;
+  readonly fixedLeftContainer: HTMLElement | null;
+  readonly fixedLeftHeader: HTMLElement | null;
+  readonly fixedLeftBody: HTMLElement | null;
+  readonly fixedLeftBodyInner: HTMLElement | null;
+  readonly loadingOverlay: HTMLElement | null;
+
+  // State Accessors
+  getOptions(): GridOptions;
+  getState(): GridState;
+  getEvents(): GridEvents;
+  getGridId(): string;
+
+  // Column Methods
+  getVisibleColumns(): ColumnDefinition[];
+  getFixedLeftColumns(): ColumnDefinition[];
+  getScrollableColumns(): ColumnDefinition[];
+  invalidateColumnCache(): void;
+  hasFixedLeft(): boolean;
+
+  // Data Methods
+  getDisplayData(): RowData[];
+  getData(): RowData[];
+  applyDataTransformations(): void;
+  rebuildDataIndexMap(): void;
+  initCheckableRows(): void;
+
+  // Virtual Scroll
+  getVirtualState(): { startIndex, endIndex, visibleCount, totalHeight };
+  calculateVirtualState(): void;
+  getVisibleRows(): { data: RowData; index: number }[];
+
+  // Rendering
+  render(): void;
+  renderBody(): void;
+  renderHeader(): void;
+  updateLoadingState(): void;
+
+  // Selection, CheckBar, Edit, Sort/Filter, Column/Row Operations
+  // History (Undo/Redo), Events, Text Measurement
+  // ... (총 ~180줄)
+}
+```
+
+**작업 시간**: 30분
+**위험도**: 낮음
+**상태**: ✅ 완료
+
+---
+
+#### Phase 2: VeloxGrid에 GridContext 구현 (완료) ✅
+VeloxGrid 클래스가 GridContext 인터페이스를 구현하도록 수정
+
+**수정 파일**: `src/core/VeloxGrid.ts`
+
+**구현 완료 내용:**
+```typescript
+export class VeloxGrid implements VeloxGridInstance, GridContext {
+  // DOM Elements - public for GridContext access (Line 109-118)
+  public rootElement!: HTMLElement;
+  public headerElement!: HTMLElement;
+  public bodyElement!: HTMLElement;
+  public bodyInner!: HTMLElement;
+  public loadingOverlay: HTMLElement | null = null;
+  public fixedLeftContainer: HTMLElement | null = null;
+  public fixedLeftHeader: HTMLElement | null = null;
+  public fixedLeftBody: HTMLElement | null = null;
+  public fixedLeftBodyInner: HTMLElement | null = null;
+
+  // GridContext 메서드 구현 (파일 전체에 분산)
+  rebuildDataIndexMap(): void { ... }        // Line 250
+  initCheckableRows(): void { ... }          // Line 257
+  invalidateColumnCache(): void { ... }      // Line 275
+  getFixedLeftColumns(): ColumnDefinition[] { ... }  // Line 282
+  getScrollableColumns(): ColumnDefinition[] { ... } // Line 290
+  getVisibleColumns(): ColumnDefinition[] { ... }    // Line 299
+  hasFixedLeft(): boolean { ... }            // Line 304
+  calculateVirtualState(): void { ... }      // Line 382
+  getVisibleRows(): { data, index }[] { ... } // Line 399
+  render(): void { ... }                     // Line 410
+  renderHeader(): void { ... }               // Line 416
+  renderBody(): void { ... }                 // 기존 메서드
+  measureTextWidth(text, font?): number { ... } // Line 1953
+
+  // GridContext Implementation 섹션 (Line 2768~2810)
+  getState(): GridState { return this.state; }
+  getEvents(): GridEvents { return this.events; }
+  getGridId(): string { return this.gridId; }
+  getDisplayData(): RowData[] { return this.state.displayData; }
+  getVirtualState(): typeof this.virtualState { return this.virtualState; }
+  emitEvent<K extends keyof GridEvents>(...): void { ... }
+}
+```
+
+**작업 시간**: 45분
+**위험도**: 낮음
+**빌드 결과**: ✅ 성공 (69.23 KB, gzip 17.69 KB)
+**상태**: ✅ 완료
+
+---
+
+#### Phase 3: 모듈 생성자 수정 및 VeloxGrid 연결 (완료) ✅
+각 모듈이 GridContext를 받도록 수정하고 VeloxGrid에서 인스턴스 생성
+
+**수정된 모듈들**:
+
+| 모듈 | 생성자 | 상태 |
+|------|--------|------|
+| GridRenderer.ts | `constructor(private ctx: GridContext)` | ✅ 완료 |
+| GridEventManager.ts | `constructor(private grid: GridContext)` | ✅ 완료 |
+| GridFilterPopup.ts | `constructor(private grid: GridContext)` | ✅ 완료 |
+| GridColumnMenu.ts | `constructor(private grid: GridContext)` | ✅ 완료 |
+| GridDragManager.ts | `constructor(private grid: GridContext)` | ✅ 완료 |
+
+**VeloxGrid.ts 수정 내용**:
+```typescript
+// 1. 모듈 import 추가
+import { GridRenderer } from './GridRenderer';
+import { GridEventManager } from './GridEventManager';
+import { GridFilterPopup } from './GridFilterPopup';
+import { GridColumnMenu } from './GridColumnMenu';
+import { GridDragManager } from './GridDragManager';
+
+// 2. 인스턴스 선언
+private renderer: GridRenderer;
+private eventManager: GridEventManager;
+private filterPopupManager: GridFilterPopup;
+private columnMenuManager: GridColumnMenu;
+private dragManager: GridDragManager;
+
+// 3. 생성자에서 초기화
+this.renderer = new GridRenderer(this);
+this.eventManager = new GridEventManager(this);
+this.filterPopupManager = new GridFilterPopup(this);
+this.columnMenuManager = new GridColumnMenu(this);
+this.dragManager = new GridDragManager(this);
+```
+
+**추가 수정 사항**:
+1. `SelectionState` 타입에 `lastSelectedRow: number | null` 추가
+2. `GridSelection.ts`, `GridState.ts`, `VeloxGrid.ts`의 selection 초기화에 `lastSelectedRow: null` 추가
+3. `GridEventManager.ts`의 `emitEvent` 호출 인자 수정 (타입 일치)
+4. `GridDragManager.ts`의 `column.width` undefined 처리
+
+**작업 결과**:
+- VeloxGrid.ts: 2,501줄
+- 번들 크기: 87.42 KB (gzip 21.12 KB) - 모듈 코드 포함으로 증가
+- Vite 빌드: ✅ 성공
+- TypeScript: 미사용 변수 경고 (Phase 4~6에서 위임 시 해결)
+
+**작업 시간**: 40분
+**위험도**: 중간
+**상태**: ✅ 완료
+
+---
+
+#### Phase 4: 렌더링 메서드 위임 (GridRenderer) - 일부 완료 ✅
+VeloxGrid의 렌더링 메서드를 GridRenderer로 위임
+
+**완료된 위임**:
+```typescript
+render(): void {
+  this.renderer.render();
+}
+
+renderHeader(): void {
+  this.renderer.renderHeader();
+}
+
+renderBody(): void {
+  this.renderer.renderBody();
+}
+
+updateLoadingState(): void {
+  this.renderer.updateLoadingState();
+}
+```
+
+**아직 VeloxGrid에 남아있는 렌더링 관련 코드**:
+- createHeaderCell(), createHeaderCheckbarCell()
+- createRowBase(), createFixedLeftRow(), createRow()
+- createCheckbarCell(), createCell()
+
+> 참고: 이 메서드들은 VeloxGrid 내부에서 직접 호출되지 않고, 
+> GridRenderer가 자체 구현을 사용하므로 향후 정리 대상
+
+**작업 시간**: 15분
+**위험도**: 낮음
+**상태**: ✅ 완료
+
+---
+
+#### Phase 5~6: 이벤트/Filter/Menu/Drag 위임 및 정리 (완료) ✅
+
+**결정 사항**:
+- GridEventManager 제거 (VeloxGrid 자체 구현이 더 완전함)
+- GridFilterPopup, GridColumnMenu, GridDragManager 위임 완료
+- destroy 메서드 정리
+
+**완료된 위임**:
+
+| 모듈 | 위임된 메서드 |
+|------|-------------|
+| GridRenderer | render, renderHeader, renderBody, updateLoadingState |
+| GridFilterPopup | showFilterPopup, closeFilterPopup, applyColumnFilter, removeColumnFilter |
+| GridColumnMenu | showColumnMenu, closeColumnMenu |
+| GridDragManager | startColumnDrag, startRowDrag, startResize, destroy |
+
+**수정 내용**:
+1. VeloxGrid에서 GridEventManager import/인스턴스 제거
+2. GridDragManager에 destroy() 메서드 추가
+3. VeloxGrid.attachEvents()에서 resize 이벤트 리스너 제거 (DragManager가 관리)
+4. 미사용 import (removeClass) 제거
+
+**빌드 결과**:
+- 번들 크기: 77.13 KB → 71.36 KB (5.77 KB 감소)
+- VeloxGrid.ts: 2,103줄 → 2,100줄
+
+**작업 시간**: 20분
+**상태**: ✅ 완료
+
+---
+
+#### Phase 7: 정리 및 최적화 (진행 예정)
+- 미사용 import 제거
+- 미사용 private 변수 제거
+- 코드 정리 및 주석 업데이트
+- 빌드 크기 확인
+
+**예상 작업**: 30분
+**위험도**: 낮음
+
+---
+
+### ⚠️ 리팩토링 시 주의사항
+
+#### 1. `this.grid as any` 패턴 제거
+현재 모듈들이 `this.grid as any`로 내부 접근 → GridContext 사용으로 변경
+
+```typescript
+// Before (현재)
+const grid = this.grid as any;
+grid.fixedLeftHeader.innerHTML = '';
+
+// After (목표)
+const ctx = this.ctx;
+ctx.fixedLeftHeader.innerHTML = ''; // 또는 ctx.getFixedLeftHeader()
+```
+
+#### 2. DOM 요소 접근 방식
+readonly 속성으로 직접 접근 허용 (getter 불필요)
+
+```typescript
+interface GridContext {
+  readonly rootElement: HTMLElement;
+  readonly bodyElement: HTMLElement;
+  // ...
+}
+```
+
+#### 3. 이벤트 발행 통일
+`this.events.onXxx?.()` → `this.emitEvent('onXxx', ...)`
+
+```typescript
+// GridContext 메서드
+emitEvent<K extends keyof GridEvents>(
+  event: K, 
+  ...args: Parameters<NonNullable<GridEvents[K]>>
+): void {
+  (this.events[event] as any)?.(...args);
+}
+```
+
+#### 4. 순환 참조 방지
+```
+허용: VeloxGrid → GridRenderer
+금지: GridRenderer → VeloxGrid (import 금지)
+해결: GridContext 인터페이스 사용
+```
+
+---
+
+### 📈 예상 결과
+
+| 파일 | 현재 | 목표 |
+|------|------|------|
+| VeloxGrid.ts | 2,776줄 | ~800줄 |
+| GridRenderer.ts | 475줄 | ~500줄 |
+| GridEventManager.ts | 424줄 | ~450줄 |
+| GridFilterPopup.ts | 191줄 | ~200줄 |
+| GridColumnMenu.ts | 188줄 | ~200줄 |
+| GridDragManager.ts | 347줄 | ~350줄 |
+
+**총 라인 수**: 변화 없음 (코드 이동만)
+**번들 크기**: 거의 동일 (~69KB)
+**유지보수성**: 대폭 향상
+
+---
+
+### 🚀 Sonnet 작업 시작 방법
+
+```
+.claude/PROGRESS.md 읽고 VeloxGrid.ts 리팩토링 Phase 1 시작해줘
+(GridContext 인터페이스 정의)
+```
+
+또는 단계별로:
+```
+VeloxGrid 리팩토링 Phase 2 진행해줘
+(VeloxGrid에 GridContext 구현)
+```
 
 ---
 

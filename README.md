@@ -15,7 +15,7 @@
 - 📦 **Zero Dependencies** - 외부 의존성 없음 (Excel 기능의 경우 SheetJS 선택적 사용)
 - 🎨 **커스터마이징 가능** - CSS Variables를 통한 쉬운 테마 커스터마이징
 - 📝 **TypeScript** - 완벽한 타입 지원
-- ⚡ **경량화** - ~69KB minified (~18KB gzipped)
+- ⚡ **경량화** - ~71KB minified (~18KB gzipped)
 
 ### 핵심 기능
 
@@ -28,6 +28,12 @@
 - ✔️ **셀 검증** - 다양한 규칙으로 입력값 검증 (v0.7.0)
 - 🎛️ **커스텀 에디터** - 드롭다운, 날짜 선택기, 체크박스 에디터 (v0.7.0)
 - 💬 **셀 툴팁** - 셀 호버 시 툴팁 표시 (v0.7.0)
+
+### 코드 구조 최적화 (v0.7.0+)
+
+- 🏗️ **모듈화 아키텍처** - VeloxGrid.ts 2,826줄 → 2,044줄 (27.7% 감소)
+- 📁 **CSS 모듈화** - 11개 파일로 분리하여 유지보수성 향상
+- 🔧 **핵심 모듈** - GridRenderer, GridFilterPopup, GridColumnMenu, GridDragManager 분리
 
 ## 📦 설치
 
@@ -54,7 +60,7 @@ npm install velox-grid
         editable: true,
         validation: [
           { type: 'required', message: '이메일은 필수입니다' },
-          { type: 'pattern', value: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/, message: '올바른 이메일 형식이 아닙니다' }
+          { type: 'pattern', value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '올바른 이메일 형식이 아닙니다' }
         ]
       },
       { field: 'age', header: '나이', type: 'number', width: 80 },
@@ -196,7 +202,7 @@ interface ValidationRule {
   field: 'email',
   validation: [
     { type: 'required', message: '이메일은 필수입니다' },
-    { type: 'pattern', value: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/, message: '올바른 이메일 형식이 아닙니다' }
+    { type: 'pattern', value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '올바른 이메일 형식이 아닙니다' }
   ]
 }
 ```
@@ -367,13 +373,63 @@ interface GridEvents {
 | `Ctrl + Home/End` | 첫 / 마지막 행 |
 | `Page Up/Down` | 페이지 이동 |
 
+## 📁 프로젝트 구조
+
+```
+velox-grid/
+├── src/
+│   ├── core/
+│   │   ├── VeloxGrid.ts         # Facade 클래스 (2,044줄)
+│   │   ├── GridRenderer.ts      # 렌더링 담당 (482줄)
+│   │   ├── GridFilterPopup.ts   # 필터 팝업 UI (191줄)
+│   │   ├── GridColumnMenu.ts    # 컬럼 메뉴 UI (188줄)
+│   │   ├── GridDragManager.ts   # 드래그 & 리사이즈 (364줄)
+│   │   ├── GridHistory.ts       # Undo/Redo 관리
+│   │   ├── GridSelection.ts     # 선택 관리
+│   │   ├── GridVirtualScroll.ts # 가상 스크롤
+│   │   ├── GridEditor.ts        # 편집 관리
+│   │   ├── GridEditorFactory.ts # 에디터 생성
+│   │   ├── GridKeyboard.ts      # 키보드 핸들링
+│   │   ├── GridColumnManager.ts # 컬럼 관리
+│   │   ├── GridDataManager.ts   # 데이터 관리
+│   │   ├── GridValidator.ts     # 셀 검증
+│   │   ├── GridTooltip.ts       # 툴팁
+│   │   └── index.ts
+│   ├── styles/
+│   │   ├── velox-grid.css       # 메인 (@import)
+│   │   ├── _variables.css       # CSS 변수
+│   │   ├── _base.css            # 기본 레이아웃
+│   │   ├── _header.css          # 헤더 스타일
+│   │   ├── _body.css            # 바디/셀 스타일
+│   │   ├── _selection.css       # 선택 스타일
+│   │   ├── _filter.css          # 필터 팝업
+│   │   ├── _column-menu.css     # 컬럼 메뉴
+│   │   ├── _drag.css            # 드래그 앤 드롭
+│   │   ├── _editor.css          # 에디터
+│   │   ├── _tooltip.css         # 툴팁
+│   │   └── _loading.css         # 로딩
+│   ├── types/
+│   │   └── index.ts
+│   └── utils/
+│       ├── data.ts
+│       ├── dom.ts
+│       ├── export.ts
+│       └── index.ts
+├── dist/                        # 빌드 출력
+├── examples/                    # 예제 페이지
+├── README.md
+├── ROADMAP.md
+├── CHANGELOG.md
+└── package.json
+```
+
 ## 📊 번들 크기
 
 | 버전 | UMD | Gzipped |
 |---------|-----|---------|
-| v0.7.0 | 69.0 KB | 17.6 KB |
-| v0.6.0 | 58.9 KB | 14.9 KB |
-| v0.5.0 | 50.5 KB | 12.9 KB |
+| v0.7.0 | 71.35 KB | 18.23 KB |
+| v0.6.0 | 58.94 KB | 14.92 KB |
+| v0.5.0 | 50.50 KB | 12.90 KB |
 
 ## 🗺️ 로드맵
 

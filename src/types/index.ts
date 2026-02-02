@@ -392,6 +392,7 @@ export interface SelectionState {
   selectedCells: Set<string>; // "rowIndex:field" format
   focusedCell: CellIndex | null;
   selections: Selection[]; // Multiple selection areas (Phase 7)
+  lastSelectedRow: number | null; // 마지막 선택된 행 (Shift+클릭용)
 }
 
 // ============================================
@@ -631,4 +632,212 @@ export interface RenderContext {
   headerHeight: number;
   totalHeight: number;
   totalWidth: number;
+}
+
+
+// ============================================
+// GridContext Interface (Phase 8 - Modularization)
+// ============================================
+
+/**
+ * GridContext - VeloxGrid 내부 모듈들이 사용하는 컨텍스트 인터페이스
+ * 
+ * 모듈들이 VeloxGrid 클래스에 직접 의존하지 않고 이 인터페이스를 통해 접근
+ * 순환 참조 방지 및 테스트 용이성 향상을 위한 설계
+ */
+export interface GridContext {
+  // ============================================
+  // DOM Elements (readonly)
+  // ============================================
+  readonly rootElement: HTMLElement;
+  readonly headerElement: HTMLElement;
+  readonly bodyElement: HTMLElement;
+  readonly bodyInner: HTMLElement;
+  readonly fixedLeftContainer: HTMLElement | null;
+  readonly fixedLeftHeader: HTMLElement | null;
+  readonly fixedLeftBody: HTMLElement | null;
+  readonly fixedLeftBodyInner: HTMLElement | null;
+  readonly loadingOverlay: HTMLElement | null;
+
+  // ============================================
+  // State Accessors
+  // ============================================
+  /** 그리드 옵션 반환 */
+  getOptions(): GridOptions;
+  /** 그리드 상태 반환 */
+  getState(): GridState;
+  /** 이벤트 핸들러 반환 */
+  getEvents(): GridEvents;
+  /** 그리드 고유 ID 반환 */
+  getGridId(): string;
+
+  // ============================================
+  // Column Methods
+  // ============================================
+  /** 모든 visible 컬럼 반환 (cached) */
+  getVisibleColumns(): ColumnDefinition[];
+  /** 왼쪽 고정 컬럼 반환 (cached) */
+  getFixedLeftColumns(): ColumnDefinition[];
+  /** 스크롤 가능 컬럼 반환 (cached) */
+  getScrollableColumns(): ColumnDefinition[];
+  /** 컬럼 캐시 무효화 */
+  invalidateColumnCache(): void;
+  /** 왼쪽 고정 영역 존재 여부 */
+  hasFixedLeft(): boolean;
+
+  // ============================================
+  // Data Methods
+  // ============================================
+  /** 표시 데이터 반환 (정렬/필터 적용 후) */
+  getDisplayData(): RowData[];
+  /** 원본 데이터 반환 */
+  getData(): RowData[];
+  /** 데이터 변환 적용 (정렬/필터) */
+  applyDataTransformations(): void;
+  /** 데이터 인덱스 맵 재구성 */
+  rebuildDataIndexMap(): void;
+  /** 체크 가능 행 초기화 */
+  initCheckableRows(): void;
+
+  // ============================================
+  // Virtual Scroll
+  // ============================================
+  /** 가상 스크롤 상태 */
+  getVirtualState(): {
+    startIndex: number;
+    endIndex: number;
+    visibleCount: number;
+    totalHeight: number;
+  };
+  /** 가상 스크롤 상태 계산 */
+  calculateVirtualState(): void;
+  /** 현재 표시되는 행 목록 반환 */
+  getVisibleRows(): { data: RowData; index: number }[];
+
+  // ============================================
+  // Rendering
+  // ============================================
+  /** 전체 렌더링 */
+  render(): void;
+  /** 바디만 렌더링 */
+  renderBody(): void;
+  /** 헤더만 렌더링 */
+  renderHeader(): void;
+  /** 로딩 상태 업데이트 */
+  updateLoadingState(): void;
+
+  // ============================================
+  // Selection
+  // ============================================
+  /** 선택 상태 초기화 */
+  clearSelectionState(): void;
+  /** 선택된 셀 목록 반환 */
+  getSelectedCells(): CellIndex[];
+  /** 행 선택 */
+  selectRow(index: number, selected: boolean): void;
+  /** 셀 범위 선택 */
+  selectCellRange(startRow: number, startField: string, endRow: number, endField: string): void;
+
+  // ============================================
+  // CheckBar
+  // ============================================
+  /** 체크 상태 변경 */
+  checkItem(index: number, checked: boolean): void;
+  /** 전체 체크/해제 */
+  checkAll(checked: boolean): void;
+
+  // ============================================
+  // Edit
+  // ============================================
+  /** 편집 시작 */
+  startEdit(rowIndex: number, field: string): void;
+  /** 편집 종료 */
+  endEdit(save?: boolean): void;
+  /** 편집 취소 */
+  cancelEdit(): void;
+
+  // ============================================
+  // Sort & Filter
+  // ============================================
+  /** 정렬 처리 */
+  handleSort(field: string): void;
+  /** 컬럼 필터 적용 */
+  applyColumnFilter(field: string, operator: FilterOperator, value: CellValue): void;
+  /** 컬럼 필터 제거 */
+  removeColumnFilter(field: string): void;
+
+  // ============================================
+  // Column Operations
+  // ============================================
+  /** 컬럼 고정 */
+  fixColumn(field: string, position: 'left' | 'right' | false): void;
+  /** 컬럼 순서 변경 */
+  reorderColumn(sourceField: string, targetField: string): void;
+  /** 컬럼 숨기기 */
+  hideColumn(field: string): void;
+  /** 컬럼 표시 */
+  showColumn(field: string): void;
+  /** 컬럼 너비 자동 조절 */
+  autoFitColumn(field: string): void;
+
+  // ============================================
+  // Row Operations
+  // ============================================
+  /** 행 이동 */
+  moveRow(fromIndex: number, toIndex: number): void;
+
+  // ============================================
+  // History (Undo/Redo)
+  // ============================================
+  /** Undo 스택에 액션 추가 */
+  pushUndo(action: UndoAction): void;
+  /** Undo 가능 여부 */
+  canUndo(): boolean;
+  /** Redo 가능 여부 */
+  canRedo(): boolean;
+
+  // ============================================
+  // Events
+  // ============================================
+  /** 이벤트 발행 헬퍼 */
+  emitEvent<K extends keyof GridEvents>(
+    event: K, 
+    ...args: Parameters<NonNullable<GridEvents[K]>>
+  ): void;
+
+  // ============================================
+  // Internal Handlers (for modules)
+  // ============================================
+  /** Filter 팝업 표시 */
+  showFilterPopup(column: ColumnDefinition, anchor: HTMLElement): void;
+  /** Column 메뉴 표시 */
+  showColumnMenu(column: ColumnDefinition, anchor: HTMLElement): void;
+  /** Column 드래그 시작 */
+  startColumnDrag(e: MouseEvent, column: ColumnDefinition): void;
+  /** Row 드래그 시작 */
+  startRowDrag(e: MouseEvent, rowIndex: number, rowElement: HTMLElement): void;
+  /** Resize 시작 */
+  startResize(e: MouseEvent, column: ColumnDefinition): void;
+  /** Block selection 시작 */
+  startBlockSelection(rowIndex: number, field: string): void;
+  /** Block selection 업데이트 */
+  updateBlockSelection(rowIndex: number, field: string): void;
+  /** Block selection 상태 확인 */
+  isBlockSelecting(): boolean;
+  /** Row 클릭 핸들러 */
+  handleRowClick(rowIndex: number, e: MouseEvent): void;
+  /** Row 더블클릭 핸들러 */
+  handleRowDoubleClick(rowIndex: number, e: MouseEvent): void;
+  /** Cell 클릭 핸들러 */
+  handleCellClick(rowIndex: number, field: string, value: CellValue, e: MouseEvent): void;
+  /** Tooltip 표시 */
+  showTooltip(cell: HTMLElement, value: CellValue, rowData: RowData, column: ColumnDefinition): void;
+  /** Tooltip 숨기기 */
+  hideTooltip(): void;
+
+  // ============================================
+  // Text Measurement (for auto-fit)
+  // ============================================
+  /** 텍스트 너비 측정 */
+  measureTextWidth(text: string, font?: string): number;
 }

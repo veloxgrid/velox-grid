@@ -8,14 +8,18 @@
  * - 리사이즈 이벤트
  */
 
+import type { GridContext } from '../types';
 import type { VeloxGrid } from './VeloxGrid';
+
+// VeloxGrid는 GridContext를 구현하므로, 타입 안전성을 위해 GridContext 사용
+type GridInstance = VeloxGrid & GridContext;
 
 export class GridEventManager {
   private boundHandleKeyDown: (e: KeyboardEvent) => void;
   private boundHandleResize: () => void;
   private boundHandleScroll: () => void;
 
-  constructor(private grid: VeloxGrid) {
+  constructor(private ctx: GridInstance) {
     this.boundHandleKeyDown = this.handleKeyDown.bind(this);
     this.boundHandleResize = this.handleResize.bind(this);
     this.boundHandleScroll = this.handleScroll.bind(this);
@@ -25,14 +29,13 @@ export class GridEventManager {
    * 이벤트 리스너 등록
    */
   attachEvents(): void {
-    const grid = this.grid as any;
-    
+    const ctx = this.ctx;
     // Keyboard events
-    grid.rootElement.addEventListener('keydown', this.boundHandleKeyDown);
+    ctx.rootElement.addEventListener('keydown', this.boundHandleKeyDown);
     
     // Scroll events
-    if (grid.bodyElement) {
-      grid.bodyElement.addEventListener('scroll', this.boundHandleScroll);
+    if (ctx.bodyElement) {
+      ctx.bodyElement.addEventListener('scroll', this.boundHandleScroll);
     }
     
     // Resize events (throttled)
@@ -43,10 +46,9 @@ export class GridEventManager {
    * 이벤트 리스너 제거
    */
   detachEvents(): void {
-    const grid = this.grid as any;
-    
-    grid.rootElement?.removeEventListener('keydown', this.boundHandleKeyDown);
-    grid.bodyElement?.removeEventListener('scroll', this.boundHandleScroll);
+    const ctx = this.ctx;
+    ctx.rootElement?.removeEventListener('keydown', this.boundHandleKeyDown);
+    ctx.bodyElement?.removeEventListener('scroll', this.boundHandleScroll);
     window.removeEventListener('resize', this.boundHandleResize);
   }
 
@@ -54,46 +56,48 @@ export class GridEventManager {
    * Row 클릭 핸들러
    */
   handleRowClick(rowIndex: number, e: MouseEvent): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    const state = ctx.getState();
     
-    if (!grid.options.selectable) return;
+    if (!options.selectable) return;
     
-    if (grid.options.selectionStyle === 'row') {
+    if (options.selectionStyle === 'row') {
       const isCtrlKey = e.ctrlKey || e.metaKey;
       const isShiftKey = e.shiftKey;
       
-      if (grid.options.selectionMode === 'multiple') {
+      if (options.selectionMode === 'multiple') {
         if (isCtrlKey) {
           // Toggle selection
-          if (grid.state.selection.selectedRows.has(rowIndex)) {
-            grid.state.selection.selectedRows.delete(rowIndex);
+          if (state.selection.selectedRows.has(rowIndex)) {
+            state.selection.selectedRows.delete(rowIndex);
           } else {
-            grid.state.selection.selectedRows.add(rowIndex);
+            state.selection.selectedRows.add(rowIndex);
           }
-        } else if (isShiftKey && grid.state.selection.lastSelectedRow !== null) {
+        } else if (isShiftKey && state.selection.lastSelectedRow !== null) {
           // Range selection
-          const start = Math.min(grid.state.selection.lastSelectedRow, rowIndex);
-          const end = Math.max(grid.state.selection.lastSelectedRow, rowIndex);
+          const start = Math.min(state.selection.lastSelectedRow, rowIndex);
+          const end = Math.max(state.selection.lastSelectedRow, rowIndex);
           for (let i = start; i <= end; i++) {
-            grid.state.selection.selectedRows.add(i);
+            state.selection.selectedRows.add(i);
           }
         } else {
           // Single selection
-          grid.state.selection.selectedRows.clear();
-          grid.state.selection.selectedRows.add(rowIndex);
+          state.selection.selectedRows.clear();
+          state.selection.selectedRows.add(rowIndex);
         }
       } else {
         // Single selection mode
-        grid.state.selection.selectedRows.clear();
-        grid.state.selection.selectedRows.add(rowIndex);
+        state.selection.selectedRows.clear();
+        state.selection.selectedRows.add(rowIndex);
       }
       
-      grid.state.selection.lastSelectedRow = rowIndex;
-      grid.state.selection.selectedCells.clear();
-      grid.state.selection.focusedCell = null;
-      grid.render();
-      grid.events.onRowSelect?.(rowIndex, e);
-      grid.events.onSelectionChange?.(Array.from(grid.state.selection.selectedRows));
+      state.selection.lastSelectedRow = rowIndex;
+      state.selection.selectedCells.clear();
+      state.selection.focusedCell = null;
+      ctx.render();
+      ctx.emitEvent('onRowSelect', rowIndex, true);
+      ctx.emitEvent('onSelectionChange', Array.from(state.selection.selectedRows));
     }
   }
 
@@ -101,93 +105,101 @@ export class GridEventManager {
    * Cell 클릭 핸들러
    */
   handleCellClick(rowIndex: number, field: string, value: any, e: MouseEvent): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    const state = ctx.getState();
     
-    if (grid.options.selectionStyle === 'cell') {
+    if (options.selectionStyle === 'cell') {
       const cellKey = `${rowIndex}:${field}`;
       const isCtrlKey = e.ctrlKey || e.metaKey;
       
-      if (grid.options.selectionMode === 'multiple' && isCtrlKey) {
+      if (options.selectionMode === 'multiple' && isCtrlKey) {
         // Toggle cell selection
-        if (grid.state.selection.selectedCells.has(cellKey)) {
-          grid.state.selection.selectedCells.delete(cellKey);
+        if (state.selection.selectedCells.has(cellKey)) {
+          state.selection.selectedCells.delete(cellKey);
         } else {
-          grid.state.selection.selectedCells.add(cellKey);
+          state.selection.selectedCells.add(cellKey);
         }
       } else {
         // Single cell selection
-        grid.state.selection.selectedCells.clear();
-        grid.state.selection.selectedCells.add(cellKey);
+        state.selection.selectedCells.clear();
+        state.selection.selectedCells.add(cellKey);
       }
       
-      grid.state.selection.focusedCell = { rowIndex, field };
-      grid.state.selection.selectedRows.clear();
-      grid.render();
+      state.selection.focusedCell = { rowIndex, field };
+      state.selection.selectedRows.clear();
+      ctx.render();
     }
     
-    grid.events.onCellClick?.({ rowIndex, field, value, event: e });
+    ctx.emitEvent('onCellClick', rowIndex, field, value);
   }
 
   /**
    * Row 더블클릭 핸들러
    */
-  handleRowDoubleClick(rowIndex: number, e: MouseEvent): void {
-    const grid = this.grid as any;
-    grid.events.onRowDoubleClick?.(rowIndex, e);
+  handleRowDoubleClick(rowIndex: number, _e: MouseEvent): void {
+    const ctx = this.ctx;
+    const state = ctx.getState();
+    const row = state.displayData[rowIndex];
+    if (row) {
+      ctx.emitEvent('onRowDoubleClick', rowIndex, row);
+    }
   }
 
   /**
    * 키보드 이벤트 핸들러
    */
   private handleKeyDown(e: KeyboardEvent): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    const state = ctx.getState();
     
     // Editing 상태일 때는 기본 동작 허용
-    if (grid.state.edit.editing) {
+    if (state.edit.editing) {
       return;
     }
     
     const isCtrlKey = e.ctrlKey || e.metaKey;
     
     // Ctrl+Z: Undo
-    if (isCtrlKey && e.key === 'z' && grid.options.undoable) {
+    if (isCtrlKey && e.key === 'z' && options.undoable) {
       e.preventDefault();
-      grid.undo();
+      ctx.undo();
       return;
     }
     
     // Ctrl+Y or Ctrl+Shift+Z: Redo
-    if (isCtrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'z')) && grid.options.undoable) {
+    if (isCtrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'z')) && options.undoable) {
       e.preventDefault();
-      grid.redo();
+      ctx.redo();
       return;
     }
     
     // Ctrl+C: Copy
     if (isCtrlKey && e.key === 'c') {
       e.preventDefault();
-      grid.copy();
+      ctx.copy();
       return;
     }
     
     // Ctrl+V: Paste
     if (isCtrlKey && e.key === 'v') {
       e.preventDefault();
-      grid.paste();
+      ctx.paste();
       return;
     }
     
     // Ctrl+X: Cut
     if (isCtrlKey && e.key === 'x') {
       e.preventDefault();
-      grid.cut();
+      ctx.cut();
       return;
     }
     
     // Delete: Delete selected cells
-    if (e.key === 'Delete' && grid.options.editable) {
+    if (e.key === 'Delete' && options.editable) {
       e.preventDefault();
-      grid.deleteSelectedCells();
+      ctx.deleteSelectedCells();
       return;
     }
     
@@ -217,14 +229,16 @@ export class GridEventManager {
    * 화살표 키 핸들러
    */
   private handleArrowKey(key: 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight'): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    const state = ctx.getState();
     
-    if (grid.options.selectionStyle === 'cell') {
-      const focusedCell = grid.state.selection.focusedCell;
+    if (options.selectionStyle === 'cell') {
+      const focusedCell = state.selection.focusedCell;
       if (!focusedCell) return;
       
-      const columns = grid.getScrollableColumns();
-      const currentColIndex = columns.findIndex((c: any) => c.field === focusedCell.field);
+      const columns = ctx.getScrollableColumns();
+      const currentColIndex = columns.findIndex(c => c.field === focusedCell.field);
       
       let newRowIndex = focusedCell.rowIndex;
       let newColIndex = currentColIndex;
@@ -234,7 +248,7 @@ export class GridEventManager {
           newRowIndex = Math.max(0, focusedCell.rowIndex - 1);
           break;
         case 'ArrowDown':
-          newRowIndex = Math.min(grid.state.displayData.length - 1, focusedCell.rowIndex + 1);
+          newRowIndex = Math.min(state.displayData.length - 1, focusedCell.rowIndex + 1);
           break;
         case 'ArrowLeft':
           newColIndex = Math.max(0, currentColIndex - 1);
@@ -247,18 +261,18 @@ export class GridEventManager {
       if (newRowIndex !== focusedCell.rowIndex || newColIndex !== currentColIndex) {
         const newField = columns[newColIndex]?.field;
         if (newField) {
-          grid.state.selection.focusedCell = { rowIndex: newRowIndex, field: newField };
+          state.selection.focusedCell = { rowIndex: newRowIndex, field: newField };
           const cellKey = `${newRowIndex}:${newField}`;
-          grid.state.selection.selectedCells.clear();
-          grid.state.selection.selectedCells.add(cellKey);
-          grid.render();
+          state.selection.selectedCells.clear();
+          state.selection.selectedCells.add(cellKey);
+          ctx.render();
           
           // Scroll into view
           this.scrollCellIntoView(newRowIndex, newField);
         }
       }
-    } else if (grid.options.selectionStyle === 'row') {
-      const selectedRows = Array.from(grid.state.selection.selectedRows) as number[];
+    } else if (options.selectionStyle === 'row') {
+      const selectedRows = Array.from(state.selection.selectedRows) as number[];
       if (selectedRows.length === 0) return;
       
       const currentRow = Math.max(...selectedRows);
@@ -269,15 +283,15 @@ export class GridEventManager {
           newRow = Math.max(0, currentRow - 1);
           break;
         case 'ArrowDown':
-          newRow = Math.min(grid.state.displayData.length - 1, currentRow + 1);
+          newRow = Math.min(state.displayData.length - 1, currentRow + 1);
           break;
       }
       
       if (newRow !== currentRow) {
-        grid.state.selection.selectedRows.clear();
-        grid.state.selection.selectedRows.add(newRow);
-        grid.state.selection.lastSelectedRow = newRow;
-        grid.render();
+        state.selection.selectedRows.clear();
+        state.selection.selectedRows.add(newRow);
+        state.selection.lastSelectedRow = newRow;
+        ctx.render();
         
         // Scroll into view
         this.scrollRowIntoView(newRow);
@@ -289,12 +303,14 @@ export class GridEventManager {
    * Enter 키 핸들러
    */
   private handleEnterKey(): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    const state = ctx.getState();
     
-    if (grid.options.selectionStyle === 'cell' && grid.options.editable) {
-      const focusedCell = grid.state.selection.focusedCell;
+    if (options.selectionStyle === 'cell' && options.editable) {
+      const focusedCell = state.selection.focusedCell;
       if (focusedCell) {
-        grid.startEdit(focusedCell.rowIndex, focusedCell.field);
+        ctx.startEdit(focusedCell.rowIndex, focusedCell.field);
       }
     }
   }
@@ -303,14 +319,16 @@ export class GridEventManager {
    * Tab 키 핸들러
    */
   private handleTabKey(shiftKey: boolean): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    const state = ctx.getState();
     
-    if (grid.options.selectionStyle === 'cell') {
-      const focusedCell = grid.state.selection.focusedCell;
+    if (options.selectionStyle === 'cell') {
+      const focusedCell = state.selection.focusedCell;
       if (!focusedCell) return;
       
-      const columns = grid.getScrollableColumns();
-      const currentColIndex = columns.findIndex((c: any) => c.field === focusedCell.field);
+      const columns = ctx.getScrollableColumns();
+      const currentColIndex = columns.findIndex(c => c.field === focusedCell.field);
       
       let newRowIndex = focusedCell.rowIndex;
       let newColIndex = currentColIndex;
@@ -326,18 +344,18 @@ export class GridEventManager {
         // Tab: Move right or next row
         newColIndex = currentColIndex + 1;
         if (newColIndex >= columns.length) {
-          newRowIndex = Math.min(grid.state.displayData.length - 1, focusedCell.rowIndex + 1);
+          newRowIndex = Math.min(state.displayData.length - 1, focusedCell.rowIndex + 1);
           newColIndex = 0;
         }
       }
       
       const newField = columns[newColIndex]?.field;
       if (newField) {
-        grid.state.selection.focusedCell = { rowIndex: newRowIndex, field: newField };
+        state.selection.focusedCell = { rowIndex: newRowIndex, field: newField };
         const cellKey = `${newRowIndex}:${newField}`;
-        grid.state.selection.selectedCells.clear();
-        grid.state.selection.selectedCells.add(cellKey);
-        grid.render();
+        state.selection.selectedCells.clear();
+        state.selection.selectedCells.add(cellKey);
+        ctx.render();
         
         // Scroll into view
         this.scrollCellIntoView(newRowIndex, newField);
@@ -349,9 +367,10 @@ export class GridEventManager {
    * 리사이즈 핸들러
    */
   private handleResize(): void {
-    const grid = this.grid as any;
-    if (grid.options.virtualScroll) {
-      grid.render();
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    if (options.virtualScroll) {
+      ctx.render();
     }
   }
 
@@ -359,15 +378,16 @@ export class GridEventManager {
    * 스크롤 핸들러
    */
   private handleScroll(): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
     
-    if (grid.options.virtualScroll) {
-      grid.render();
+    if (options.virtualScroll) {
+      ctx.render();
     }
     
     // Sync fixed left scroll
-    if (grid.fixedLeftBody && grid.bodyElement) {
-      grid.fixedLeftBody.scrollTop = grid.bodyElement.scrollTop;
+    if (ctx.fixedLeftBody && ctx.bodyElement) {
+      ctx.fixedLeftBody.scrollTop = ctx.bodyElement.scrollTop;
     }
   }
 
@@ -375,28 +395,27 @@ export class GridEventManager {
    * Cell을 화면에 보이도록 스크롤
    */
   private scrollCellIntoView(rowIndex: number, field: string): void {
-    const grid = this.grid as any;
-    
+    const ctx = this.ctx;
     // Find the cell element
-    const row = grid.bodyInner.querySelector(`[data-row-index="${rowIndex}"]`);
+    const row = ctx.bodyInner.querySelector(`[data-row-index="${rowIndex}"]`);
     const cell = row?.querySelector(`[data-field="${field}"]`) as HTMLElement;
     
-    if (cell && grid.bodyElement) {
+    if (cell && ctx.bodyElement) {
       const cellRect = cell.getBoundingClientRect();
-      const bodyRect = grid.bodyElement.getBoundingClientRect();
+      const bodyRect = ctx.bodyElement.getBoundingClientRect();
       
       // Vertical scroll
       if (cellRect.top < bodyRect.top) {
-        grid.bodyElement.scrollTop -= bodyRect.top - cellRect.top;
+        ctx.bodyElement.scrollTop -= bodyRect.top - cellRect.top;
       } else if (cellRect.bottom > bodyRect.bottom) {
-        grid.bodyElement.scrollTop += cellRect.bottom - bodyRect.bottom;
+        ctx.bodyElement.scrollTop += cellRect.bottom - bodyRect.bottom;
       }
       
       // Horizontal scroll
       if (cellRect.left < bodyRect.left) {
-        grid.bodyElement.scrollLeft -= bodyRect.left - cellRect.left;
+        ctx.bodyElement.scrollLeft -= bodyRect.left - cellRect.left;
       } else if (cellRect.right > bodyRect.right) {
-        grid.bodyElement.scrollLeft += cellRect.right - bodyRect.right;
+        ctx.bodyElement.scrollLeft += cellRect.right - bodyRect.right;
       }
     }
   }
@@ -405,18 +424,17 @@ export class GridEventManager {
    * Row를 화면에 보이도록 스크롤
    */
   private scrollRowIntoView(rowIndex: number): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const row = ctx.bodyInner.querySelector(`[data-row-index="${rowIndex}"]`) as HTMLElement;
     
-    const row = grid.bodyInner.querySelector(`[data-row-index="${rowIndex}"]`) as HTMLElement;
-    
-    if (row && grid.bodyElement) {
+    if (row && ctx.bodyElement) {
       const rowRect = row.getBoundingClientRect();
-      const bodyRect = grid.bodyElement.getBoundingClientRect();
+      const bodyRect = ctx.bodyElement.getBoundingClientRect();
       
       if (rowRect.top < bodyRect.top) {
-        grid.bodyElement.scrollTop -= bodyRect.top - rowRect.top;
+        ctx.bodyElement.scrollTop -= bodyRect.top - rowRect.top;
       } else if (rowRect.bottom > bodyRect.bottom) {
-        grid.bodyElement.scrollTop += rowRect.bottom - bodyRect.bottom;
+        ctx.bodyElement.scrollTop += rowRect.bottom - bodyRect.bottom;
       }
     }
   }

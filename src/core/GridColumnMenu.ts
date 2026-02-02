@@ -7,15 +7,18 @@
  * - 정렬, 숨기기, 고정 등의 기능 제공
  */
 
-import type { ColumnDefinition, ContextMenuItem, ContextMenuContext } from '../types';
+import type { ColumnDefinition, ContextMenuItem, ContextMenuContext, GridContext } from '../types';
 import { createElement, addClass } from '../utils/dom';
 import type { VeloxGrid } from './VeloxGrid';
+
+// VeloxGrid는 GridContext를 구현하므로, 타입 안전성을 위해 GridContext 사용
+type GridInstance = VeloxGrid & GridContext;
 
 export class GridColumnMenu {
   private columnMenuPopup: HTMLElement | null = null;
   private boundHandleOutsideClick: (e: MouseEvent) => void;
 
-  constructor(private grid: VeloxGrid) {
+  constructor(private ctx: GridInstance) {
     this.boundHandleOutsideClick = this.handleOutsideClick.bind(this);
   }
 
@@ -25,10 +28,11 @@ export class GridColumnMenu {
   showColumnMenu(column: ColumnDefinition, anchor: HTMLElement): void {
     this.closeColumnMenu();
 
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
     const menu = createElement('div', 'velox-column-menu');
     const rect = anchor.getBoundingClientRect();
-    const gridRect = grid.rootElement.getBoundingClientRect();
+    const gridRect = ctx.rootElement.getBoundingClientRect();
 
     menu.style.top = `${rect.bottom - gridRect.top + 5}px`;
     menu.style.left = `${rect.left - gridRect.left}px`;
@@ -37,13 +41,13 @@ export class GridColumnMenu {
     const context: ContextMenuContext = {
       field: column.field,
       column,
-      selectedRows: grid.getSelectedRows(),
-      selectedCells: grid.getSelectedCells(),
-      grid: this.grid,
+      selectedRows: ctx.getSelectedRows(),
+      selectedCells: ctx.getSelectedCells(),
+      grid: ctx,
     };
 
     // Get menu items (custom or default)
-    const menuConfig = grid.options.contextMenu;
+    const menuConfig = options.contextMenu;
     const showDefault = menuConfig?.showDefaultItems !== false;
     const customItems = menuConfig?.headerItems || [];
 
@@ -53,51 +57,51 @@ export class GridColumnMenu {
         id: 'sort-asc', 
         label: '오름차순 정렬', 
         icon: '↑', 
-        action: () => grid.sort(column.field, 'asc') 
+        action: () => ctx.sort(column.field, 'asc') 
       },
       { 
         id: 'sort-desc', 
         label: '내림차순 정렬', 
         icon: '↓', 
-        action: () => grid.sort(column.field, 'desc') 
+        action: () => ctx.sort(column.field, 'desc') 
       },
       { 
         id: 'sort-clear', 
         label: '정렬 해제', 
         icon: '✕', 
-        action: () => grid.clearSort() 
+        action: () => ctx.clearSort() 
       },
       { type: 'separator' },
       { 
         id: 'hide', 
         label: '컬럼 숨기기', 
         icon: '👁', 
-        action: () => grid.hideColumn(column.field) 
+        action: () => ctx.hideColumn(column.field) 
       },
       { 
         id: 'autofit', 
         label: '컬럼 너비 자동', 
         icon: '↔', 
-        action: () => grid.autoFitColumn(column.field) 
+        action: () => ctx.autoFitColumn(column.field) 
       },
       { 
         id: 'autofit-all', 
         label: '모든 컬럼 자동', 
         icon: '⇔', 
-        action: () => grid.autoFitAllColumns() 
+        action: () => ctx.autoFitAllColumns() 
       },
       { type: 'separator' },
       { 
         id: 'fix-left', 
         label: '왼쪽에 고정', 
         icon: '◀', 
-        action: () => grid.fixColumn(column.field, 'left') 
+        action: () => ctx.fixColumn(column.field, 'left') 
       },
       { 
         id: 'unfix', 
         label: '고정 해제', 
         icon: '◇', 
-        action: () => grid.fixColumn(column.field, false) 
+        action: () => ctx.fixColumn(column.field, false) 
       },
     ];
 
@@ -152,7 +156,7 @@ export class GridColumnMenu {
     });
 
     this.columnMenuPopup = menu;
-    grid.rootElement.appendChild(menu);
+    ctx.rootElement.appendChild(menu);
 
     // Add outside click listener with delay to avoid immediate close
     setTimeout(() => document.addEventListener('click', this.boundHandleOutsideClick), 0);

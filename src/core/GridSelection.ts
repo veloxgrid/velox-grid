@@ -23,6 +23,7 @@ export class GridSelection {
       selectedCells: new Set<string>(),
       focusedCell: null,
       selections: [],
+      lastSelectedRow: null,
     };
     this.checkBarState = {
       checkedRows: new Set<number>(),

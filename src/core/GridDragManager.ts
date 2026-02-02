@@ -8,9 +8,12 @@
  * - Resize 핸들링
  */
 
-import type { ColumnDefinition } from '../types';
+import type { ColumnDefinition, GridContext } from '../types';
 import { createElement, addClass, removeClass } from '../utils/dom';
 import type { VeloxGrid } from './VeloxGrid';
+
+// VeloxGrid는 GridContext를 구현하므로, 타입 안전성을 위해 GridContext 사용
+type GridInstance = VeloxGrid & GridContext;
 
 interface ColumnDragState {
   field: string;
@@ -42,7 +45,7 @@ export class GridDragManager {
   private boundHandleResizeMove: (e: MouseEvent) => void;
   private boundHandleResizeEnd: (e: MouseEvent) => void;
 
-  constructor(private grid: VeloxGrid) {
+  constructor(private ctx: GridInstance) {
     this.boundHandleColumnDragMove = this.handleColumnDragMove.bind(this);
     this.boundHandleColumnDragEnd = this.handleColumnDragEnd.bind(this);
     this.boundHandleRowDragMove = this.handleRowDragMove.bind(this);
@@ -85,16 +88,17 @@ export class GridDragManager {
    * Column 드래그 이동
    */
   private handleColumnDragMove(e: MouseEvent): void {
+    const ctx = this.ctx;
+
     if (!this.columnDragging?.element) return;
     
     this.columnDragging.element.style.left = `${e.clientX + 10}px`;
     this.columnDragging.element.style.top = `${e.clientY + 10}px`;
     
-    const grid = this.grid as any;
     const target = document.elementFromPoint(e.clientX, e.clientY);
     const headerCell = target?.closest('.velox-header-cell') as HTMLElement;
     
-    grid.headerElement.querySelectorAll('.velox-header-cell--drop-target').forEach((el: Element) => {
+    ctx.headerElement.querySelectorAll('.velox-header-cell--drop-target').forEach((el: Element) => {
       removeClass(el as HTMLElement, 'velox-header-cell--drop-target');
     });
     
@@ -107,9 +111,10 @@ export class GridDragManager {
    * Column 드래그 종료
    */
   private handleColumnDragEnd(e: MouseEvent): void {
+    const ctx = this.ctx;
+
     if (!this.columnDragging) return;
     
-    const grid = this.grid as any;
     const sourceField = this.columnDragging.field;
     
     const target = document.elementFromPoint(e.clientX, e.clientY);
@@ -119,7 +124,7 @@ export class GridDragManager {
     if (this.columnDragging.element) {
       this.columnDragging.element.remove();
     }
-    grid.headerElement.querySelectorAll('.velox-header-cell--drop-target').forEach((el: Element) => {
+    ctx.headerElement.querySelectorAll('.velox-header-cell--drop-target').forEach((el: Element) => {
       removeClass(el as HTMLElement, 'velox-header-cell--drop-target');
     });
     
@@ -128,7 +133,7 @@ export class GridDragManager {
     removeClass(document.body, 'velox-no-select');
     
     if (targetField && targetField !== sourceField) {
-      grid.reorderColumn(sourceField, targetField);
+      ctx.reorderColumn(sourceField, targetField);
     }
     
     this.columnDragging = null;
@@ -177,19 +182,20 @@ export class GridDragManager {
    * Row 드래그 이동
    */
   private handleRowDragMove(e: MouseEvent): void {
+    const ctx = this.ctx;
+
     if (!this.rowDragging?.element) return;
     
     this.rowDragging.element.style.left = `${e.clientX + 10}px`;
     this.rowDragging.element.style.top = `${e.clientY + 10}px`;
     
-    const grid = this.grid as any;
     const target = document.elementFromPoint(e.clientX, e.clientY);
     const rowElement = target?.closest('.velox-row') as HTMLElement;
     
-    grid.bodyInner.querySelectorAll('.velox-row--drop-target').forEach((el: Element) => {
+    ctx.bodyInner.querySelectorAll('.velox-row--drop-target').forEach((el: Element) => {
       removeClass(el as HTMLElement, 'velox-row--drop-target');
     });
-    grid.fixedLeftBodyInner?.querySelectorAll('.velox-row--drop-target').forEach((el: Element) => {
+    ctx.fixedLeftBodyInner?.querySelectorAll('.velox-row--drop-target').forEach((el: Element) => {
       removeClass(el as HTMLElement, 'velox-row--drop-target');
     });
     
@@ -205,9 +211,10 @@ export class GridDragManager {
    * Row 드래그 종료
    */
   private handleRowDragEnd(e: MouseEvent): void {
+    const ctx = this.ctx;
+
     if (!this.rowDragging) return;
     
-    const grid = this.grid as any;
     const sourceIndex = this.rowDragging.index;
     
     const target = document.elementFromPoint(e.clientX, e.clientY);
@@ -217,11 +224,11 @@ export class GridDragManager {
     if (this.rowDragging.element) {
       this.rowDragging.element.remove();
     }
-    grid.bodyInner.querySelectorAll('.velox-row--dragging, .velox-row--drop-target').forEach((el: Element) => {
+    ctx.bodyInner.querySelectorAll('.velox-row--dragging, .velox-row--drop-target').forEach((el: Element) => {
       removeClass(el as HTMLElement, 'velox-row--dragging');
       removeClass(el as HTMLElement, 'velox-row--drop-target');
     });
-    grid.fixedLeftBodyInner?.querySelectorAll('.velox-row--dragging, .velox-row--drop-target').forEach((el: Element) => {
+    ctx.fixedLeftBodyInner?.querySelectorAll('.velox-row--dragging, .velox-row--drop-target').forEach((el: Element) => {
       removeClass(el as HTMLElement, 'velox-row--dragging');
       removeClass(el as HTMLElement, 'velox-row--drop-target');
     });
@@ -231,7 +238,7 @@ export class GridDragManager {
     removeClass(document.body, 'velox-no-select');
     
     if (targetIndex !== -1 && targetIndex !== sourceIndex) {
-      grid.moveRow(sourceIndex, targetIndex);
+      ctx.moveRow(sourceIndex, targetIndex);
     }
     
     this.rowDragging = null;
@@ -252,11 +259,12 @@ export class GridDragManager {
    * Column 리사이즈 시작
    */
   startResize(e: MouseEvent, column: ColumnDefinition): void {
+    const ctx = this.ctx;
+
     e.preventDefault();
     e.stopPropagation();
     
-    const grid = this.grid as any;
-    const headerCell = grid.headerElement.querySelector(`[data-field="${column.field}"]`) as HTMLElement;
+    const headerCell = ctx.headerElement.querySelector(`[data-field="${column.field}"]`) as HTMLElement;
     
     if (headerCell) {
       this.resizing = {
@@ -275,6 +283,8 @@ export class GridDragManager {
    * Column 리사이즈 이동
    */
   private handleResizeMove(e: MouseEvent): void {
+    const ctx = this.ctx;
+
     if (!this.resizing) return;
     
     const deltaX = e.clientX - this.resizing.startX;
@@ -282,23 +292,23 @@ export class GridDragManager {
     
     this.resizing.column.width = newWidth;
     
-    const grid = this.grid as any;
-    grid.invalidateColumnCache();
-    grid.render();
+    ctx.invalidateColumnCache();
+    ctx.render();
   }
 
   /**
    * Column 리사이즈 종료
    */
   private handleResizeEnd(): void {
+    const ctx = this.ctx;
+    
     if (!this.resizing) return;
     
     document.removeEventListener('mousemove', this.boundHandleResizeMove);
     document.removeEventListener('mouseup', this.boundHandleResizeEnd);
     removeClass(document.body, 'velox-no-select');
     
-    const grid = this.grid as any;
-    grid.events.onColumnResize?.(this.resizing.column.field, this.resizing.column.width);
+    ctx.emitEvent('onColumnResize', this.resizing.column.field, this.resizing.column.width || 0);
     
     this.resizing = null;
   }
@@ -342,5 +352,12 @@ export class GridDragManager {
     }
 
     removeClass(document.body, 'velox-no-select');
+  }
+
+  /**
+   * 리소스 정리 (destroy 별칭)
+   */
+  destroy(): void {
+    this.cleanup();
   }
 }

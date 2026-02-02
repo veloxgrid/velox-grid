@@ -1,16 +1,16 @@
 /**
- * VeloxGrid - Core Grid Class v5.0
+ * VeloxGrid - Core Grid Class v6.0
  * 
- * Phase 7: Selection Enhancement
- * Phase 8: Excel Export/Import
- * Phase 9: Keyboard & Undo/Redo
- * Phase 10: Column Reorder & Column Menu
- * Phase 11: Row Drag & Drop
+ * A lightweight, high-performance data grid library
  * 
- * Refactored with:
- * - GridHistory for Undo/Redo management
+ * Architecture:
+ * - Modular design with delegated components
+ * - GridRenderer: Rendering (header, body, cells)
+ * - GridFilterPopup: Filter UI
+ * - GridColumnMenu: Column context menu
+ * - GridDragManager: Column/Row drag & resize
+ * - GridHistory: Undo/Redo management
  * - Column caching for performance
- * - Unified row creation (createRowBase)
  */
 
 import type {
@@ -36,10 +36,9 @@ import type {
   BulkEditUndoData,
   RowAddUndoData,
   RowRemoveUndoData,
-  ContextMenuItem,
-  ContextMenuContext,
+  GridContext,
 } from '../types';
-import { createElement, addClass, removeClass, throttle } from '../utils/dom';
+import { createElement, addClass, throttle } from '../utils/dom';
 import { formatValue, sortData, filterData, generateId } from '../utils/data';
 import {
   exportToExcel as exportToExcelUtil,
@@ -57,6 +56,10 @@ import { GridHistory } from './GridHistory';
 import { GridValidator } from './GridValidator';
 import { GridEditorFactory } from './GridEditorFactory';
 import { GridTooltip } from './GridTooltip';
+import { GridRenderer } from './GridRenderer';
+import { GridFilterPopup } from './GridFilterPopup';
+import { GridColumnMenu } from './GridColumnMenu';
+import { GridDragManager } from './GridDragManager';
 
 const DEFAULT_OPTIONS: Partial<GridOptions> = {
   rowHeight: 40,
@@ -95,26 +98,25 @@ interface ColumnCache {
   dirty: boolean;
 }
 
-export class VeloxGrid implements VeloxGridInstance {
+export class VeloxGrid implements VeloxGridInstance, GridContext {
   private container: HTMLElement;
   private options: GridOptions;
   private state: GridState;
   private events: GridEvents;
   private gridId: string;
 
-  private rootElement!: HTMLElement;
-  private headerElement!: HTMLElement;
-  private bodyElement!: HTMLElement;
-  private bodyInner!: HTMLElement;
-  private filterPopup: HTMLElement | null = null;
-  private loadingOverlay: HTMLElement | null = null;
+  // DOM Elements - public for GridContext access
+  public rootElement!: HTMLElement;
+  public headerElement!: HTMLElement;
+  public bodyElement!: HTMLElement;
+  public bodyInner!: HTMLElement;
+  public loadingOverlay: HTMLElement | null = null;
+  public fixedLeftContainer: HTMLElement | null = null;
+  public fixedLeftHeader: HTMLElement | null = null;
+  public fixedLeftBody: HTMLElement | null = null;
+  public fixedLeftBodyInner: HTMLElement | null = null;
 
-  private fixedLeftContainer: HTMLElement | null = null;
-  private fixedLeftHeader: HTMLElement | null = null;
-  private fixedLeftBody: HTMLElement | null = null;
-  private fixedLeftBodyInner: HTMLElement | null = null;
-
-  private resizing: { field: string; startX: number; startWidth: number } | null = null;
+  // Internal state
   private blockSelecting: { startRow: number; startField: string } | null = null;
 
   // Cached canvas for text measurement (performance optimization)
@@ -122,8 +124,6 @@ export class VeloxGrid implements VeloxGridInstance {
   private measureContext: CanvasRenderingContext2D | null = null;
 
   // Bound event handlers (avoid creating new functions on each call)
-  private boundHandleResizeMove: (e: MouseEvent) => void;
-  private boundHandleResizeEnd: (e: MouseEvent) => void;
   private boundHandleBlockSelectionEnd: () => void;
   private boundHandleKeyDown: (e: KeyboardEvent) => void;
 
@@ -144,24 +144,15 @@ export class VeloxGrid implements VeloxGridInstance {
     dirty: true,
   };
 
-  // Phase 10: Column reorder state
-  private columnDragging: { field: string; startX: number; element: HTMLElement | null } | null = null;
-  
-  // Phase 11: Row drag state
-  private rowDragging: { index: number; startY: number; element: HTMLElement | null } | null = null;
-  
-  // Column menu popup
-  private columnMenuPopup: HTMLElement | null = null;
-  
-  // Bound event handlers for Phase 10-11
-  private boundHandleColumnDragMove: (e: MouseEvent) => void;
-  private boundHandleColumnDragEnd: (e: MouseEvent) => void;
-  private boundHandleRowDragMove: (e: MouseEvent) => void;
-  private boundHandleRowDragEnd: (e: MouseEvent) => void;
-
   // Undo/Redo - using GridHistory (refactored)
   private history: GridHistory;
   private tooltip: GridTooltip | null = null;
+
+  // Modularized components
+  private renderer: GridRenderer;
+  private filterPopupManager: GridFilterPopup;
+  private columnMenuManager: GridColumnMenu;
+  private dragManager: GridDragManager;
 
   constructor(
     container: HTMLElement | string,
@@ -188,20 +179,20 @@ export class VeloxGrid implements VeloxGridInstance {
     this.gridId = generateId('velox-grid');
 
     // Bind event handlers once in constructor (performance optimization)
-    this.boundHandleResizeMove = this.handleResizeMove.bind(this);
-    this.boundHandleResizeEnd = this.handleResizeEnd.bind(this);
     this.boundHandleBlockSelectionEnd = this.handleBlockSelectionEnd.bind(this);
     this.boundHandleKeyDown = this.handleKeyDown.bind(this);
-    this.boundHandleColumnDragMove = this.handleColumnDragMove.bind(this);
-    this.boundHandleColumnDragEnd = this.handleColumnDragEnd.bind(this);
-    this.boundHandleRowDragMove = this.handleRowDragMove.bind(this);
-    this.boundHandleRowDragEnd = this.handleRowDragEnd.bind(this);
 
     // Initialize history manager (refactored from inline stacks)
     this.history = new GridHistory({
       enabled: this.options.undoable ?? true,
       maxSize: this.options.undoStackSize ?? 50,
     });
+
+    // Initialize modularized components
+    this.renderer = new GridRenderer(this);
+    this.filterPopupManager = new GridFilterPopup(this);
+    this.columnMenuManager = new GridColumnMenu(this);
+    this.dragManager = new GridDragManager(this);
 
     this.state = {
       data: [],
@@ -212,6 +203,7 @@ export class VeloxGrid implements VeloxGridInstance {
         selectedCells: new Set<string>(),
         focusedCell: null,
         selections: [],
+        lastSelectedRow: null,
       },
       checkBar: {
         checkedRows: new Set<number>(),
@@ -236,21 +228,21 @@ export class VeloxGrid implements VeloxGridInstance {
     }
 
     this.build();
-    // Phase 12.3: Initialize tooltip
     this.tooltip = new GridTooltip(this.rootElement);
     this.render();
     this.attachEvents();
     this.events.onReady?.(this);
   }
 
-  private rebuildDataIndexMap(): void {
+  // GridContext: Data index methods (public for module access)
+  rebuildDataIndexMap(): void {
     this.dataIndexMap.clear();
     this.state.data.forEach((row, index) => {
       this.dataIndexMap.set(row, index);
     });
   }
 
-  private initCheckableRows(): void {
+  initCheckableRows(): void {
     this.state.checkBar.checkableRows.clear();
     const checkBar = this.options.checkBar;
     
@@ -265,14 +257,15 @@ export class VeloxGrid implements VeloxGridInstance {
     });
   }
 
-  private invalidateColumnCache(): void {
+  // GridContext: Column cache methods (public for module access)
+  invalidateColumnCache(): void {
     this.columnCache.dirty = true;
     this.columnCache.visible = null;
     this.columnCache.fixedLeft = null;
     this.columnCache.scrollable = null;
   }
 
-  private getFixedLeftColumns(): ColumnDefinition[] {
+  getFixedLeftColumns(): ColumnDefinition[] {
     if (this.columnCache.dirty || !this.columnCache.fixedLeft) {
       this.columnCache.fixedLeft = this.state.columns.filter(
         col => col.fixed === 'left' && col.visible !== false
@@ -281,7 +274,7 @@ export class VeloxGrid implements VeloxGridInstance {
     return this.columnCache.fixedLeft;
   }
 
-  private getScrollableColumns(): ColumnDefinition[] {
+  getScrollableColumns(): ColumnDefinition[] {
     if (this.columnCache.dirty || !this.columnCache.scrollable) {
       this.columnCache.scrollable = this.state.columns.filter(
         col => col.fixed !== 'left' && col.visible !== false
@@ -291,14 +284,14 @@ export class VeloxGrid implements VeloxGridInstance {
     return this.columnCache.scrollable;
   }
 
-  private getVisibleColumns(): ColumnDefinition[] {
+  getVisibleColumns(): ColumnDefinition[] {
     if (this.columnCache.dirty || !this.columnCache.visible) {
       this.columnCache.visible = this.state.columns.filter(col => col.visible !== false);
     }
     return this.columnCache.visible;
   }
 
-  private hasFixedLeft(): boolean {
+  hasFixedLeft(): boolean {
     return this.getFixedLeftColumns().length > 0 || 
            this.options.checkBar?.visible === true || 
            this.options.showCheckbox === true || 
@@ -363,7 +356,8 @@ export class VeloxGrid implements VeloxGridInstance {
     this.rootElement.appendChild(this.loadingOverlay);
   }
 
-  private calculateVirtualState(): void {
+  // GridContext: Virtual scroll methods (public for module access)
+  calculateVirtualState(): void {
     if (!this.options.virtualScroll) return;
 
     const rowHeight = this.options.rowHeight || 40;
@@ -380,7 +374,7 @@ export class VeloxGrid implements VeloxGridInstance {
     this.virtualState.totalHeight = this.state.displayData.length * rowHeight;
   }
 
-  private getVisibleRows(): { data: RowData; index: number }[] {
+  getVisibleRows(): { data: RowData; index: number }[] {
     if (!this.options.virtualScroll) {
       return this.state.displayData.map((data, index) => ({ data, index }));
     }
@@ -392,521 +386,37 @@ export class VeloxGrid implements VeloxGridInstance {
     return rows;
   }
 
-  private render(): void {
-    this.renderHeader();
-    this.renderBody();
-    this.updateLoadingState();
+  // GridContext: Rendering methods - delegated to GridRenderer
+  render(): void {
+    this.renderer.render();
   }
 
-  private renderHeader(): void {
-    if (this.fixedLeftHeader) {
-      this.fixedLeftHeader.innerHTML = '';
-      const headerRow = createElement('div', 'velox-header-row');
-      
-      if (this.options.checkBar?.visible) {
-        headerRow.appendChild(this.createHeaderCheckbarCell());
-      }
-      
-      if (this.options.showRowNumbers) {
-        const rowNumCell = createElement('div', 'velox-header-cell velox-rownumber-cell');
-        rowNumCell.textContent = '#';
-        headerRow.appendChild(rowNumCell);
-      }
-      
-      this.getFixedLeftColumns().forEach(col => headerRow.appendChild(this.createHeaderCell(col)));
-      this.fixedLeftHeader.appendChild(headerRow);
-    }
-
-    const headerRow = createElement('div', 'velox-header-row');
-    this.getScrollableColumns().forEach(col => headerRow.appendChild(this.createHeaderCell(col)));
-    this.headerElement.innerHTML = '';
-    this.headerElement.appendChild(headerRow);
+  renderHeader(): void {
+    this.renderer.renderHeader();
+  }
+  renderBody(): void {
+    this.renderer.renderBody();
   }
 
-  private createHeaderCheckbarCell(): HTMLElement {
-    const cell = createElement('div', 'velox-header-cell velox-checkbox-cell');
-    const checkBar = this.options.checkBar!;
-    
-    if (checkBar.showAll && !checkBar.exclusive) {
-      const checkbox = createElement('input', 'velox-checkbox') as HTMLInputElement;
-      checkbox.type = 'checkbox';
-      
-      const checkableCount = this.state.checkBar.checkableRows.size;
-      const checkedCount = this.state.checkBar.checkedRows.size;
-      const allChecked = checkableCount > 0 && checkedCount === checkableCount;
-      const someChecked = checkedCount > 0 && !allChecked;
-      
-      checkbox.checked = allChecked;
-      checkbox.indeterminate = someChecked;
-      checkbox.addEventListener('change', () => this.checkAll(checkbox.checked));
-      cell.appendChild(checkbox);
-    } else if (checkBar.exclusive) {
-      const label = createElement('span', 'velox-checkbox-label');
-      label.textContent = '선택';
-      cell.appendChild(label);
-    }
-    
-    return cell;
+  updateLoadingState(): void {
+    this.renderer.updateLoadingState();
   }
 
-  private createHeaderCell(column: ColumnDefinition): HTMLElement {
-    const cell = createElement('div', 'velox-header-cell');
-    cell.dataset.field = column.field;
-    
-    const align = column.headerAlign || column.align || 'left';
-    addClass(cell, `velox-header-cell--align-${align}`);
-
-    if (column.width) {
-      cell.style.width = `${column.width}px`;
-      cell.style.minWidth = `${column.minWidth || column.width}px`;
-    } else {
-      cell.style.flex = '1';
-      cell.style.minWidth = `${column.minWidth || 100}px`;
-    }
-
-    if (column.headerClass) addClass(cell, column.headerClass);
-    if (this.options.sortable && column.sortable !== false) {
-      addClass(cell, 'velox-header-cell--sortable');
-      const sortState = this.state.sort.find(s => s.field === column.field);
-      if (sortState?.direction) addClass(cell, 'velox-header-cell--sorted');
-    }
-
-    const contentWrapper = createElement('div', 'velox-header-content');
-    
-    // Phase 10: Column drag handle
-    const dragHandle = createElement('span', 'velox-column-drag-handle');
-    dragHandle.innerHTML = '⋮⋮';
-    dragHandle.title = '드래그하여 컬럼 순서 변경';
-    dragHandle.addEventListener('mousedown', (e) => this.startColumnDrag(e, column));
-    contentWrapper.appendChild(dragHandle);
-    
-    const text = createElement('span', 'velox-header-text');
-    text.textContent = column.header;
-    contentWrapper.appendChild(text);
-
-    if (this.options.sortable && column.sortable !== false) {
-      const sortIcon = createElement('span', 'velox-sort-icon');
-      const sortState = this.state.sort.find(s => s.field === column.field);
-      
-      // Heroicons: bars-arrow-up / bars-arrow-down
-      if (sortState?.direction === 'asc') {
-        addClass(sortIcon, 'velox-sort-icon--asc');
-        sortIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" /></svg>`;
-      } else if (sortState?.direction === 'desc') {
-        addClass(sortIcon, 'velox-sort-icon--desc');
-        sortIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
-      } else {
-        // 정렬 안된 상태: 위아래 화살표 (기본)
-        sortIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
-      }
-      
-      contentWrapper.appendChild(sortIcon);
-      contentWrapper.addEventListener('click', (e) => { 
-        e.stopPropagation(); 
-        if (!this.columnDragging) this.handleSort(column.field); 
-      });
-    }
-
-    cell.appendChild(contentWrapper);
-
-    if (this.options.filterable && column.filterable !== false) {
-      const filterBtn = createElement('button', 'velox-filter-btn');
-      // Heroicons: funnel (outline)
-      filterBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>`;
-      const hasFilter = this.state.filter?.conditions.some(c => c.field === column.field);
-      if (hasFilter) addClass(filterBtn, 'velox-filter-btn--active');
-      filterBtn.addEventListener('click', (e) => { e.stopPropagation(); this.showFilterPopup(column, filterBtn); });
-      cell.appendChild(filterBtn);
-    }
-    
-    // Phase 10: Column menu button
-    const menuBtn = createElement('button', 'velox-column-menu-btn');
-    menuBtn.innerHTML = '⋯';
-    menuBtn.title = '컬럼 메뉴';
-    menuBtn.addEventListener('click', (e) => { e.stopPropagation(); this.showColumnMenu(column, menuBtn); });
-    cell.appendChild(menuBtn);
-
-    if (this.options.resizable && column.resizable !== false) {
-      const handle = createElement('div', 'velox-resize-handle');
-      handle.addEventListener('mousedown', (e) => this.startResize(e, column));
-      cell.appendChild(handle);
-    }
-
-    return cell;
+  // GridContext: Filter popup methods - delegated to GridFilterPopup
+  showFilterPopup(column: ColumnDefinition, anchor: HTMLElement): void {
+    this.filterPopupManager.showFilterPopup(column, anchor);
   }
 
-  private renderBody(): void {
-    const visibleRows = this.getVisibleRows();
-    const rowHeight = this.options.rowHeight || 40;
-
-    if (this.fixedLeftBodyInner) {
-      this.fixedLeftBodyInner.innerHTML = '';
-      if (this.options.virtualScroll) {
-        this.fixedLeftBodyInner.style.height = `${this.virtualState.totalHeight}px`;
-        this.fixedLeftBodyInner.style.position = 'relative';
-      } else {
-        this.fixedLeftBodyInner.style.height = '';
-        this.fixedLeftBodyInner.style.position = '';
-      }
-
-      visibleRows.forEach(({ data, index }) => {
-        const row = this.createFixedLeftRow(data, index);
-        if (this.options.virtualScroll) {
-          row.style.position = 'absolute';
-          row.style.top = `${index * rowHeight}px`;
-          row.style.left = '0';
-          row.style.right = '0';
-        }
-        this.fixedLeftBodyInner!.appendChild(row);
-      });
-    }
-
-    this.bodyInner.innerHTML = '';
-    if (this.options.virtualScroll) {
-      this.bodyInner.style.height = `${this.virtualState.totalHeight}px`;
-      this.bodyInner.style.position = 'relative';
-    } else {
-      this.bodyInner.style.height = '';
-      this.bodyInner.style.position = '';
-    }
-
-    if (visibleRows.length === 0) {
-      const emptyDiv = createElement('div', 'velox-empty');
-      emptyDiv.textContent = this.options.emptyMessage || '데이터가 없습니다.';
-      this.bodyInner.appendChild(emptyDiv);
-      return;
-    }
-
-    visibleRows.forEach(({ data, index }) => {
-      const row = this.createRow(data, index);
-      if (this.options.virtualScroll) {
-        row.style.position = 'absolute';
-        row.style.top = `${index * rowHeight}px`;
-        row.style.left = '0';
-        row.style.right = '0';
-      }
-      this.bodyInner.appendChild(row);
-    });
+  closeFilterPopup(): void {
+    this.filterPopupManager.closeFilterPopup();
   }
 
-  /**
-   * Unified row creation method (refactored: createRowBase)
-   * Replaces both createFixedLeftRow and createRow
-   */
-  private createRowBase(rowData: RowData, rowIndex: number, isFixedLeft: boolean): HTMLElement {
-    const row = createElement('div', 'velox-row');
-    row.dataset.rowIndex = String(rowIndex);
-
-    // Alternating row style
-    if (rowIndex % 2 === 1) addClass(row, 'velox-row--alt');
-    
-    // Selection state
-    if (this.options.selectionStyle === 'row' && this.state.selection.selectedRows.has(rowIndex)) {
-      addClass(row, 'velox-row--selected');
-    }
-    
-    // CheckBar state (for fixed left)
-    if (isFixedLeft && this.state.checkBar.checkedRows.has(rowIndex)) {
-      addClass(row, 'velox-row--checked');
-    }
-
-    // Row click handler
-    row.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.classList.contains('velox-checkbox')) return;
-      if (target.classList.contains('velox-row-drag-handle')) return;
-      this.handleRowClick(rowIndex, e);
-    });
-
-    // Double click (only for scrollable rows)
-    if (!isFixedLeft) {
-      row.addEventListener('dblclick', (e) => this.handleRowDoubleClick(rowIndex, e));
-    }
-
-    // Fixed left specific content
-    if (isFixedLeft) {
-      // Phase 11: Row drag handle
-      const dragHandle = createElement('div', 'velox-row-drag-handle');
-      dragHandle.innerHTML = '☰';
-      dragHandle.title = '드래그하여 행 순서 변경';
-      dragHandle.addEventListener('mousedown', (e) => this.startRowDrag(e, rowIndex, row));
-      row.appendChild(dragHandle);
-      
-      if (this.options.checkBar?.visible) {
-        row.appendChild(this.createCheckbarCell(rowIndex));
-      }
-      
-      if (this.options.showRowNumbers) {
-        const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
-        rowNumCell.textContent = String(rowIndex + 1);
-        row.appendChild(rowNumCell);
-      }
-      
-      // Fixed left columns
-      this.getFixedLeftColumns().forEach(col => row.appendChild(this.createCell(rowData, rowIndex, col)));
-    } else {
-      // Scrollable columns
-      this.getScrollableColumns().forEach(col => row.appendChild(this.createCell(rowData, rowIndex, col)));
-    }
-
-    return row;
+  applyColumnFilter(field: string, operator: FilterOperator, value: CellValue): void {
+    this.filterPopupManager.applyColumnFilter(field, operator, value);
   }
 
-  private createFixedLeftRow(rowData: RowData, rowIndex: number): HTMLElement {
-    return this.createRowBase(rowData, rowIndex, true);
-  }
-
-  private createRow(rowData: RowData, rowIndex: number): HTMLElement {
-    return this.createRowBase(rowData, rowIndex, false);
-  }
-
-  private createCheckbarCell(rowIndex: number): HTMLElement {
-    const cell = createElement('div', 'velox-cell velox-checkbox-cell');
-    const checkBar = this.options.checkBar!;
-    const isCheckable = this.state.checkBar.checkableRows.has(rowIndex);
-    const isChecked = this.state.checkBar.checkedRows.has(rowIndex);
-    
-    const input = createElement('input', 'velox-checkbox') as HTMLInputElement;
-    input.type = checkBar.exclusive ? 'radio' : 'checkbox';
-    input.name = checkBar.exclusive ? `${this.gridId}-check` : '';
-    input.checked = isChecked;
-    input.disabled = !isCheckable;
-    
-    if (!isCheckable) {
-      addClass(cell, 'velox-checkbox-cell--disabled');
-    }
-    
-    input.addEventListener('click', (e) => e.stopPropagation());
-    input.addEventListener('change', () => {
-      if (checkBar.exclusive) {
-        this.state.checkBar.checkedRows.clear();
-        if (input.checked) {
-          this.state.checkBar.checkedRows.add(rowIndex);
-        }
-        this.render();
-        this.events.onCheckChange?.(rowIndex, input.checked);
-      } else {
-        this.checkItem(rowIndex, input.checked);
-      }
-    });
-    
-    cell.appendChild(input);
-    return cell;
-  }
-
-  private createCell(rowData: RowData, rowIndex: number, column: ColumnDefinition): HTMLElement {
-    const cell = createElement('div', 'velox-cell');
-    cell.dataset.field = column.field;
-    cell.dataset.rowIndex = String(rowIndex);
-
-    const align = column.align || 'left';
-    addClass(cell, `velox-cell--align-${align}`);
-
-    if (column.width) {
-      cell.style.width = `${column.width}px`;
-      cell.style.minWidth = `${column.minWidth || column.width}px`;
-    } else {
-      cell.style.flex = '1';
-      cell.style.minWidth = `${column.minWidth || 100}px`;
-    }
-
-    if (column.cellClass) {
-      const className = typeof column.cellClass === 'function'
-        ? column.cellClass(rowData[column.field], rowData) : column.cellClass;
-      if (className) addClass(cell, className);
-    }
-
-    const cellKey = `${rowIndex}:${column.field}`;
-    if (this.state.selection.selectedCells.has(cellKey)) {
-      addClass(cell, 'velox-cell--selected');
-    }
-    
-    const focusedCell = this.state.selection.focusedCell;
-    if (focusedCell && focusedCell.rowIndex === rowIndex && focusedCell.field === column.field) {
-      addClass(cell, 'velox-cell--focused');
-    }
-
-    if (this.options.editable && column.editable !== false) {
-      addClass(cell, 'velox-cell--editable');
-      cell.addEventListener('dblclick', (e) => { e.stopPropagation(); this.startEdit(rowIndex, column.field); });
-    }
-
-    const value = rowData[column.field];
-    const content = createElement('span', 'velox-cell-content');
-
-    if (column.renderer) content.innerHTML = column.renderer(value, rowData, column);
-    else if (column.formatter) content.textContent = column.formatter(value, rowData, column);
-    else content.textContent = formatValue(value, column.type);
-
-    cell.appendChild(content);
-    
-    cell.addEventListener('click', (e) => {
-      this.handleCellClick(rowIndex, column.field, value, e);
-    });
-    
-    cell.addEventListener('mousedown', (e) => {
-      if (this.options.selectionStyle === 'block' && e.button === 0) {
-        this.startBlockSelection(rowIndex, column.field);
-      }
-    });
-    
-    cell.addEventListener('mouseenter', () => {
-      if (this.blockSelecting) {
-        this.updateBlockSelection(rowIndex, column.field);
-      }
-    });
-
-    // Phase 12.3: Add tooltip event listeners
-    if (column.tooltip && this.tooltip) {
-      addClass(cell, 'velox-cell--has-tooltip');
-      
-      cell.addEventListener('mouseenter', () => {
-        if (this.tooltip) {
-          this.tooltip.show(cell, value, rowData, column);
-        }
-      });
-      
-      cell.addEventListener('mouseleave', () => {
-        if (this.tooltip) {
-          this.tooltip.hide();
-        }
-      });
-    }
-
-    return cell;
-  }
-
-  private updateLoadingState(): void {
-    if (this.loadingOverlay) {
-      this.loadingOverlay.style.display = this.options.loading ? 'flex' : 'none';
-    }
-  }
-
-  private showFilterPopup(column: ColumnDefinition, anchor: HTMLElement): void {
-    this.closeFilterPopup();
-
-    const popup = createElement('div', 'velox-filter-popup');
-    const rect = anchor.getBoundingClientRect();
-    const gridRect = this.rootElement.getBoundingClientRect();
-
-    popup.style.top = `${rect.bottom - gridRect.top + 5}px`;
-    popup.style.left = `${Math.max(0, rect.left - gridRect.left - 100)}px`;
-
-    const uniqueValues = [...new Set(this.state.data.map(row => row[column.field]))]
-      .filter(v => v !== null && v !== undefined).sort();
-
-    const currentFilter = this.state.filter?.conditions.find(c => c.field === column.field);
-
-    const operatorSelect = createElement('select', 'velox-filter-operator') as HTMLSelectElement;
-    const operators: { value: FilterOperator; label: string }[] = [
-      { value: 'contains', label: '포함' }, { value: 'equals', label: '같음' },
-      { value: 'notEquals', label: '같지 않음' }, { value: 'startsWith', label: '시작' },
-      { value: 'endsWith', label: '끝' }, { value: 'greaterThan', label: '>' },
-      { value: 'lessThan', label: '<' }, { value: 'greaterThanOrEqual', label: '>=' },
-      { value: 'lessThanOrEqual', label: '<=' }, { value: 'isEmpty', label: '비어있음' },
-      { value: 'isNotEmpty', label: '비어있지 않음' },
-    ];
-
-    operators.forEach(op => {
-      const option = createElement('option') as HTMLOptionElement;
-      option.value = op.value;
-      option.textContent = op.label;
-      if (currentFilter?.operator === op.value) option.selected = true;
-      operatorSelect.appendChild(option);
-    });
-    popup.appendChild(operatorSelect);
-
-    const valueInput = createElement('input', 'velox-filter-input') as HTMLInputElement;
-    valueInput.type = column.type === 'number' ? 'number' : 'text';
-    valueInput.placeholder = '값 입력...';
-    if (currentFilter?.value !== undefined) valueInput.value = String(currentFilter.value);
-    popup.appendChild(valueInput);
-
-    if (uniqueValues.length > 0 && uniqueValues.length <= 15) {
-      const listContainer = createElement('div', 'velox-filter-list');
-      const listLabel = createElement('div', 'velox-filter-list-label');
-      listLabel.textContent = '빠른 선택:';
-      listContainer.appendChild(listLabel);
-
-      uniqueValues.slice(0, 10).forEach(value => {
-        const item = createElement('div', 'velox-filter-list-item');
-        item.textContent = formatValue(value, column.type);
-        item.addEventListener('click', () => { this.applyColumnFilter(column.field, 'equals', value); this.closeFilterPopup(); });
-        listContainer.appendChild(item);
-      });
-      popup.appendChild(listContainer);
-    }
-
-    const btnContainer = createElement('div', 'velox-filter-buttons');
-    const applyBtn = createElement('button', 'velox-filter-apply');
-    applyBtn.textContent = '적용';
-    applyBtn.addEventListener('click', () => {
-      const operator = operatorSelect.value as FilterOperator;
-      const value = column.type === 'number' ? parseFloat(valueInput.value) : valueInput.value;
-      this.applyColumnFilter(column.field, operator, value);
-      this.closeFilterPopup();
-    });
-    btnContainer.appendChild(applyBtn);
-
-    const clearBtn = createElement('button', 'velox-filter-clear');
-    clearBtn.textContent = '해제';
-    clearBtn.addEventListener('click', () => { this.removeColumnFilter(column.field); this.closeFilterPopup(); });
-    btnContainer.appendChild(clearBtn);
-
-    popup.appendChild(btnContainer);
-    this.filterPopup = popup;
-    this.rootElement.appendChild(popup);
-
-    setTimeout(() => document.addEventListener('click', this.handleOutsideClick), 0);
-    valueInput.focus();
-  }
-
-  private handleOutsideClick = (e: MouseEvent): void => {
-    // Close filter popup if clicking outside
-    if (this.filterPopup && !this.filterPopup.contains(e.target as Node)) {
-      this.closeFilterPopup();
-    }
-    // Close column menu if clicking outside
-    if (this.columnMenuPopup && !this.columnMenuPopup.contains(e.target as Node)) {
-      this.closeColumnMenu();
-    }
-  };
-
-  private closeFilterPopup(): void {
-    if (this.filterPopup) {
-      this.filterPopup.remove();
-      this.filterPopup = null;
-    }
-    // Only remove listener if no popups are open
-    if (!this.columnMenuPopup) {
-      document.removeEventListener('click', this.handleOutsideClick);
-    }
-  }
-
-  private applyColumnFilter(field: string, operator: FilterOperator, value: CellValue): void {
-    const newCondition: FilterCondition = { field, operator, value };
-    if (this.state.filter) {
-      const conditions = this.state.filter.conditions.filter(c => c.field !== field);
-      conditions.push(newCondition);
-      this.state.filter = { conditions, logic: 'and' };
-    } else {
-      this.state.filter = { conditions: [newCondition], logic: 'and' };
-    }
-    this.clearSelectionState();
-    this.applyDataTransformations();
-    this.render();
-    this.events.onFilter?.(this.state.filter);
-  }
-
-  private removeColumnFilter(field: string): void {
-    if (this.state.filter) {
-      const conditions = this.state.filter.conditions.filter(c => c.field !== field);
-      this.state.filter = conditions.length === 0 ? null : { conditions, logic: 'and' };
-      this.clearSelectionState();
-      this.applyDataTransformations();
-      this.render();
-      if (this.state.filter) this.events.onFilter?.(this.state.filter);
-    }
+  removeColumnFilter(field: string): void {
+    this.filterPopupManager.removeColumnFilter(field);
   }
 
   private attachEvents(): void {
@@ -920,13 +430,11 @@ export class VeloxGrid implements VeloxGridInstance {
     }, 16);
 
     this.bodyElement.addEventListener('scroll', handleScroll);
-    document.addEventListener('mousemove', this.boundHandleResizeMove);
-    document.addEventListener('mouseup', this.boundHandleResizeEnd);
     document.addEventListener('mouseup', this.boundHandleBlockSelectionEnd);
     this.rootElement.addEventListener('keydown', this.boundHandleKeyDown);
   }
 
-  private handleSort(field: string): void {
+  handleSort(field: string): void {
     const existingIndex = this.state.sort.findIndex(s => s.field === field);
     let newDirection: SortDirection = 'asc';
     if (existingIndex >= 0) {
@@ -941,7 +449,8 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onSort?.(this.state.sort);
   }
 
-  private handleRowClick(rowIndex: number, e: MouseEvent): void {
+  // GridContext: Event handlers (public for module access)
+  handleRowClick(rowIndex: number, e: MouseEvent): void {
     if (!this.options.selectable) return;
     
     const selectionStyle = this.options.selectionStyle || 'row';
@@ -953,7 +462,7 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onRowClick?.(rowIndex, this.state.displayData[rowIndex]);
   }
 
-  private handleRowSelection(rowIndex: number, e: MouseEvent): void {
+  handleRowSelection(rowIndex: number, e: MouseEvent): void {
     const selectionMode = this.options.selectionMode || 'multiple';
     
     if (selectionMode === 'none') return;
@@ -982,7 +491,7 @@ export class VeloxGrid implements VeloxGridInstance {
     }
   }
 
-  private handleCellClick(rowIndex: number, field: string, value: CellValue, e: MouseEvent): void {
+  handleCellClick(rowIndex: number, field: string, value: CellValue, e: MouseEvent): void {
     const selectionStyle = this.options.selectionStyle || 'row';
     
     if (selectionStyle === 'cell' || selectionStyle === 'block') {
@@ -992,7 +501,7 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onCellClick?.(rowIndex, field, value);
   }
 
-  private handleCellSelection(rowIndex: number, field: string, e: MouseEvent): void {
+  handleCellSelection(rowIndex: number, field: string, e: MouseEvent): void {
     const selectionMode = this.options.selectionMode || 'multiple';
     const cellKey = `${rowIndex}:${field}`;
     
@@ -1021,7 +530,7 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onCellSelectionChange?.(this.getSelectedCells());
   }
 
-  private selectCellRange(startRow: number, startField: string, endRow: number, endField: string): void {
+  selectCellRange(startRow: number, startField: string, endRow: number, endField: string): void {
     const columns = this.getVisibleColumns();
     const startColIndex = columns.findIndex(c => c.field === startField);
     const endColIndex = columns.findIndex(c => c.field === endField);
@@ -1041,7 +550,8 @@ export class VeloxGrid implements VeloxGridInstance {
     }
   }
 
-  private startBlockSelection(rowIndex: number, field: string): void {
+  // GridContext: Block selection methods (public for module access)
+  startBlockSelection(rowIndex: number, field: string): void {
     if (this.options.selectionStyle !== 'block') return;
     
     this.blockSelecting = { startRow: rowIndex, startField: field };
@@ -1051,7 +561,7 @@ export class VeloxGrid implements VeloxGridInstance {
     this.render();
   }
 
-  private updateBlockSelection(rowIndex: number, field: string): void {
+  updateBlockSelection(rowIndex: number, field: string): void {
     if (!this.blockSelecting) return;
     
     this.selectCellRange(
@@ -1063,18 +573,18 @@ export class VeloxGrid implements VeloxGridInstance {
     this.render();
   }
 
-  private handleBlockSelectionEnd = (): void => {
+  handleBlockSelectionEnd(): void {
     if (this.blockSelecting) {
       this.blockSelecting = null;
       this.events.onCellSelectionChange?.(this.getSelectedCells());
     }
-  };
+  }
 
-  private handleRowDoubleClick(rowIndex: number, _e: MouseEvent): void {
+  handleRowDoubleClick(rowIndex: number, _e: MouseEvent): void {
     this.events.onRowDoubleClick?.(rowIndex, this.state.displayData[rowIndex]);
   }
 
-  private handleKeyDown(e: KeyboardEvent): void {
+  handleKeyDown(e: KeyboardEvent): void {
     // Handle editing state
     if (this.state.edit.editing) {
       if (e.key === 'Escape') {
@@ -1221,31 +731,13 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onCellSelectionChange?.(this.getSelectedCells());
   }
 
-  private startResize(e: MouseEvent, column: ColumnDefinition): void {
-    e.preventDefault();
-    e.stopPropagation();
-    this.resizing = { field: column.field, startX: e.clientX, startWidth: column.width || 100 };
-    addClass(document.body, 'velox-no-select');
+  // GridContext: Resize methods - delegated to GridDragManager
+  startResize(e: MouseEvent, column: ColumnDefinition): void {
+    this.dragManager.startResize(e, column);
   }
 
-  private handleResizeMove(e: MouseEvent): void {
-    if (!this.resizing) return;
-    const diff = e.clientX - this.resizing.startX;
-    const newWidth = Math.max(50, this.resizing.startWidth + diff);
-    const column = this.state.columns.find(c => c.field === this.resizing!.field);
-    if (column) { column.width = newWidth; this.render(); }
-  }
-
-  private handleResizeEnd(): void {
-    if (this.resizing) {
-      const column = this.state.columns.find(c => c.field === this.resizing!.field);
-      if (column) this.events.onColumnResize?.(this.resizing.field, column.width || 100);
-      this.resizing = null;
-      removeClass(document.body, 'velox-no-select');
-    }
-  }
-
-  private applyDataTransformations(): void {
+  // GridContext: Data transformation (public for module access)
+  applyDataTransformations(): void {
     let data = [...this.state.data];
     if (this.state.filter) data = filterData(data, this.state.filter);
     if (this.state.sort.length > 0) {
@@ -1261,15 +753,14 @@ export class VeloxGrid implements VeloxGridInstance {
    * Clear all selection state (rows, cells, focused cell)
    * Extracted to reduce code duplication
    */
-  private clearSelectionState(): void {
+  // GridContext: Selection state clearing (public for module access)
+  clearSelectionState(): void {
     this.state.selection.selectedRows.clear();
     this.state.selection.selectedCells.clear();
     this.state.selection.focusedCell = null;
   }
 
-  // ============================================
-  // Public API - Data Methods
-  // ============================================
+  // --- Public API: Data Methods ---
 
   getData(): RowData[] {
     return this.state.data.map(row => ({ ...row }));
@@ -1367,9 +858,7 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onDataChange?.([]);
   }
 
-  // ============================================
-  // Public API - Row Selection Methods
-  // ============================================
+  // --- Public API: Row Selection ---
 
   getSelectedRows(): number[] {
     return Array.from(this.state.selection.selectedRows).sort((a, b) => a - b);
@@ -1418,9 +907,7 @@ export class VeloxGrid implements VeloxGridInstance {
     return this.state.selection.selectedRows.has(index);
   }
 
-  // ============================================
-  // Public API - Cell Selection Methods (Phase 7)
-  // ============================================
+  // --- Public API: Cell Selection ---
 
   selectCell(rowIndex: number, field: string, selected = true): void {
     const cellKey = `${rowIndex}:${field}`;
@@ -1495,9 +982,7 @@ export class VeloxGrid implements VeloxGridInstance {
     return result;
   }
 
-  // ============================================
-  // Public API - CheckBar Methods (Phase 7)
-  // ============================================
+  // --- Public API: CheckBar ---
 
   checkItem(index: number, checked = true): void {
     if (!this.state.checkBar.checkableRows.has(index)) return;
@@ -1572,9 +1057,7 @@ export class VeloxGrid implements VeloxGridInstance {
   checkRow(index: number, checked = true): void { this.checkItem(index, checked); }
   getCheckedRows(): number[] { return this.getCheckedItems(); }
 
-  // ============================================
-  // Public API - Sort Methods
-  // ============================================
+  // --- Public API: Sort ---
 
   sort(field: string, direction: SortDirection = 'asc'): void {
     this.state.sort = direction ? [{ field, direction }] : [];
@@ -1595,9 +1078,7 @@ export class VeloxGrid implements VeloxGridInstance {
     return [...this.state.sort];
   }
 
-  // ============================================
-  // Public API - Filter Methods
-  // ============================================
+  // --- Public API: Filter ---
 
   filter(conditions: FilterCondition | FilterCondition[]): void {
     const conditionArray = Array.isArray(conditions) ? conditions : [conditions];
@@ -1619,9 +1100,7 @@ export class VeloxGrid implements VeloxGridInstance {
     return this.state.filter ? { ...this.state.filter } : null;
   }
 
-  // ============================================
-  // Public API - Edit Methods
-  // ============================================
+  // --- Public API: Edit ---
 
   startEdit(rowIndex: number, field: string): void {
     if (!this.options.editable) return;
@@ -1872,9 +1351,7 @@ export class VeloxGrid implements VeloxGridInstance {
     }
   }
 
-  // ============================================
-  // Public API - Column Methods
-  // ============================================
+  // --- Public API: Column ---
 
   getColumn(field: string): ColumnDefinition | null {
     return this.state.columns.find(c => c.field === field) || null;
@@ -1940,22 +1417,21 @@ export class VeloxGrid implements VeloxGridInstance {
     this.getVisibleColumns().forEach(col => this.autoFitColumn(col.field));
   }
 
-  private measureTextWidth(text: string): number {
+  // GridContext: Text measurement (public for module access)
+  measureTextWidth(text: string, font?: string): number {
     // Reuse canvas instance for better performance
     if (!this.measureCanvas) {
       this.measureCanvas = document.createElement('canvas');
       this.measureContext = this.measureCanvas.getContext('2d');
-      if (this.measureContext) {
-        this.measureContext.font = '14px sans-serif';
-      }
     }
     if (!this.measureContext) return 100;
+    
+    // Apply font if provided, otherwise use default
+    this.measureContext.font = font || '14px sans-serif';
     return this.measureContext.measureText(text).width;
   }
 
-  // ============================================
-  // Public API - Scroll Methods
-  // ============================================
+  // --- Public API: Scroll ---
 
   scrollToRow(index: number): void {
     const rowHeight = this.options.rowHeight || 40;
@@ -2006,9 +1482,7 @@ export class VeloxGrid implements VeloxGridInstance {
     }
   }
 
-  // ============================================
-  // Public API - Clipboard Methods (Phase 9 - Stub)
-  // ============================================
+  // --- Public API: Clipboard ---
 
   copy(): void {
     const data = this.getSelectionData();
@@ -2097,20 +1571,12 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onDataChange?.(this.state.data);
   }
 
-  // ============================================
-  // Public API - Undo/Redo Methods (Phase 9)
-  // ============================================
+  // --- Public API: Undo/Redo ---
 
-  /**
-   * Push action to undo stack (using GridHistory)
-   */
-  private pushUndo(action: UndoAction): void {
+  pushUndo(action: UndoAction): void {
     this.history.push(action);
   }
 
-  /**
-   * Undo the last action (using GridHistory)
-   */
   undo(): boolean {
     const action = this.history.popUndo();
     if (!action) return false;
@@ -2161,9 +1627,6 @@ export class VeloxGrid implements VeloxGridInstance {
     return true;
   }
 
-  /**
-   * Redo the last undone action (using GridHistory)
-   */
   redo(): boolean {
     const action = this.history.popRedo();
     if (!action) return false;
@@ -2214,34 +1677,20 @@ export class VeloxGrid implements VeloxGridInstance {
     return true;
   }
 
-  /**
-   * Check if undo is available (using GridHistory)
-   */
   canUndo(): boolean {
     return this.history.canUndo();
   }
 
-  /**
-   * Check if redo is available (using GridHistory)
-   */
   canRedo(): boolean {
     return this.history.canRedo();
   }
 
-  /**
-   * Clear undo/redo history (using GridHistory)
-   */
   clearHistory(): void {
     this.history.clear();
   }
 
-  // ============================================
-  // Public API - Delete Methods (Phase 9)
-  // ============================================
+  // --- Public API: Delete ---
 
-  /**
-   * Delete selected cells content
-   */
   deleteSelectedCells(): void {
     if (!this.options.editable) return;
     
@@ -2278,9 +1727,6 @@ export class VeloxGrid implements VeloxGridInstance {
     }
   }
 
-  /**
-   * Delete selected rows
-   */
   deleteSelectedRows(): void {
     const selectedRows = this.getSelectedRows();
     if (selectedRows.length === 0) return;
@@ -2293,13 +1739,8 @@ export class VeloxGrid implements VeloxGridInstance {
     });
   }
 
-  // ============================================
-  // Public API - Export Methods (Phase 8)
-  // ============================================
+  // --- Public API: Export/Import ---
 
-  /**
-   * Create export context for export utilities
-   */
   private createExportContext(options: ExportOptions = {}): ExportContext {
     return {
       data: this.state.data,
@@ -2473,179 +1914,19 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onColumnReorder?.(sourceField, sourceIndex, targetIndex);
   }
 
-  private showColumnMenu(column: ColumnDefinition, anchor: HTMLElement): void {
-    this.closeColumnMenu();
+  // GridContext: Column menu methods - delegated to GridColumnMenu
+  showColumnMenu(column: ColumnDefinition, anchor: HTMLElement): void {
     this.closeFilterPopup();
-
-    const menu = createElement('div', 'velox-column-menu');
-    const rect = anchor.getBoundingClientRect();
-    const gridRect = this.rootElement.getBoundingClientRect();
-
-    menu.style.top = `${rect.bottom - gridRect.top + 5}px`;
-    menu.style.left = `${rect.left - gridRect.left}px`;
-
-    // Create context for custom menu items
-    const context: ContextMenuContext = {
-      field: column.field,
-      column,
-      selectedRows: this.getSelectedRows(),
-      selectedCells: this.getSelectedCells(),
-      grid: this,
-    };
-
-    // Get menu items (custom or default)
-    const menuConfig = this.options.contextMenu;
-    const showDefault = menuConfig?.showDefaultItems !== false;
-    const customItems = menuConfig?.headerItems || [];
-
-    // Default menu items
-    const defaultItems: ContextMenuItem[] = [
-      { id: 'sort-asc', label: '오름차순 정렬', icon: '↑', action: () => this.sort(column.field, 'asc') },
-      { id: 'sort-desc', label: '내림차순 정렬', icon: '↓', action: () => this.sort(column.field, 'desc') },
-      { id: 'sort-clear', label: '정렬 해제', icon: '✕', action: () => this.clearSort() },
-      { type: 'separator' },
-      { id: 'hide', label: '컬럼 숨기기', icon: '👁', action: () => this.hideColumn(column.field) },
-      { id: 'autofit', label: '컬럼 너비 자동', icon: '↔', action: () => this.autoFitColumn(column.field) },
-      { id: 'autofit-all', label: '모든 컬럼 자동', icon: '⇔', action: () => this.autoFitAllColumns() },
-      { type: 'separator' },
-      { id: 'fix-left', label: '왼쪽에 고정', icon: '◀', action: () => this.fixColumn(column.field, 'left') },
-      { id: 'unfix', label: '고정 해제', icon: '◇', action: () => this.fixColumn(column.field, false) },
-    ];
-
-    // Combine items
-    let items: ContextMenuItem[] = [];
-    if (showDefault) {
-      items = [...defaultItems];
-      if (customItems.length > 0) {
-        items.push({ type: 'separator' });
-        items.push(...customItems);
-      }
-    } else {
-      items = customItems;
-    }
-
-    // Render menu items
-    items.forEach(item => {
-      // Check visibility
-      const isVisible = typeof item.visible === 'function' 
-        ? item.visible(context) 
-        : item.visible !== false;
-      if (!isVisible) return;
-
-      if (item.type === 'separator') {
-        const sep = createElement('div', 'velox-column-menu-separator');
-        menu.appendChild(sep);
-      } else {
-        const menuItem = createElement('div', 'velox-column-menu-item');
-        if (item.className) addClass(menuItem, item.className);
-        
-        // Check disabled state
-        const isDisabled = typeof item.disabled === 'function'
-          ? item.disabled(context)
-          : item.disabled === true;
-        if (isDisabled) addClass(menuItem, 'velox-column-menu-item--disabled');
-
-        // Build item content
-        let html = '';
-        if (item.icon) html += `<span class="velox-column-menu-icon">${item.icon}</span>`;
-        html += `<span class="velox-column-menu-label">${item.label || ''}</span>`;
-        if (item.shortcut) html += `<span class="velox-column-menu-shortcut">${item.shortcut}</span>`;
-        menuItem.innerHTML = html;
-
-        if (!isDisabled) {
-          menuItem.addEventListener('click', () => {
-            item.action?.(context);
-            this.closeColumnMenu();
-          });
-        }
-        menu.appendChild(menuItem);
-      }
-    });
-
-    this.columnMenuPopup = menu;
-    this.rootElement.appendChild(menu);
-
-    // Add outside click listener with delay to avoid immediate close
-    setTimeout(() => document.addEventListener('click', this.handleOutsideClick), 0);
+    this.columnMenuManager.showColumnMenu(column, anchor);
   }
 
-  private closeColumnMenu(): void {
-    if (this.columnMenuPopup) {
-      this.columnMenuPopup.remove();
-      this.columnMenuPopup = null;
-    }
-    // Only remove listener if no popups are open
-    if (!this.filterPopup) {
-      document.removeEventListener('click', this.handleOutsideClick);
-    }
+  closeColumnMenu(): void {
+    this.columnMenuManager.closeColumnMenu();
   }
 
-  private startColumnDrag(e: MouseEvent, column: ColumnDefinition): void {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    this.columnDragging = {
-      field: column.field,
-      startX: e.clientX,
-      element: null,
-    };
-    
-    const indicator = createElement('div', 'velox-column-drag-indicator');
-    indicator.textContent = column.header;
-    indicator.style.position = 'fixed';
-    indicator.style.left = `${e.clientX}px`;
-    indicator.style.top = `${e.clientY}px`;
-    document.body.appendChild(indicator);
-    this.columnDragging.element = indicator;
-
-    document.addEventListener('mousemove', this.boundHandleColumnDragMove);
-    document.addEventListener('mouseup', this.boundHandleColumnDragEnd);
-    addClass(document.body, 'velox-no-select');
-  }
-
-  private handleColumnDragMove(e: MouseEvent): void {
-    if (!this.columnDragging?.element) return;
-    
-    this.columnDragging.element.style.left = `${e.clientX + 10}px`;
-    this.columnDragging.element.style.top = `${e.clientY + 10}px`;
-    
-    const target = document.elementFromPoint(e.clientX, e.clientY);
-    const headerCell = target?.closest('.velox-header-cell') as HTMLElement;
-    
-    this.headerElement.querySelectorAll('.velox-header-cell--drop-target').forEach(el => {
-      removeClass(el as HTMLElement, 'velox-header-cell--drop-target');
-    });
-    
-    if (headerCell && headerCell.dataset.field !== this.columnDragging.field) {
-      addClass(headerCell, 'velox-header-cell--drop-target');
-    }
-  }
-
-  private handleColumnDragEnd(e: MouseEvent): void {
-    if (!this.columnDragging) return;
-    
-    const sourceField = this.columnDragging.field;
-    
-    const target = document.elementFromPoint(e.clientX, e.clientY);
-    const headerCell = target?.closest('.velox-header-cell') as HTMLElement;
-    const targetField = headerCell?.dataset.field;
-    
-    if (this.columnDragging.element) {
-      this.columnDragging.element.remove();
-    }
-    this.headerElement.querySelectorAll('.velox-header-cell--drop-target').forEach(el => {
-      removeClass(el as HTMLElement, 'velox-header-cell--drop-target');
-    });
-    
-    document.removeEventListener('mousemove', this.boundHandleColumnDragMove);
-    document.removeEventListener('mouseup', this.boundHandleColumnDragEnd);
-    removeClass(document.body, 'velox-no-select');
-    
-    if (targetField && targetField !== sourceField) {
-      this.reorderColumn(sourceField, targetField);
-    }
-    
-    this.columnDragging = null;
+  // GridContext: Column drag methods - delegated to GridDragManager
+  startColumnDrag(e: MouseEvent, column: ColumnDefinition): void {
+    this.dragManager.startColumnDrag(e, column);
   }
 
   // ============================================
@@ -2675,92 +1956,81 @@ export class VeloxGrid implements VeloxGridInstance {
     this.events.onDataChange?.(this.state.data);
   }
 
-  private startRowDrag(e: MouseEvent, rowIndex: number, rowElement: HTMLElement): void {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    this.rowDragging = {
-      index: rowIndex,
-      startY: e.clientY,
-      element: null,
-    };
-    
-    const indicator = createElement('div', 'velox-row-drag-indicator');
-    indicator.textContent = `행 ${rowIndex + 1}`;
-    indicator.style.position = 'fixed';
-    indicator.style.left = `${e.clientX}px`;
-    indicator.style.top = `${e.clientY}px`;
-    document.body.appendChild(indicator);
-    this.rowDragging.element = indicator;
-    
-    addClass(rowElement, 'velox-row--dragging');
-
-    document.addEventListener('mousemove', this.boundHandleRowDragMove);
-    document.addEventListener('mouseup', this.boundHandleRowDragEnd);
-    addClass(document.body, 'velox-no-select');
+  // GridContext: Row drag methods - delegated to GridDragManager
+  startRowDrag(e: MouseEvent, rowIndex: number, rowElement: HTMLElement): void {
+    this.dragManager.startRowDrag(e, rowIndex, rowElement);
   }
 
-  private handleRowDragMove(e: MouseEvent): void {
-    if (!this.rowDragging?.element) return;
-    
-    this.rowDragging.element.style.left = `${e.clientX + 10}px`;
-    this.rowDragging.element.style.top = `${e.clientY + 10}px`;
-    
-    const target = document.elementFromPoint(e.clientX, e.clientY);
-    const rowElement = target?.closest('.velox-row') as HTMLElement;
-    
-    this.bodyInner.querySelectorAll('.velox-row--drop-target').forEach(el => {
-      removeClass(el as HTMLElement, 'velox-row--drop-target');
-    });
-    this.fixedLeftBodyInner?.querySelectorAll('.velox-row--drop-target').forEach(el => {
-      removeClass(el as HTMLElement, 'velox-row--drop-target');
-    });
-    
-    if (rowElement) {
-      const targetIndex = parseInt(rowElement.dataset.rowIndex || '-1', 10);
-      if (targetIndex !== -1 && targetIndex !== this.rowDragging.index) {
-        addClass(rowElement, 'velox-row--drop-target');
-      }
+  // ============================================
+  // GridContext Implementation
+  // ============================================
+
+  /** GridContext: 그리드 상태 반환 */
+  getState(): GridState {
+    return this.state;
+  }
+
+  /** GridContext: 이벤트 핸들러 반환 */
+  getEvents(): GridEvents {
+    return this.events;
+  }
+
+  /** GridContext: 그리드 고유 ID 반환 */
+  getGridId(): string {
+    return this.gridId;
+  }
+
+  /** GridContext: 표시 데이터 반환 */
+  getDisplayData(): RowData[] {
+    return this.state.displayData;
+  }
+
+  /** GridContext: 가상 스크롤 상태 반환 */
+  getVirtualState(): typeof this.virtualState {
+    return this.virtualState;
+  }
+
+  /** GridContext: 이벤트 발행 헬퍼 */
+  emitEvent<K extends keyof GridEvents>(
+    event: K, 
+    ...args: Parameters<NonNullable<GridEvents[K]>>
+  ): void {
+    const handler = this.events[event];
+    if (handler) {
+      (handler as (...args: any[]) => void)(...args);
     }
   }
 
-  private handleRowDragEnd(e: MouseEvent): void {
-    if (!this.rowDragging) return;
-    
-    const sourceIndex = this.rowDragging.index;
-    
-    const target = document.elementFromPoint(e.clientX, e.clientY);
-    const rowElement = target?.closest('.velox-row') as HTMLElement;
-    const targetIndex = rowElement ? parseInt(rowElement.dataset.rowIndex || '-1', 10) : -1;
-    
-    if (this.rowDragging.element) {
-      this.rowDragging.element.remove();
+  // ============================================
+  // GridContext: Internal Handlers
+  // ============================================
+
+  /** GridContext: Block selection 상태 확인 */
+  isBlockSelecting(): boolean {
+    return this.blockSelecting !== null;
+  }
+
+  /** GridContext: Tooltip 표시 */
+  showTooltip(cell: HTMLElement, value: CellValue, rowData: RowData, column: ColumnDefinition): void {
+    if (this.tooltip) {
+      this.tooltip.show(cell, value, rowData, column);
     }
-    this.bodyInner.querySelectorAll('.velox-row--dragging, .velox-row--drop-target').forEach(el => {
-      removeClass(el as HTMLElement, 'velox-row--dragging');
-      removeClass(el as HTMLElement, 'velox-row--drop-target');
-    });
-    this.fixedLeftBodyInner?.querySelectorAll('.velox-row--dragging, .velox-row--drop-target').forEach(el => {
-      removeClass(el as HTMLElement, 'velox-row--dragging');
-      removeClass(el as HTMLElement, 'velox-row--drop-target');
-    });
-    
-    document.removeEventListener('mousemove', this.boundHandleRowDragMove);
-    document.removeEventListener('mouseup', this.boundHandleRowDragEnd);
-    removeClass(document.body, 'velox-no-select');
-    
-    if (targetIndex !== -1 && targetIndex !== sourceIndex) {
-      this.moveRow(sourceIndex, targetIndex);
+  }
+
+  /** GridContext: Tooltip 숨기기 */
+  hideTooltip(): void {
+    if (this.tooltip) {
+      this.tooltip.hide();
     }
-    
-    this.rowDragging = null;
   }
 
   destroy(): void {
-    document.removeEventListener('mousemove', this.boundHandleResizeMove);
-    document.removeEventListener('mouseup', this.boundHandleResizeEnd);
+    // Clean up drag manager resources
+    this.dragManager.destroy();
     document.removeEventListener('mouseup', this.boundHandleBlockSelectionEnd);
-    document.removeEventListener('click', this.handleOutsideClick);
+    // Close any open popups
+    this.closeFilterPopup();
+    this.closeColumnMenu();
     this.rootElement.removeEventListener('keydown', this.boundHandleKeyDown);
     // Clean up cached canvas
     this.measureCanvas = null;

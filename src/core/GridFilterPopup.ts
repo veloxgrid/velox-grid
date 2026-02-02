@@ -7,16 +7,19 @@
  * - Filter 조건 적용/제거
  */
 
-import type { ColumnDefinition, FilterOperator, CellValue, FilterCondition } from '../types';
+import type { ColumnDefinition, FilterOperator, CellValue, FilterCondition, GridContext } from '../types';
 import { createElement } from '../utils/dom';
 import { formatValue } from '../utils/data';
 import type { VeloxGrid } from './VeloxGrid';
+
+// VeloxGrid는 GridContext를 구현하므로, 타입 안전성을 위해 GridContext 사용
+type GridInstance = VeloxGrid & GridContext;
 
 export class GridFilterPopup {
   private filterPopup: HTMLElement | null = null;
   private boundHandleOutsideClick: (e: MouseEvent) => void;
 
-  constructor(private grid: VeloxGrid) {
+  constructor(private ctx: GridInstance) {
     this.boundHandleOutsideClick = this.handleOutsideClick.bind(this);
   }
 
@@ -26,19 +29,20 @@ export class GridFilterPopup {
   showFilterPopup(column: ColumnDefinition, anchor: HTMLElement): void {
     this.closeFilterPopup();
 
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const state = ctx.getState();
     const popup = createElement('div', 'velox-filter-popup');
     const rect = anchor.getBoundingClientRect();
-    const gridRect = grid.rootElement.getBoundingClientRect();
+    const gridRect = ctx.rootElement.getBoundingClientRect();
 
     popup.style.top = `${rect.bottom - gridRect.top + 5}px`;
     popup.style.left = `${Math.max(0, rect.left - gridRect.left - 100)}px`;
 
-    const uniqueValues = [...new Set(grid.state.data.map((row: any) => row[column.field]))]
+    const uniqueValues = [...new Set(state.data.map((row: any) => row[column.field]))]
       .filter((v: any) => v !== null && v !== undefined)
       .sort();
 
-    const currentFilter = grid.state.filter?.conditions.find((c: FilterCondition) => c.field === column.field);
+    const currentFilter = state.filter?.conditions.find((c: FilterCondition) => c.field === column.field);
 
     // Operator select
     const operatorSelect = createElement('select', 'velox-filter-operator') as HTMLSelectElement;
@@ -114,7 +118,7 @@ export class GridFilterPopup {
 
     popup.appendChild(btnContainer);
     this.filterPopup = popup;
-    grid.rootElement.appendChild(popup);
+    ctx.rootElement.appendChild(popup);
 
     setTimeout(() => document.addEventListener('click', this.boundHandleOutsideClick), 0);
     valueInput.focus();
@@ -144,39 +148,41 @@ export class GridFilterPopup {
    * Column filter 적용
    */
   applyColumnFilter(field: string, operator: FilterOperator, value: CellValue): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const state = ctx.getState();
     const newCondition: FilterCondition = { field, operator, value };
     
-    if (grid.state.filter) {
-      const conditions = grid.state.filter.conditions.filter((c: FilterCondition) => c.field !== field);
+    if (state.filter) {
+      const conditions = state.filter.conditions.filter((c: FilterCondition) => c.field !== field);
       conditions.push(newCondition);
-      grid.state.filter = { conditions, logic: 'and' };
+      state.filter = { conditions, logic: 'and' };
     } else {
-      grid.state.filter = { conditions: [newCondition], logic: 'and' };
+      state.filter = { conditions: [newCondition], logic: 'and' };
     }
     
-    grid.clearSelectionState();
-    grid.applyDataTransformations();
-    grid.render();
-    grid.events.onFilter?.(grid.state.filter);
+    ctx.clearSelectionState();
+    ctx.applyDataTransformations();
+    ctx.render();
+    ctx.emitEvent('onFilter', state.filter);
   }
 
   /**
    * Column filter 제거
    */
   removeColumnFilter(field: string): void {
-    const grid = this.grid as any;
+    const ctx = this.ctx;
+    const state = ctx.getState();
     
-    if (grid.state.filter) {
-      const conditions = grid.state.filter.conditions.filter((c: FilterCondition) => c.field !== field);
-      grid.state.filter = conditions.length === 0 ? null : { conditions, logic: 'and' };
+    if (state.filter) {
+      const conditions = state.filter.conditions.filter((c: FilterCondition) => c.field !== field);
+      state.filter = conditions.length === 0 ? null : { conditions, logic: 'and' };
       
-      grid.clearSelectionState();
-      grid.applyDataTransformations();
-      grid.render();
+      ctx.clearSelectionState();
+      ctx.applyDataTransformations();
+      ctx.render();
       
-      if (grid.state.filter) {
-        grid.events.onFilter?.(grid.state.filter);
+      if (state.filter) {
+        ctx.emitEvent('onFilter', state.filter);
       }
     }
   }

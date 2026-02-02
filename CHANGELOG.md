@@ -5,7 +5,7 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
-## [0.7.0] - 2025-01-29
+## [0.7.0] - 2025-01-29 ~ 2025-02-02
 
 ### 추가 - Phase 12: 셀 기능 확장
 
@@ -30,6 +30,22 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 - 뷰포트 인식을 통한 동적 위치 설정
 - 구성 가능한 표시/숨김 지연 시간
 
+### 추가 - 코드 구조 최적화 (Phase 1-7)
+
+#### VeloxGrid.ts 모듈화
+- **VeloxGrid.ts**: 2,826줄 → 2,044줄 (27.7% 감소)
+- **GridContext 인터페이스**: 모듈 간 통신을 위한 표준화된 인터페이스 정의
+- **GridRenderer.ts**: 렌더링 담당 모듈 분리 (482줄)
+- **GridFilterPopup.ts**: 필터 팝업 UI 모듈 분리 (191줄)
+- **GridColumnMenu.ts**: 컬럼 메뉴 UI 모듈 분리 (188줄)
+- **GridDragManager.ts**: 드래그 & 리사이즈 모듈 분리 (364줄)
+
+#### CSS 모듈화
+- 11개 파일로 CSS 분리 (유지보수성 향상)
+- `_variables.css`, `_base.css`, `_header.css`, `_body.css`, `_selection.css`
+- `_filter.css`, `_column-menu.css`, `_drag.css`, `_editor.css`, `_tooltip.css`, `_loading.css`
+- 빌드 시 자동 번들링 (최종 CSS 파일 크기 변화 없음)
+
 ### 변경
 - 새 기능을 위한 TypeScript 타입 업데이트
 - Phase 12 스타일로 CSS 강화 (~110줄 추가)
@@ -39,9 +55,9 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 - `endEdit()` 메서드의 에디터 타입 처리 수정
 
 ### 번들 크기
-- UMD: 69.01 KB (gzip: 17.62 KB) - 58.94 KB에서 증가
-- ESM: 93.79 KB (gzip: 21.12 KB) - 79.31 KB에서 증가
-- CSS: 15.40 KB (gzip: 3.05 KB) - 12.26 KB에서 증가
+- UMD: 71.35 KB (gzip: 18.23 KB) - 58.94 KB에서 증가
+- ESM: 98.05 KB (gzip: 22.32 KB) - 79.31 KB에서 증가
+- CSS: 15.38 KB (gzip: 3.06 KB) - 12.26 KB에서 증가
 
 ---
 

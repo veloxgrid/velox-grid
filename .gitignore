@@ -12,3 +12,9 @@ coverage/
 
 # Keep Claude AI work files for project continuity
 # .claude/
+
+# backup files (e.g., ending with ~ or .bak)
+*.tmp
+*.old
+*.bak
+*.backup

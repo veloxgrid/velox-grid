@@ -37,6 +37,7 @@ export class GridState {
     selectedCells: new Set<string>(),
     focusedCell: null,
     selections: [],
+    lastSelectedRow: null,
   };
 
   // CheckBar state

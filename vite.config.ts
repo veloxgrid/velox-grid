@@ -34,6 +34,7 @@ export default defineConfig({
     cssMinify: true,
   },
   server: {
-    open: '/examples/index.html',
+    open: '/examples/dev.html',
+    hmr: true, // Hot Module Replacement 활성화
   },
 });

@@ -147,6 +147,9 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   // Undo/Redo - using GridHistory (refactored)
   private history: GridHistory;
   private tooltip: GridTooltip | null = null;
+  
+  // Edit mode document click handler cleanup
+  private editModeCleanup: (() => void) | null = null;
 
   // Modularized components
   private renderer: GridRenderer;
@@ -388,6 +391,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
 
   // GridContext: Rendering methods - delegated to GridRenderer
   render(): void {
+    console.log('🔄 render() called', { editing: this.state.edit.editing, rowIndex: this.state.edit.rowIndex, field: this.state.edit.field });
     this.renderer.render();
   }
 
@@ -492,6 +496,16 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   }
 
   handleCellClick(rowIndex: number, field: string, value: CellValue, e: MouseEvent): void {
+    console.log('🔍 handleCellClick', { rowIndex, field, editing: this.state.edit.editing, editRow: this.state.edit.rowIndex, editField: this.state.edit.field });
+    
+    // 편집 중인 셀을 클릭하면 편집 모드 유지
+    if (this.state.edit.editing && 
+        this.state.edit.rowIndex === rowIndex && 
+        this.state.edit.field === field) {
+      console.log('✅ Same cell clicked - maintaining edit mode');
+      return;
+    }
+    
     const selectionStyle = this.options.selectionStyle || 'row';
     
     if (selectionStyle === 'cell' || selectionStyle === 'block') {
@@ -985,6 +999,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   // --- Public API: CheckBar ---
 
   checkItem(index: number, checked = true): void {
+    console.log('🔵 checkItem START', { index, checked, currentEditState: this.state.edit });
     if (!this.state.checkBar.checkableRows.has(index)) return;
     
     const checkBar = this.options.checkBar;
@@ -999,8 +1014,21 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       this.state.checkBar.checkedRows.delete(index);
     }
     
+    // Edit 상태 보존하면서 render
+    const editState = { ...this.state.edit };
+    console.log('💾 Saved edit state before render', editState);
     this.render();
+    console.log('🔄 Render complete, edit state after render', this.state.edit);
+    
+    // Edit 중이었다면 상태 복원 및 재렌더링
+    if (editState.editing && editState.rowIndex !== null && editState.field !== null) {
+      console.log('♻️ Restoring edit state', editState);
+      this.state.edit = editState;
+      this.renderEditCell(editState.rowIndex, editState.field, editState.originalValue);
+    }
+    
     this.events.onCheckChange?.(index, checked);
+    console.log('🔵 checkItem END');
   }
 
   checkItems(indices: number[], checked = true): void {
@@ -1103,25 +1131,70 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   // --- Public API: Edit ---
 
   startEdit(rowIndex: number, field: string): void {
+    console.log('🎬 startEdit called', { rowIndex, field, editable: this.options.editable });
     if (!this.options.editable) return;
+    
+    // 이미 같은 셀을 편집 중이면 무시
+    if (this.state.edit.editing && 
+        this.state.edit.rowIndex === rowIndex && 
+        this.state.edit.field === field) {
+      console.log('⚠️ Already editing this cell - ignoring startEdit');
+      return;
+    }
+    
     const column = this.state.columns.find(c => c.field === field);
+    console.log('📋 Column found', { column: column?.field, editable: column?.editable });
     if (!column || column.editable === false) return;
     if (this.state.edit.editing) this.endEdit(true);
     const value = this.state.displayData[rowIndex]?.[field];
     this.state.edit = { editing: true, rowIndex, field, originalValue: value };
+    console.log('✅ Edit state updated', this.state.edit);
     this.events.onCellEditStart?.(rowIndex, field, value);
     this.renderEditCell(rowIndex, field, value);
   }
 
-  private renderEditCell(rowIndex: number, field: string, value: CellValue): void {
+  renderEditCell(rowIndex: number, field: string, value: CellValue): void {
+    console.log('🎨 renderEditCell START', { rowIndex, field, value, currentEditState: this.state.edit });
+    
+    // 이전 edit mode의 document 리스너 정리
+    if (this.editModeCleanup) {
+      console.log('🧹 Cleaning up previous edit mode listener');
+      this.editModeCleanup();
+      this.editModeCleanup = null;
+    }
+    
     const row = this.bodyInner.querySelector(`[data-row-index="${rowIndex}"]`);
     const cell = row?.querySelector(`[data-field="${field}"]`) as HTMLElement;
+    console.log('🔍 Cell element found', { cell: !!cell, hasClass: cell?.classList.contains('velox-cell--editing') });
     if (!cell) return;
 
     const column = this.state.columns.find(c => c.field === field);
     if (!column) return;
 
     addClass(cell, 'velox-cell--editing');
+    console.log('✅ Added velox-cell--editing class', { classList: Array.from(cell.classList) });
+    
+    // Document click으로 외부 클릭 감지 (cell/input 클릭은 제외)
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (!cell.contains(target)) {
+        console.log('🌍 Outside click detected - ending edit');
+        this.editModeCleanup = null; // cleanup 실행됨
+        document.removeEventListener('mousedown', handleOutsideClick);
+        this.endEdit(true);
+      } else {
+        console.log('📦 Inside cell click - maintaining edit mode');
+      }
+    };
+    
+    // cleanup 함수 저장
+    this.editModeCleanup = () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+    
+    setTimeout(() => {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }, 0);
 
     // Phase 12.2: Use GridEditorFactory if editor is specified
     if (column.editor) {
@@ -1130,7 +1203,9 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         column.editor,
         (newValue) => {
           // Save callback
-          this.state.edit.editing = false;
+          console.log('💾 Editor save callback', { newValue, editing: this.state.edit.editing });
+          
+          // 데이터 업데이트
           const row = this.state.displayData[rowIndex];
           if (row) {
             const dataIndex = this.state.data.indexOf(row);
@@ -1138,8 +1213,33 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
               this.state.data[dataIndex][field] = newValue;
             }
           }
-          this.applyDataTransformations();
-          this.render();
+          
+          // Checkbox editor는 edit 모드를 유지 (즉시 종료하지 않음)
+          if (column.editor?.type === 'checkbox') {
+            console.log('✅ Checkbox editor - maintaining edit mode, new value:', newValue);
+            
+            // originalValue를 새 값으로 업데이트 (다음 렌더링에서 사용)
+            this.state.edit.originalValue = newValue;
+            
+            // Edit 상태 유지하면서 데이터만 업데이트
+            this.applyDataTransformations();
+            
+            // Edit 상태 보존
+            const editState = { ...this.state.edit };
+            this.render();
+            
+            // Edit 모드 복원 (새 값으로 렌더링)
+            if (editState.editing) {
+              this.state.edit = editState;
+              this.renderEditCell(editState.rowIndex!, editState.field!, newValue);
+            }
+          } else {
+            // 다른 editor는 기존대로 edit 종료
+            console.log('🛑 Other editor - ending edit mode');
+            this.state.edit.editing = false;
+            this.applyDataTransformations();
+            this.render();
+          }
           
           const event = this.events as any;
           if (event.onCellEditEnd) {
@@ -1161,6 +1261,11 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       cell.innerHTML = '';
       cell.appendChild(editor);
       
+      // 편집 중인 editor 클릭 로그용
+      editor.addEventListener('mousedown', (e) => {
+        console.log('🖱️ Editor mousedown');
+      });
+      
       // Focus the editor
       setTimeout(() => {
         if (editor instanceof HTMLInputElement || editor instanceof HTMLSelectElement) {
@@ -1180,8 +1285,12 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       cell.appendChild(input);
       input.focus();
       input.select();
+      
+      // Input mousedown 로그용
+      input.addEventListener('mousedown', (e) => {
+        console.log('🖱️ Input mousedown');
+      });
 
-      input.addEventListener('blur', () => this.endEdit(true));
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -1195,6 +1304,15 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   }
 
   endEdit(save = true): void {
+    console.log('🛑 endEdit called', { save, editing: this.state.edit.editing });
+    
+    // Document 리스너 정리
+    if (this.editModeCleanup) {
+      console.log('🧹 Cleaning up edit mode listener on endEdit');
+      this.editModeCleanup();
+      this.editModeCleanup = null;
+    }
+    
     if (!this.state.edit.editing) return;
     const { rowIndex, field, originalValue } = this.state.edit;
     if (rowIndex === null || field === null) return;

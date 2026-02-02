@@ -18,9 +18,12 @@ export class GridRenderer {
    * 전체 그리드 렌더링
    */
   render(): void {
+    const state = this.ctx.getState();
+    console.log('🎨 GridRenderer.render() called', { editing: state.edit.editing });
     this.renderHeader();
     this.renderBody();
     this.updateLoadingState();
+    console.log('🎨 GridRenderer.render() completed', { editing: state.edit.editing });
   }
 
   /**
@@ -345,14 +348,28 @@ export class GridRenderer {
       addClass(cell, 'velox-checkbox-cell--disabled');
     }
     
-    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => {
+      console.log('✅ Checkbox clicked', { rowIndex, checked: input.checked });
+      e.stopPropagation();
+    });
     input.addEventListener('change', () => {
+      console.log('🔄 Checkbox changed', { rowIndex, checked: input.checked });
       if (checkBar.exclusive) {
+        // Edit 상태 보존
+        const editState = { ...ctx.getState().edit };
+        
         state.checkBar.checkedRows.clear();
         if (input.checked) {
           state.checkBar.checkedRows.add(rowIndex);
         }
         this.render();
+        
+        // Edit 중이었다면 상태 복원
+        if (editState.editing && editState.rowIndex !== null && editState.field !== null) {
+          ctx.getState().edit = editState;
+          ctx.renderEditCell(editState.rowIndex, editState.field, editState.originalValue);
+        }
+        
         ctx.emitEvent('onCheckChange', rowIndex, input.checked);
       } else {
         ctx.checkItem(rowIndex, input.checked);
@@ -405,6 +422,14 @@ export class GridRenderer {
     if (options.editable && column.editable !== false) {
       addClass(cell, 'velox-cell--editable');
       cell.addEventListener('dblclick', (e) => { 
+        // 이미 편집 중인 셀이면 더블클릭 무시
+        if (cell.classList.contains('velox-cell--editing')) {
+          console.log('🚫 Double click ignored - already editing');
+          e.stopPropagation();
+          e.preventDefault();
+          return;
+        }
+        console.log('🖱️🖱️ Double click detected', { rowIndex, field: column.field });
         e.stopPropagation(); 
         ctx.startEdit(rowIndex, column.field); 
       });
@@ -419,9 +444,33 @@ export class GridRenderer {
 
     cell.appendChild(content);
     
-    cell.addEventListener('click', (e) => ctx.handleCellClick(rowIndex, column.field, value, e));
+    cell.addEventListener('click', (e) => {
+      // 편집 중인 셀이면 클릭 무시 (단, interactive 요소는 예외)
+      if (cell.classList.contains('velox-cell--editing')) {
+        const target = e.target as HTMLElement;
+        // input, select, button 등 interactive 요소는 이벤트 허용하되 전파는 중단
+        if (target.tagName === 'INPUT' || 
+            target.tagName === 'SELECT' || 
+            target.tagName === 'BUTTON' ||
+            target.tagName === 'TEXTAREA') {
+          console.log('✅ Interactive element click allowed during edit');
+          e.stopPropagation(); // 상위로 전파 막기 (document까지 가지 않도록)
+          return;
+        }
+        console.log('🚫 Cell click ignored - editing mode (cell background)');
+        e.stopPropagation();
+        e.preventDefault();
+        return;
+      }
+      ctx.handleCellClick(rowIndex, column.field, value, e);
+    });
     
     cell.addEventListener('mousedown', (e) => {
+      // 편집 중인 셀은 VeloxGrid에서 처리하므로 여기서는 무시
+      if (cell.classList.contains('velox-cell--editing')) {
+        console.log('🔒 Cell mousedown - editing mode (ignored in renderer)');
+        return;
+      }
       if (options.selectionStyle === 'block' && e.button === 0) {
         ctx.startBlockSelection(rowIndex, column.field);
       }

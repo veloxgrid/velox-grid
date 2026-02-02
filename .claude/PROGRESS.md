@@ -6,11 +6,92 @@
 
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
-- **현재 버전**: v0.7.0
+- **현재 버전**: v0.7.1 (개발 중)
 - **번들 크기**: 71.35KB (gzip 18.23KB)
 - **라이선스**: MIT
-- **VeloxGrid.ts 라인수**: 2,044줄
+- **VeloxGrid.ts 라인수**: ~2,164줄
 - **Core 모듈 수**: 10개
+
+---
+
+## ✅ Edit 모드 안정화 완료 (2025-02-02)
+
+### 문제점
+Edit 모드에서 다양한 상호작용 시 예기치 않게 edit 모드가 종료되는 문제 발생:
+- 편집 중인 셀/input을 클릭하면 edit 모드 해제
+- Checkbox editor를 여러 번 클릭하면 edit 모드 해제
+- CheckBar의 checkbox 클릭 시 edit 모드 해제
+
+### 해결 내용
+
+#### 1. Cell 클릭 시 Edit 모드 유지
+**문제**: 편집 중인 셀을 클릭하면 blur 이벤트로 인해 edit 종료
+**해결**: 
+- Document mousedown 이벤트로 외부 클릭 감지
+- Cell 내부 클릭은 edit 모드 유지
+- Interactive 요소(input, select, button)는 기능 허용하되 이벤트 전파 중단
+
+#### 2. Checkbox Editor 다중 클릭 지원
+**문제**: Checkbox를 여러 번 클릭하면 render()로 인해 edit 상태 초기화
+**해결**:
+- Checkbox editor는 특별 처리하여 edit 모드 유지
+- Change 시 데이터 업데이트 후 edit 상태 복원
+- `renderEditCell` 재호출로 새 값 반영
+
+#### 3. Document 리스너 중복 방지
+**문제**: `renderEditCell` 호출 시마다 document 리스너 누적 등록
+**해결**:
+- `editModeCleanup` 변수로 이전 리스너 추적
+- 새 edit 시작 시 이전 리스너 제거
+- `endEdit` 시에도 리스너 정리
+
+#### 4. 더블클릭 이벤트 처리
+**문제**: 빠른 연속 클릭이 더블클릭으로 인식되어 `startEdit` 재호출
+**해결**:
+- 이미 editing 중인 셀의 더블클릭 무시
+- `startEdit`에서 같은 셀 편집 중이면 무시
+
+#### 5. CheckBar 상태 변경 시 Edit 보존
+**문제**: `checkItem()` 호출 시 `render()`로 인해 edit 상태 초기화
+**해결**:
+- Render 전 edit 상태 백업
+- Render 후 edit 중이었다면 상태 복원 및 `renderEditCell` 재호출
+
+#### 6. Editor 타입별 중복 이벤트 제거
+**문제**: Select/Checkbox editor에서 change와 blur 중복 호출
+**해결**:
+- Select editor: blur 이벤트 제거 (change만 사용)
+- Checkbox editor: blur 이벤트 제거 (change만 사용)
+
+### 수정 파일
+- `src/core/VeloxGrid.ts`
+  - `editModeCleanup` 변수 추가
+  - `renderEditCell()`: 리스너 정리 로직 추가
+  - `startEdit()`: 같은 셀 재편집 방지
+  - `endEdit()`: 리스너 정리
+  - `checkItem()`: Edit 상태 보존
+  - Checkbox editor 콜백: Edit 유지 로직
+- `src/core/GridRenderer.ts`
+  - Cell click: Interactive 요소 예외 처리
+  - Cell dblclick: 이미 editing 중이면 무시
+  - `createCheckbarCell()`: Edit 상태 보존
+- `src/core/GridEditorFactory.ts`
+  - Select editor: blur 이벤트 제거
+  - Checkbox editor: blur 이벤트 제거
+
+### Editor 타입별 동작
+
+| Editor Type | 종료 시점 | Edit 모드 유지 | 비고 |
+|------------|---------|--------------|------|
+| Text | blur / Enter | ❌ 즉시 종료 | 입력 완료 시 자동 종료 |
+| Number | blur / Enter | ❌ 즉시 종료 | 입력 완료 시 자동 종료 |
+| Date | blur / Enter | ❌ 즉시 종료 | 날짜 선택 시 자동 종료 |
+| Select | change / Enter | ❌ 즉시 종료 | 선택 시 자동 종료 |
+| Checkbox | 외부 클릭 | ✅ 계속 유지 | 여러 번 토글 가능 |
+
+### 개발 환경 개선
+- `examples/dev.html` 추가: 소스 파일 직접 import로 핫 리로드 지원
+- `vite.config.ts`: 개발 서버 기본 페이지를 dev.html로 변경
 
 ---
 

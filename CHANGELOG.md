@@ -5,6 +5,48 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
+## [0.7.1] - 2025-02-02 (개발 중)
+
+### 수정 - Edit 모드 안정화
+
+#### 편집 중 셀 클릭 시 Edit 모드 유지
+- 편집 중인 셀/input 클릭 시 edit 모드가 해제되던 문제 수정
+- Document mousedown 이벤트로 외부 클릭 감지
+- Cell 내부 클릭은 edit 모드 유지
+- Interactive 요소(input, select, button, textarea) 클릭 시 기능 허용
+
+#### Checkbox Editor 다중 클릭 지원
+- Checkbox를 여러 번 클릭 시 edit 모드가 해제되던 문제 수정
+- Checkbox editor는 change 시에도 edit 모드 유지
+- 데이터 업데이트 후 edit 상태 복원 및 재렌더링
+- 외부 클릭 시에만 edit 종료
+
+#### Document 리스너 중복 방지
+- `renderEditCell` 호출 시마다 document 리스너가 누적 등록되던 문제 수정
+- `editModeCleanup` 변수로 이전 리스너 추적 및 정리
+- 새 edit 시작 시 이전 리스너 자동 제거
+
+#### 더블클릭 이벤트 처리
+- 빠른 연속 클릭이 더블클릭으로 인식되어 edit 재시작되던 문제 수정
+- 이미 editing 중인 셀의 더블클릭 무시
+- `startEdit`에서 같은 셀 편집 중이면 무시
+
+#### CheckBar 상태 변경 시 Edit 보존
+- CheckBar의 checkbox 클릭 시 edit 모드가 해제되던 문제 수정
+- `checkItem()` 호출 시 edit 상태 백업 및 복원
+- Exclusive mode에서도 edit 상태 보존
+
+#### Editor 타입별 중복 이벤트 제거
+- Select editor: blur 이벤트 제거 (change와 중복)
+- Checkbox editor: blur 이벤트 제거 (change와 중복)
+
+### 개선 - 개발 환경
+
+#### 핫 리로드 지원
+- `examples/dev.html` 추가: 소스 파일 직접 import
+- Vite HMR로 실시간 코드 변경 반영
+- `vite.config.ts`: 개발 서버 기본 페이지를 dev.html로 변경
+
 ## [0.7.0] - 2025-01-29 ~ 2025-02-02
 
 ### 정리 - 코드 정리 (2025-02-02)

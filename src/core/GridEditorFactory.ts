@@ -106,12 +106,11 @@ export class GridEditorFactory {
 
     // Event handlers
     select.addEventListener('change', () => {
+      console.log('📦 Select change event', select.value);
       onSave(select.value);
     });
 
-    select.addEventListener('blur', () => {
-      onSave(select.value);
-    });
+    // blur 이벤트 제거 - change만으로 충분 (중복 방지)
 
     select.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -188,12 +187,11 @@ export class GridEditorFactory {
 
     // Event handlers
     checkbox.addEventListener('change', () => {
+      console.log('📦 Checkbox change event', checkbox.checked);
       onSave(checkbox.checked);
     });
 
-    checkbox.addEventListener('blur', () => {
-      onSave(checkbox.checked);
-    });
+    // blur 이벤트 제거 - change 이벤트로 충분함 (중복 호출 방지)
 
     checkbox.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {

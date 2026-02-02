@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid - Phase 8 Demo (Excel Export/Import)</title>
+  <!-- VeloxGrid CSS -->
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <!-- SheetJS CDN for Excel support -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f7fa;
+      padding: 24px;
+    }
+    h1 {
+      margin-bottom: 8px;
+      color: #1a1a2e;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 24px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .toolbar-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .toolbar-group label {
+      font-size: 12px;
+      color: #666;
+      font-weight: 500;
+    }
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    button.primary {
+      background: #4361ee;
+      color: white;
+    }
+    button.primary:hover {
+      background: #3a56d4;
+    }
+    button.secondary {
+      background: #e9ecef;
+      color: #495057;
+    }
+    button.secondary:hover {
+      background: #dee2e6;
+    }
+    button.success {
+      background: #2ecc71;
+      color: white;
+    }
+    button.success:hover {
+      background: #27ae60;
+    }
+    button.warning {
+      background: #f39c12;
+      color: white;
+    }
+    button.warning:hover {
+      background: #d68910;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .file-label {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #6c757d;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .file-label:hover {
+      background: #5a6268;
+    }
+    #grid-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    .info-panel {
+      margin-top: 24px;
+      padding: 16px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .info-panel h3 {
+      margin-bottom: 12px;
+      color: #333;
+    }
+    .info-panel pre {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      overflow-x: auto;
+      max-height: 200px;
+    }
+    .options-panel {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .option-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .option-group label {
+      font-size: 14px;
+      color: #333;
+    }
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .status.info {
+      background: #cce5ff;
+      color: #004085;
+    }
+  </style>
+</head>
+<body>
+  <h1>VeloxGrid Phase 8 Demo</h1>
+  <p class="subtitle">Excel Export/Import, CSV Export/Import</p>
+
+  <div class="options-panel">
+    <div class="option-group">
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id="opt-header" checked>
+        <label for="opt-header">헤더 포함</label>
+      </div>
+    </div>
+    <div class="option-group">
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id="opt-selected">
+        <label for="opt-selected">선택된 행만</label>
+      </div>
+    </div>
+    <div class="option-group">
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id="opt-filtered">
+        <label for="opt-filtered">필터된 행만</label>
+      </div>
+    </div>
+    <div class="option-group">
+      <label for="opt-filename">파일명:</label>
+      <input type="text" id="opt-filename" value="veloxgrid-export" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <label>Export:</label>
+      <button class="primary" onclick="exportExcel()">📊 Excel (.xlsx)</button>
+      <button class="success" onclick="exportCSV()">📄 CSV</button>
+      <button class="secondary" onclick="exportJSON()">📋 JSON</button>
+    </div>
+    
+    <div class="toolbar-group">
+      <label>Import:</label>
+      <input type="file" id="excel-file" accept=".xlsx,.xls" onchange="importExcel(this)">
+      <label for="excel-file" class="file-label">📥 Excel 불러오기</label>
+      
+      <input type="file" id="csv-file" accept=".csv" onchange="importCSV(this)">
+      <label for="csv-file" class="file-label">📥 CSV 불러오기</label>
+    </div>
+
+    <div class="toolbar-group">
+      <label>Actions:</label>
+      <button class="warning" onclick="addSampleData()">➕ 샘플 데이터 추가</button>
+      <button class="secondary" onclick="clearData()">🗑️ 데이터 삭제</button>
+    </div>
+  </div>
+
+  <div id="grid-container"></div>
+
+  <div id="status-container"></div>
+
+  <div class="info-panel">
+    <h3>📝 Export Options</h3>
+    <pre id="export-info">
+// Excel Export
+grid.exportToExcel({
+  filename: 'my-data',      // 파일명 (확장자 제외)
+  includeHeader: true,      // 헤더 포함
+  selectedOnly: false,      // 선택된 행만
+  filteredOnly: false,      // 필터된 행만
+  columns: ['name', 'age'], // 특정 컬럼만 (선택사항)
+  sheetName: 'Sheet1'       // 시트 이름
+});
+
+// CSV Export (문자열 반환)
+const csvString = grid.exportToCSV({ ... });
+
+// CSV 파일 다운로드
+grid.downloadCSV({ filename: 'my-data' });
+
+// JSON Export (문자열 반환)
+const jsonString = grid.exportToJSON({ ... });
+
+// JSON 파일 다운로드
+grid.downloadJSON({ filename: 'my-data' });
+    </pre>
+  </div>
+
+  <div class="info-panel">
+    <h3>📥 Import Methods</h3>
+    <pre id="import-info">
+// CSV Import (문자열에서)
+const result = grid.importFromCSV(csvString, true); // hasHeader
+console.log(result.data);    // 가져온 데이터
+console.log(result.headers); // 헤더 목록
+console.log(result.errors);  // 오류 목록
+
+// Excel Import (파일에서) - 비동기
+const result = await grid.importFromExcel(file, 0); // sheetIndex
+if (result.errors.length === 0) {
+  console.log('Successfully imported', result.data.length, 'rows');
+}
+
+// SheetJS 라이브러리 필요 여부 확인
+if (VeloxGrid.isExcelSupported()) {
+  console.log('Excel export/import is available');
+}
+    </pre>
+  </div>
+
+  <script type="module">
+    import { VeloxGrid } from '../dist/velox-grid.esm.js';
+
+    // Make grid globally available
+    window.VeloxGrid = VeloxGrid;
+
+    // Sample data
+    const sampleData = [
+      { id: 1, name: '김철수', email: 'kim@example.com', department: '개발팀', salary: 5500000, joinDate: '2020-03-15', active: true },
+      { id: 2, name: '이영희', email: 'lee@example.com', department: '마케팅팀', salary: 4800000, joinDate: '2019-07-22', active: true },
+      { id: 3, name: '박민수', email: 'park@example.com', department: '개발팀', salary: 6200000, joinDate: '2018-01-10', active: true },
+      { id: 4, name: '정수진', email: 'jung@example.com', department: '인사팀', salary: 4500000, joinDate: '2021-05-01', active: false },
+      { id: 5, name: '최동욱', email: 'choi@example.com', department: '개발팀', salary: 5800000, joinDate: '2020-09-15', active: true },
+      { id: 6, name: '강미나', email: 'kang@example.com', department: '디자인팀', salary: 5200000, joinDate: '2019-11-20', active: true },
+      { id: 7, name: '윤성호', email: 'yoon@example.com', department: '마케팅팀', salary: 5000000, joinDate: '2021-02-28', active: true },
+      { id: 8, name: '임지원', email: 'lim@example.com', department: '개발팀', salary: 5900000, joinDate: '2017-08-05', active: false },
+      { id: 9, name: '한소영', email: 'han@example.com', department: '인사팀', salary: 4700000, joinDate: '2022-01-15', active: true },
+      { id: 10, name: '서준혁', email: 'seo@example.com', department: '디자인팀', salary: 5100000, joinDate: '2020-06-10', active: true },
+    ];
+
+    // Column definitions
+    const columns = [
+      { field: 'id', header: 'ID', type: 'number', width: 60, align: 'center' },
+      { field: 'name', header: '이름', type: 'text', width: 120 },
+      { field: 'email', header: '이메일', type: 'text', width: 200 },
+      { field: 'department', header: '부서', type: 'text', width: 120 },
+      { field: 'salary', header: '급여', type: 'number', width: 130, align: 'right',
+        formatter: (v) => v ? v.toLocaleString() + '원' : '' },
+      { field: 'joinDate', header: '입사일', type: 'text', width: 120, align: 'center' },
+      { field: 'active', header: '재직', type: 'boolean', width: 80, align: 'center',
+        formatter: (v) => v ? '✅' : '❌' },
+    ];
+
+    // Create grid
+    const grid = new VeloxGrid('#grid-container', {
+      columns,
+      data: sampleData,
+      height: 400,
+      checkBar: { visible: true, showAll: true },
+      selectable: true,
+      selectionStyle: 'row',
+      selectionMode: 'multiple',
+      filterable: true,
+      sortable: true,
+      editable: true,
+    });
+
+    // Make grid available globally
+    window.grid = grid;
+
+    // Show status message
+    function showStatus(message, type = 'info') {
+      const container = document.getElementById('status-container');
+      container.innerHTML = `<div class="status ${type}">${message}</div>`;
+      setTimeout(() => container.innerHTML = '', 5000);
+    }
+    window.showStatus = showStatus;
+
+    // Get export options
+    function getExportOptions() {
+      return {
+        filename: document.getElementById('opt-filename').value || 'export',
+        includeHeader: document.getElementById('opt-header').checked,
+        selectedOnly: document.getElementById('opt-selected').checked,
+        filteredOnly: document.getElementById('opt-filtered').checked,
+      };
+    }
+    window.getExportOptions = getExportOptions;
+
+    // Export to Excel
+    window.exportExcel = function() {
+      if (!VeloxGrid.isExcelSupported()) {
+        showStatus('❌ SheetJS 라이브러리가 로드되지 않았습니다.', 'error');
+        return;
+      }
+      const options = getExportOptions();
+      grid.exportToExcel(options);
+      showStatus(`✅ Excel 파일이 다운로드됩니다: ${options.filename}.xlsx`, 'success');
+    };
+
+    // Export to CSV
+    window.exportCSV = function() {
+      const options = getExportOptions();
+      grid.downloadCSV(options);
+      showStatus(`✅ CSV 파일이 다운로드됩니다: ${options.filename}.csv`, 'success');
+    };
+
+    // Export to JSON
+    window.exportJSON = function() {
+      const options = getExportOptions();
+      grid.downloadJSON(options);
+      showStatus(`✅ JSON 파일이 다운로드됩니다: ${options.filename}.json`, 'success');
+    };
+
+    // Import from Excel
+    window.importExcel = async function(input) {
+      if (!input.files.length) return;
+      
+      const file = input.files[0];
+      showStatus(`📥 Excel 파일을 불러오는 중: ${file.name}`, 'info');
+      
+      try {
+        const result = await grid.importFromExcel(file, 0);
+        
+        if (result.errors.length > 0) {
+          showStatus(`⚠️ 가져오기 경고: ${result.errors.join(', ')}`, 'error');
+        } else {
+          showStatus(`✅ ${result.data.length}개의 행을 성공적으로 가져왔습니다!`, 'success');
+        }
+      } catch (error) {
+        showStatus(`❌ Excel 가져오기 실패: ${error.message}`, 'error');
+      }
+      
+      input.value = ''; // Reset file input
+    };
+
+    // Import from CSV
+    window.importCSV = function(input) {
+      if (!input.files.length) return;
+      
+      const file = input.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const csvString = e.target.result;
+        const result = grid.importFromCSV(csvString, true);
+        
+        if (result.errors.length > 0) {
+          showStatus(`⚠️ 가져오기 경고: ${result.errors.join(', ')}`, 'error');
+        } else {
+          showStatus(`✅ ${result.data.length}개의 행을 성공적으로 가져왔습니다!`, 'success');
+        }
+      };
+      
+      reader.onerror = () => {
+        showStatus('❌ 파일을 읽을 수 없습니다.', 'error');
+      };
+      
+      reader.readAsText(file);
+      input.value = ''; // Reset file input
+    };
+
+    // Add sample data
+    window.addSampleData = function() {
+      const newId = grid.getRowCount() + 1;
+      grid.addRow({
+        id: newId,
+        name: `신규직원${newId}`,
+        email: `new${newId}@example.com`,
+        department: '개발팀',
+        salary: 4500000 + Math.floor(Math.random() * 2000000),
+        joinDate: new Date().toISOString().split('T')[0],
+        active: true
+      });
+      showStatus(`✅ 새 행이 추가되었습니다 (ID: ${newId})`, 'success');
+    };
+
+    // Clear data
+    window.clearData = function() {
+      if (confirm('모든 데이터를 삭제하시겠습니까?')) {
+        grid.clearData();
+        showStatus('🗑️ 모든 데이터가 삭제되었습니다.', 'info');
+      }
+    };
+
+    // Check SheetJS availability
+    if (VeloxGrid.isExcelSupported()) {
+      console.log('✅ SheetJS is loaded - Excel export/import is available');
+    } else {
+      console.warn('⚠️ SheetJS is not loaded - Excel features will not work');
+    }
+  </script>
+</body>
+</html>

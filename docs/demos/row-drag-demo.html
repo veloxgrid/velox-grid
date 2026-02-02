@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid Phase 10-11 Demo - Column Reorder & Row Drag</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { margin-bottom: 10px; color: #1a73e8; }
+    .subtitle { color: #666; margin-bottom: 20px; font-size: 14px; }
+    .demo-section { 
+      background: white; 
+      padding: 20px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .demo-section h2 { margin-bottom: 15px; color: #333; font-size: 18px; }
+    .feature-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .feature-card {
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #1a73e8;
+    }
+    .feature-card h4 { color: #1a73e8; margin-bottom: 8px; font-size: 14px; }
+    .feature-card ul { margin-left: 20px; color: #666; font-size: 13px; }
+    .feature-card li { margin: 4px 0; }
+    #grid1 { height: 400px; }
+    .btn-group { margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #1a73e8; color: white; }
+    .btn-primary:hover { background: #1557b0; }
+    .btn-secondary { background: #e8eaed; color: #333; }
+    .btn-secondary:hover { background: #d2d4d7; }
+    .log-section { margin-top: 15px; }
+    .log-section h3 { font-size: 14px; margin-bottom: 10px; color: #666; }
+    #eventLog {
+      height: 150px;
+      overflow-y: auto;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .log-entry { margin: 2px 0; }
+    .log-entry.reorder { color: #4fc3f7; }
+    .log-entry.drag { color: #81c784; }
+    .log-entry.menu { color: #ffb74d; }
+    .info-box {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      color: #1565c0;
+    }
+    .info-box code {
+      background: rgba(0,0,0,0.1);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 VeloxGrid v0.6.0 - Phase 10-11 Demo</h1>
+    <p class="subtitle">Column Reorder, Column Menu, Row Drag & Drop</p>
+
+    <div class="feature-list">
+      <div class="feature-card">
+        <h4>📋 Phase 10: Column Features</h4>
+        <ul>
+          <li>Column Drag & Drop Reorder</li>
+          <li>Column Context Menu</li>
+          <li>Fix/Unfix Column</li>
+          <li>Auto-fit Column Width</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h4>📦 Phase 11: Row Features</h4>
+        <ul>
+          <li>Row Drag & Drop</li>
+          <li>Row Order Change</li>
+          <li>Visual Drag Indicators</li>
+          <li>Drop Target Highlights</li>
+        </ul>
+      </div>
+      <div class="feature-card">
+        <h4>⚡ Code Optimization</h4>
+        <ul>
+          <li>GridHistory Class (Undo/Redo)</li>
+          <li>Column Cache System</li>
+          <li>Unified Row Creation</li>
+          <li>~59KB Bundle Size</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Interactive Demo</h2>
+      
+      <div class="info-box">
+        <strong>사용 방법:</strong><br>
+        • 컬럼 헤더의 <code>⋮⋮</code>를 드래그하여 컬럼 순서 변경<br>
+        • 컬럼 헤더의 <code>⋯</code> 버튼을 클릭하여 컬럼 메뉴 열기<br>
+        • 행 왼쪽의 <code>☰</code>를 드래그하여 행 순서 변경
+      </div>
+      
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="addRow()">행 추가</button>
+        <button class="btn btn-secondary" onclick="resetData()">데이터 리셋</button>
+        <button class="btn btn-secondary" onclick="showAllColumns()">모든 컬럼 표시</button>
+        <button class="btn btn-secondary" onclick="autoFitAll()">컬럼 너비 자동</button>
+        <button class="btn btn-secondary" onclick="undo()">↩ Undo</button>
+        <button class="btn btn-secondary" onclick="redo()">↪ Redo</button>
+      </div>
+
+      <div id="grid1"></div>
+      
+      <div class="log-section">
+        <h3>📝 이벤트 로그</h3>
+        <div id="eventLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../dist/velox-grid.iife.js"></script>
+  <script>
+    // Sample data
+    function generateData() {
+      const departments = ['개발팀', '디자인팀', '마케팅팀', '영업팀', '인사팀'];
+      const positions = ['사원', '대리', '과장', '차장', '부장'];
+      const data = [];
+      
+      for (let i = 1; i <= 20; i++) {
+        data.push({
+          id: i,
+          name: `직원 ${i}`,
+          department: departments[Math.floor(Math.random() * departments.length)],
+          position: positions[Math.floor(Math.random() * positions.length)],
+          salary: Math.floor(3000 + Math.random() * 5000) * 10000,
+          joinDate: `202${Math.floor(Math.random() * 5)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+          email: `employee${i}@company.com`,
+          active: Math.random() > 0.3,
+        });
+      }
+      return data;
+    }
+
+    let originalData = generateData();
+    
+    // Event log
+    const eventLog = document.getElementById('eventLog');
+    function log(message, type = 'default') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      eventLog.insertBefore(entry, eventLog.firstChild);
+      if (eventLog.children.length > 50) {
+        eventLog.removeChild(eventLog.lastChild);
+      }
+    }
+
+    // Grid initialization
+    const grid = new VeloxGrid.VeloxGrid('#grid1', {
+      columns: [
+        { field: 'id', header: 'ID', width: 60, editable: false },
+        { field: 'name', header: '이름', width: 120, editable: true },
+        { field: 'department', header: '부서', width: 100, editable: true },
+        { field: 'position', header: '직급', width: 80, editable: true },
+        { field: 'salary', header: '연봉', width: 120, type: 'number', align: 'right',
+          formatter: (val) => val ? val.toLocaleString() + '원' : '' },
+        { field: 'joinDate', header: '입사일', width: 110 },
+        { field: 'email', header: '이메일', width: 180 },
+        { field: 'active', header: '재직', width: 60, type: 'boolean',
+          formatter: (val) => val ? '✓' : '✗' },
+      ],
+      data: originalData,
+      height: 400,
+      selectable: true,
+      selectionStyle: 'cell',
+      editable: true,
+      resizable: true,
+      sortable: true,
+      filterable: true,
+      checkBar: { visible: true, showAll: true },
+      showRowNumbers: true,
+      undoable: true,
+      undoStackSize: 50,
+    }, {
+      onColumnReorder: (field, fromIndex, toIndex) => {
+        log(`컬럼 이동: "${field}" ${fromIndex} → ${toIndex}`, 'reorder');
+      },
+      onColumnResize: (field, width) => {
+        log(`컬럼 크기 변경: "${field}" → ${width}px`, 'menu');
+      },
+      onDataChange: (data) => {
+        log(`데이터 변경됨 (${data.length}개 행)`, 'drag');
+      },
+      onUndo: (action) => {
+        log(`Undo: ${action.type}`, 'menu');
+      },
+      onRedo: (action) => {
+        log(`Redo: ${action.type}`, 'menu');
+      },
+      onSort: (sortState) => {
+        if (sortState.length > 0) {
+          log(`정렬: ${sortState[0].field} (${sortState[0].direction})`);
+        } else {
+          log('정렬 해제');
+        }
+      }
+    });
+
+    log('VeloxGrid v0.6.0 초기화 완료');
+    log('Phase 10-11: Column Reorder & Row Drag 활성화', 'reorder');
+
+    // Button handlers
+    function addRow() {
+      const newId = grid.getRowCount() + 1;
+      grid.addRow({
+        id: newId,
+        name: `신규 직원 ${newId}`,
+        department: '미배정',
+        position: '사원',
+        salary: 30000000,
+        joinDate: new Date().toISOString().slice(0, 10),
+        email: `new${newId}@company.com`,
+        active: true,
+      });
+      log(`행 추가됨 (ID: ${newId})`, 'drag');
+    }
+
+    function resetData() {
+      originalData = generateData();
+      grid.setData(originalData);
+      log('데이터 리셋됨', 'menu');
+    }
+
+    function showAllColumns() {
+      const columns = grid.getOptions().columns;
+      columns.forEach(col => {
+        grid.showColumn(col.field);
+      });
+      log('모든 컬럼 표시됨', 'menu');
+    }
+
+    function autoFitAll() {
+      grid.autoFitAllColumns();
+      log('모든 컬럼 너비 자동 조절됨', 'menu');
+    }
+
+    function undo() {
+      if (grid.canUndo()) {
+        grid.undo();
+      } else {
+        log('Undo 가능한 작업 없음');
+      }
+    }
+
+    function redo() {
+      if (grid.canRedo()) {
+        grid.redo();
+      } else {
+        log('Redo 가능한 작업 없음');
+      }
+    }
+  </script>
+</body>
+</html>

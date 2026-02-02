@@ -8,6 +8,18 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/velox-grid)](https://bundlephobia.com/package/velox-grid)
 
+## 🌐 Live Demo
+
+**[👉 https://bart-idea.github.io/velox-grid/](https://bart-idea.github.io/velox-grid/)**
+
+다양한 기능을 직접 체험해보세요:
+- Selection & Navigation
+- Excel Export/Import
+- Keyboard & Undo/Redo
+- Column Management
+- Row Drag & Drop
+- Validation & Custom Editor
+
 ## ✨ 주요 기능
 
 - 🎯 **프레임워크 독립적** - Vanilla JS, React, Vue, Angular 등 모든 환경에서 사용 가능

@@ -11,6 +11,93 @@
 - **라이선스**: MIT
 - **VeloxGrid.ts 라인수**: ~2,164줄
 - **Core 모듈 수**: 10개
+- **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
+
+---
+
+## ✅ GitHub Pages 배포 설정 완료 (2025-02-02)
+
+### 배경
+개발된 기능들을 실시간으로 테스트할 수 있는 데모 페이지가 필요함.
+장기적 관리를 위해 GitHub Actions를 통한 자동 배포 시스템 구축.
+
+### 구현 내용
+
+#### 1. 프로젝트 구조
+```
+velox-grid/
+├── docs/                  # GitHub Pages 배포용
+│   ├── index.html        # 메인 랜딩 페이지
+│   ├── dist/             # 빌드된 라이브러리
+│   └── demos/            # 데모 페이지들
+│       ├── selection-demo.html
+│       ├── excel-demo.html
+│       ├── keyboard-demo.html
+│       ├── column-menu-demo.html
+│       ├── row-drag-demo.html
+│       └── validation-demo.html
+├── .github/workflows/
+│   └── deploy.yml        # 자동 배포 워크플로우
+└── scripts/
+    └── build-pages.js    # 페이지 빌드 스크립트
+```
+
+#### 2. 메인 랜딩 페이지
+- 프로젝트 소개 및 주요 기능 설명
+- 6가지 데모 카드 레이아웃
+- 번들 크기, 기능 수, 라이선스 정보 표시
+- GitHub 링크 및 문서 링크
+- 그라디언트 배경 및 모던한 디자인
+
+#### 3. 빌드 스크립트 (`scripts/build-pages.js`)
+- `dist/` 파일들을 `docs/dist/`로 복사
+- `examples/` 파일들을 `docs/demos/`로 복사 및 이름 변경
+  - phase7-demo.html → selection-demo.html
+  - phase8-demo.html → excel-demo.html
+  - phase9-demo.html → keyboard-demo.html
+  - phase10-11-demo.html → column-menu-demo.html, row-drag-demo.html
+  - phase12-demo.html → validation-demo.html
+- 파일 내 경로 자동 수정
+
+#### 4. GitHub Actions 워크플로우 (`.github/workflows/deploy.yml`)
+- main 브랜치에 push 시 자동 실행
+- Node.js 18 환경에서 빌드
+- `npm run build` → `npm run build:pages` 실행
+- GitHub Pages로 자동 배포
+
+#### 5. package.json 스크립트 추가
+```json
+"scripts": {
+  "build:pages": "node scripts/build-pages.js"
+}
+```
+
+### 배포 결과
+- **Live Demo URL**: https://bart-idea.github.io/velox-grid/
+- **자동 배포**: main 브랜치 push 시 자동 실행
+- **데모 페이지**: 6개 (Selection, Excel, Keyboard, Column, Row, Validation)
+
+### 사용 방법
+```bash
+# 로컬에서 테스트
+ npm run build
+ npm run build:pages
+
+# Git에 반영
+ git add .
+ git commit -m "docs: setup GitHub Pages"
+ git push origin main
+
+# GitHub Actions가 자동으로 배포 실행
+```
+
+### 수정 파일
+- `docs/index.html`: 메인 랜딩 페이지 생성
+- `scripts/build-pages.js`: 빌드 스크립트 생성
+- `.github/workflows/deploy.yml`: GitHub Actions 워크플로우 생성
+- `package.json`: build:pages 스크립트 추가
+- `README.md`: Live Demo 섹션 추가
+- `.claude/PROGRESS.md`: Live Demo URL 추가
 
 ---
 

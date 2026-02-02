@@ -1,20 +1,51 @@
-chore: update documentation and version to v0.7.1
+docs: setup GitHub Pages with automated deployment
 
-모든 문서 최신화:
-- package.json: 버전 0.7.1로 업데이트
-- CHANGELOG.md: (개발 중) 제거
-- PROGRESS.md: 버전 및 번들 크기 업데이트
-- README.md: 번들 크기 및 v0.7.1 기능 추가
-- RULES.md: 번들 크기 및 업데이트 날짜 수정
+GitHub Pages 자동 배포 시스템 구축 완료:
 
-번들 크기 업데이트:
-- UMD: 75.4 KB (gzip: 19.4 KB)
-- ESM: 102.8 KB (gzip: 23.5 KB)
-- CSS: 15.4 KB (gzip: 3.1 KB)
+프로젝트 구조:
+- docs/ 폴더 생성 (GitHub Pages 배포용)
+  - index.html: 메인 랜딩 페이지 (Feature 소개 + 6개 데모 링크)
+  - dist/: 빌드된 라이브러리 파일
+  - demos/: 6개 데모 페이지 (selection, excel, keyboard, column, row, validation)
+
+자동화 시스템:
+- scripts/build-pages.js: 빌드 자동화 스크립트
+  - dist 파일 자동 복사
+  - examples 파일 이름 변경 및 경로 수정
+- .github/workflows/deploy.yml: GitHub Actions 워크플로우
+  - main 브랜치 push 시 자동 빌드 및 배포
+  - Node.js 18 환경에서 실행
+
+메인 랜딩 페이지 특징:
+- 프로젝트 소개 및 주요 기능 설명
+- 번들 크기, 지원 행 수, Dependencies 표시
+- 6개 Feature 카드 레이아웃
+- 6개 데모 페이지 링크
+- 시작하기 가이드 (설치 및 기본 사용법)
+- 그라디언트 배경 및 모던한 UI 디자인
+
+데모 페이지 매핑:
+- phase7-demo.html → selection-demo.html
+- phase8-demo.html → excel-demo.html
+- phase9-demo.html → keyboard-demo.html
+- phase10-11-demo.html → column-menu-demo.html, row-drag-demo.html
+- phase12-demo.html → validation-demo.html
+
+문서 업데이트:
+- README.md: Live Demo 섹션 추가
+- .claude/PROGRESS.md: GitHub Pages 배포 완료 섹션 추가
+- package.json: build:pages 스크립트 추가
+
+Live Demo:
+https://bart-idea.github.io/velox-grid/
+
+Files Added:
+- docs/index.html
+- docs/demos/*.html (6 files)
+- scripts/build-pages.js
+- .github/workflows/deploy.yml
 
 Files Modified:
 - package.json
-- CHANGELOG.md
-- .claude/PROGRESS.md
 - README.md
-- .claude/RULES.md
+- .claude/PROGRESS.md

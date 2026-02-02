@@ -7,6 +7,24 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 
 ## [0.7.0] - 2025-01-29 ~ 2025-02-02
 
+### 정리 - 코드 정리 (2025-02-02)
+
+#### 미사용 모듈 삭제
+- `GridEventManager.ts` 삭제 (VeloxGrid 자체 구현 사용)
+- `GridSelection.ts` 삭제 (VeloxGrid 자체 구현 사용)
+- `GridVirtualScroll.ts` 삭제 (VeloxGrid 자체 구현 사용)
+- `GridEditor.ts` 삭제 (VeloxGrid 자체 구현 사용)
+- `GridKeyboard.ts` 삭제 (VeloxGrid 자체 구현 사용)
+- `GridColumnManager.ts` 삭제 (VeloxGrid 자체 구현 사용)
+- `GridDataManager.ts` 삭제 (VeloxGrid 자체 구현 사용)
+- `GridState.ts` 삭제 (VeloxGrid 자체 구현 사용)
+- `VeloxGrid.ts.backup` 삭제
+
+#### 결과
+- 빌드 모듈 수: 22개 → 15개 (-7개)
+- 소스 파일: ~60KB 삭제
+- Core 모듈 수: 10개로 정리
+
 ### 추가 - Phase 12: 셀 기능 확장
 
 #### Phase 12.1: 셀 검증

@@ -1,9 +1,25 @@
-refactor: VeloxGrid.ts modularization complete (Phase 1-7)
+refactor: remove unused modules and clean up codebase
 
-Changes:
-- VeloxGrid.ts: 2,826 lines to 2,044 lines (27.7% reduction)
-- GridRenderer, GridFilterPopup, GridColumnMenu, GridDragManager modules separated
-- GridContext interface for standardized module communication
-- CSS modularized into 11 files (auto-bundled on build)
-- Updated README.md, CHANGELOG.md, ROADMAP.md, PROGRESS.md
-- Bundle size: 71.35KB (gzip 18.23KB)
+Remove unused modules that were replaced by VeloxGrid's internal implementation:
+
+Deleted files:
+- GridEventManager.ts (13KB)
+- GridSelection.ts (8KB)
+- GridVirtualScroll.ts (4KB)
+- GridEditor.ts (5KB)
+- GridKeyboard.ts (7KB)
+- GridColumnManager.ts (6KB)
+- GridDataManager.ts (8KB)
+- GridState.ts (9KB)
+- VeloxGrid.ts.backup
+
+Updated files:
+- src/core/index.ts: Remove unused exports
+- CHANGELOG.md: Document cleanup
+- .claude/PROGRESS.md: Update project status
+
+Results:
+- Build modules: 22 -> 15 (-7)
+- Source files: ~60KB removed
+- Core modules: 10 remaining
+- Bundle size: unchanged (tree-shaking already excluded)

@@ -1262,7 +1262,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       cell.appendChild(editor);
       
       // 편집 중인 editor 클릭 로그용
-      editor.addEventListener('mousedown', (e) => {
+      editor.addEventListener('mousedown', () => {
         console.log('🖱️ Editor mousedown');
       });
       
@@ -1287,7 +1287,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       input.select();
       
       // Input mousedown 로그용
-      input.addEventListener('mousedown', (e) => {
+      input.addEventListener('mousedown', () => {
         console.log('🖱️ Input mousedown');
       });
 

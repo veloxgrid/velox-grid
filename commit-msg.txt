@@ -1,30 +1,9 @@
-fix(edit): stabilize edit mode interactions v0.7.1-dev
+fix(types): add renderEditCell to GridContext and remove unused variables
 
-Edit 모드 안정화 작업 완료:
-
-주요 수정사항:
-- 편집 중 셀/input 클릭 시 edit 모드 유지
-- Checkbox editor 다중 클릭 지원
-- Document 리스너 중복 등록 방지
-- 더블클릭 이벤트 처리 개선
-- CheckBar 상태 변경 시 edit 보존
-- Editor 타입별 중복 이벤트 제거
-
-기술적 개선:
-- Document mousedown으로 외부 클릭 감지
-- editModeCleanup으로 리스너 생명주기 관리
-- Checkbox editor 특별 처리 (edit 유지)
-- Interactive 요소 클릭 시 이벤트 전파 제어
-
-개발 환경:
-- examples/dev.html 추가 (핫 리로드 지원)
-- vite.config.ts 업데이트
+TypeScript 빌드 오류 수정:
+- GridContext 인터페이스에 renderEditCell 메서드 추가
+- 사용하지 않는 이벤트 파라미터 제거 (2곳)
 
 Files Modified:
+- src/types/index.ts
 - src/core/VeloxGrid.ts
-- src/core/GridRenderer.ts
-- src/core/GridEditorFactory.ts
-- examples/dev.html (new)
-- vite.config.ts
-- .claude/PROGRESS.md
-- CHANGELOG.md

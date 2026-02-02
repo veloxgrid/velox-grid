@@ -755,6 +755,8 @@ export interface GridContext {
   endEdit(save?: boolean): void;
   /** 편집 취소 */
   cancelEdit(): void;
+  /** 편집 셀 렌더링 */
+  renderEditCell(rowIndex: number, field: string, value: CellValue): void;
 
   // ============================================
   // Sort & Filter

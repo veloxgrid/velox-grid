@@ -5,7 +5,7 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
-## [0.7.1] - 2025-02-02 (개발 중)
+## [0.7.1] - 2025-02-02
 
 ### 수정 - Edit 모드 안정화
 

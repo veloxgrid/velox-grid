@@ -1,9 +1,20 @@
-fix(types): add renderEditCell to GridContext and remove unused variables
+chore: update documentation and version to v0.7.1
 
-TypeScript 빌드 오류 수정:
-- GridContext 인터페이스에 renderEditCell 메서드 추가
-- 사용하지 않는 이벤트 파라미터 제거 (2곳)
+모든 문서 최신화:
+- package.json: 버전 0.7.1로 업데이트
+- CHANGELOG.md: (개발 중) 제거
+- PROGRESS.md: 버전 및 번들 크기 업데이트
+- README.md: 번들 크기 및 v0.7.1 기능 추가
+- RULES.md: 번들 크기 및 업데이트 날짜 수정
+
+번들 크기 업데이트:
+- UMD: 75.4 KB (gzip: 19.4 KB)
+- ESM: 102.8 KB (gzip: 23.5 KB)
+- CSS: 15.4 KB (gzip: 3.1 KB)
 
 Files Modified:
-- src/types/index.ts
-- src/core/VeloxGrid.ts
+- package.json
+- CHANGELOG.md
+- .claude/PROGRESS.md
+- README.md
+- .claude/RULES.md

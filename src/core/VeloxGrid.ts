@@ -827,6 +827,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     const insertIndex = index !== undefined ? index : this.state.data.length;
     this.state.data.splice(insertIndex, 0, newRow);
     this.rebuildDataIndexMap();
+    // Invalidate summary cache
+    this.summary.invalidateCache();
     this.applyDataTransformations();
     this.render();
     this.events.onRowAdd?.(newRow, insertIndex);
@@ -840,6 +842,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     const dataIndex = this.state.data.indexOf(displayRow);
     if (dataIndex >= 0) {
       Object.assign(this.state.data[dataIndex], data);
+      // Invalidate summary cache
+      this.summary.invalidateCache();
       this.applyDataTransformations();
       this.render();
       this.events.onRowUpdate?.(this.state.data[dataIndex], index, data);
@@ -872,6 +876,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       });
       this.state.checkBar.checkedRows = newCheckedRows;
 
+      // Invalidate summary cache
+      this.summary.invalidateCache();
       this.applyDataTransformations();
       this.render();
       this.events.onRowRemove?.(removed, index);
@@ -888,6 +894,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.state.selection.focusedCell = null;
     this.state.checkBar.checkedRows.clear();
     this.state.checkBar.checkableRows.clear();
+    // Invalidate summary cache
+    this.summary.invalidateCache();
     this.render();
     this.events.onDataChange?.([]);
   }
@@ -1421,6 +1429,9 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         if (dataIndex >= 0) {
           this.state.data[dataIndex][field] = parsedValue;
         }
+        
+        // Invalidate summary cache when cell value changes
+        this.summary.invalidateCache();
         
         this.events.onCellEditEnd?.({
           rowIndex,

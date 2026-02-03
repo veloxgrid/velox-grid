@@ -1,16 +1,16 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-02
+> 마지막 업데이트: 2025-02-03
 
 ## 📊 프로젝트 개요
 
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
 - **현재 버전**: v0.7.1
-- **번들 크기**: 75.40KB (gzip 19.41KB)
+- **번들 크기**: 80.71KB (gzip 20.76KB)
 - **라이선스**: MIT
 - **VeloxGrid.ts 라인수**: ~2,164줄
-- **Core 모듈 수**: 10개
+- **Core 모듈 수**: 11개 (GridSummary 추가)
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
 ---
@@ -285,11 +285,68 @@ VeloxGrid.ts 변화:
 
 ---
 
+## ✅ 완료된 최신 Phase
+
+### Phase 13: Summary/Aggregation (v0.7.1) - 완료 (2025-02-03)
+
+#### 기본 기능
+- ✅ GridSummary 모듈 (380줄) - 데이터 집계 핵심
+- ✅ 5가지 내장 함수: sum, avg, count, min, max
+- ✅ 커스텀 함수 지원
+- ✅ Map 기반 캐싱으로 성능 최적화
+- ✅ Number Formatting with Locale
+
+#### Footer Summary 렌더링
+- ✅ Footer DOM 요소 (Fixed left + scrollable)
+- ✅ GridRenderer.renderFooter() 메서드
+- ✅ createFooterCell() 메서드
+- ✅ 자동 업데이트 (데이터 변경 감지)
+
+#### API 메서드
+- ✅ getSummaryValue(field): 특정 필드 집계값 조회
+- ✅ getSummaryValues(): 모든 집계값 반환
+- ✅ refreshSummary(): 수동 집계 새로고침
+
+#### 타입 정의
+- ✅ SummaryFunction, SummaryConfig, FooterSummaryOptions
+- ✅ ColumnDefinition.summary: 컬럼별 Summary 설정
+- ✅ GridOptions.footerSummary: Footer Summary 옵션
+- ✅ GridContext 업데이트
+
+#### CSS 스타일링
+- ✅ _footer.css (139줄)
+- ✅ Alignment, custom className 지원
+- ✅ Dark theme 지원
+- ✅ Special styles: --total, --average, --count
+
+#### 데모 페이지
+- ✅ examples/phase13-demo.html: 3개 데모 시나리오
+- ✅ docs/demos/summary-demo.html: Sales Analytics 대시보드
+- ✅ docs/index.html: Summary 데모 링크 추가
+
+#### 문서화
+- ✅ README.md: Summary API 및 예제
+- ✅ TypeScript 타입 완전 문서화
+
+#### 번들 크기
+- UMD: 80.71 KB (gzip: 20.76 KB) - 71.35 KB에서 증가
+- ESM: 111.12 KB (gzip: 25.63 KB) - 98.05 KB에서 증가
+- CSS: 17.76 KB (gzip: 3.45 KB) - 15.38 KB에서 증가
+
+#### Summary Cache Invalidation
+데이터 변경 시 자동으로 summary cache를 무효화하여 정확한 집계값 유지:
+- setData(), clearData()
+- addRow(), updateRow(), removeRow()
+- setCellValue()
+- endEdit() - cell edit 완료 시
+
+---
+
 ## 🔜 다음 작업
 
-### Phase 13: 합계/집계
-- [ ] Footer Summary (합계/평균/개수)
+### Phase 14: Group Summary
 - [ ] Group Summary (그룹별 소계)
+- [ ] Sub-total rows
 
 ### Phase 14: React 래퍼
 - [ ] React Component

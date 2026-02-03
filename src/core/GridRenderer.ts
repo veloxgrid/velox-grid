@@ -22,6 +22,7 @@ export class GridRenderer {
     console.log('🎨 GridRenderer.render() called', { editing: state.edit.editing });
     this.renderHeader();
     this.renderBody();
+    this.renderFooter();
     this.updateLoadingState();
     console.log('🎨 GridRenderer.render() completed', { editing: state.edit.editing });
   }
@@ -488,6 +489,112 @@ export class GridRenderer {
       
       cell.addEventListener('mouseenter', () => ctx.showTooltip(cell, value, rowData, column));
       cell.addEventListener('mouseleave', () => ctx.hideTooltip());
+    }
+
+    return cell;
+  }
+
+  /**
+   * Footer Summary 렌더링 (Phase 13)
+   */
+  renderFooter(): void {
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+
+    // Footer summary가 비활성화되어 있으면 건너뀨기
+    if (!options.footerSummary?.visible) return;
+
+    // Fixed left footer
+    if (ctx.fixedLeftFooter) {
+      ctx.fixedLeftFooter.innerHTML = '';
+      const footerRow = createElement('div', 'velox-footer-row');
+      
+      // Row drag handle placeholder
+      const dragPlaceholder = createElement('div', 'velox-row-drag-handle');
+      dragPlaceholder.style.visibility = 'hidden';
+      footerRow.appendChild(dragPlaceholder);
+      
+      if (options.checkBar?.visible) {
+        const checkboxCell = createElement('div', 'velox-footer-cell velox-checkbox-cell');
+        footerRow.appendChild(checkboxCell);
+      }
+      
+      if (options.showRowNumbers) {
+        const rowNumCell = createElement('div', 'velox-footer-cell velox-rownumber-cell');
+        footerRow.appendChild(rowNumCell);
+      }
+      
+      ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => 
+        footerRow.appendChild(this.createFooterCell(col))
+      );
+      ctx.fixedLeftFooter.appendChild(footerRow);
+    }
+
+    // Scrollable footer
+    if (ctx.footerElement) {
+      ctx.footerElement.innerHTML = '';
+      const footerRow = createElement('div', 'velox-footer-row');
+      ctx.getScrollableColumns().forEach((col: ColumnDefinition) => 
+        footerRow.appendChild(this.createFooterCell(col))
+      );
+      ctx.footerElement.appendChild(footerRow);
+    }
+  }
+
+  /**
+   * Footer 셀 생성 (Phase 13)
+   */
+  private createFooterCell(column: ColumnDefinition): HTMLElement {
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    
+    const cell = createElement('div', 'velox-footer-cell');
+    cell.dataset.field = column.field;
+
+    // Alignment
+    const align = column.align || 'left';
+    addClass(cell, `velox-footer-cell--align-${align}`);
+
+    // Width
+    if (column.width) {
+      cell.style.width = `${column.width}px`;
+      cell.style.minWidth = `${column.minWidth || column.width}px`;
+    } else {
+      cell.style.flex = '1';
+      cell.style.minWidth = `${column.minWidth || 100}px`;
+    }
+
+    // Summary 값 계산 및 표시
+    const summaryConfig = options.footerSummary?.columns?.[column.field] || column.summary;
+    
+    if (summaryConfig) {
+      const summaryValue = ctx.getSummaryValue(column.field);
+      const content = createElement('span', 'velox-footer-content');
+      
+      // Label 표시
+      if (summaryConfig.label) {
+        const label = createElement('span', 'velox-footer-label');
+        label.textContent = summaryConfig.label;
+        content.appendChild(label);
+      }
+      
+      // Value 표시
+      const valueSpan = createElement('span', 'velox-footer-value');
+      
+      // Custom formatter 사용
+      if (summaryConfig.formatter) {
+        valueSpan.textContent = summaryConfig.formatter(summaryValue);
+      } else {
+        valueSpan.textContent = formatValue(summaryValue, column.type);
+      }
+      
+      content.appendChild(valueSpan);
+      cell.appendChild(content);
+      
+      // Custom className
+      if (summaryConfig.className) {
+        addClass(cell, summaryConfig.className);
+      }
     }
 
     return cell;

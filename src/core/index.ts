@@ -14,6 +14,7 @@ export { GridRenderer } from './GridRenderer';
 export { GridFilterPopup } from './GridFilterPopup';
 export { GridColumnMenu } from './GridColumnMenu';
 export { GridDragManager } from './GridDragManager';
+export { GridSummary } from './GridSummary';
 
 // Re-export types
 export type { HistoryOptions } from './GridHistory';

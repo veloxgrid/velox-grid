@@ -1,9 +1,10 @@
 /**
- * VeloxGrid Type Definitions v5.0
+ * VeloxGrid Type Definitions v6.0
  * @description Core types for the VeloxGrid library
  * Phase 7: Selection Enhancement
  * Phase 8: Excel Export/Import
  * Phase 9: Keyboard Enhancement & Undo/Redo
+ * Phase 13: Summary/Aggregation
  */
 
 // ============================================
@@ -111,6 +112,8 @@ export interface ColumnDefinition {
   editor?: EditorOptions;
   /** Cell tooltip (Phase 12.3) - boolean for auto tooltip, function for custom */
   tooltip?: boolean | ((value: CellValue, row: RowData) => string);
+  /** Summary configuration (Phase 13) */
+  summary?: SummaryConfig;
 }
 
 // ============================================
@@ -343,6 +346,10 @@ export interface GridOptions {
   undoStackSize?: number;
   /** Context menu options (Phase 10) */
   contextMenu?: ContextMenuOptions;
+  /** Footer summary options (Phase 13) */
+  footerSummary?: FooterSummaryOptions;
+  /** Group summary options (Phase 13) */
+  groupSummary?: GroupSummaryOptions;
 }
 
 // ============================================
@@ -402,6 +409,72 @@ export interface SelectionState {
 export interface CheckBarState {
   checkedRows: Set<number>;
   checkableRows: Set<number>;
+}
+
+// ============================================
+// Summary/Aggregation Types (Phase 13)
+// ============================================
+
+/** Summary aggregation function type */
+export type SummaryFunction = 'sum' | 'avg' | 'count' | 'min' | 'max' | 'custom';
+
+/** Summary position */
+export type SummaryPosition = 'footer' | 'group';
+
+/** Summary configuration for a column */
+export interface SummaryConfig {
+  /** Aggregation function */
+  function: SummaryFunction;
+  /** Custom aggregation function */
+  customFunction?: (values: CellValue[], data: RowData[]) => CellValue;
+  /** Label text (for footer summary) */
+  label?: string;
+  /** Number format (e.g., '0,0.00' for decimal) */
+  format?: string;
+  /** Custom formatter */
+  formatter?: (value: CellValue) => string;
+  /** CSS class */
+  className?: string;
+  /** Align (default: column align) */
+  align?: 'left' | 'center' | 'right';
+}
+
+/** Footer summary options */
+export interface FooterSummaryOptions {
+  /** Show footer summary row */
+  visible: boolean;
+  /** Height of footer row (default: rowHeight) */
+  height?: number;
+  /** Summary configuration for each column (field -> config) */
+  columns?: Record<string, SummaryConfig>;
+  /** CSS class for footer row */
+  className?: string;
+}
+
+/** Group summary options */
+export interface GroupSummaryOptions {
+  /** Enable group summary */
+  enabled: boolean;
+  /** Group by field */
+  groupBy: string;
+  /** Show group header */
+  showHeader?: boolean;
+  /** Show group footer (summary row) */
+  showFooter?: boolean;
+  /** Summary configuration for each column */
+  columns?: Record<string, SummaryConfig>;
+  /** Custom group header renderer */
+  headerRenderer?: (groupValue: CellValue, count: number) => string;
+  /** Collapsed groups (groupValue -> collapsed) */
+  collapsed?: Set<CellValue>;
+}
+
+/** Summary calculation result */
+export interface SummaryResult {
+  field: string;
+  function: SummaryFunction;
+  value: CellValue;
+  formattedValue: string;
 }
 
 // ============================================
@@ -600,6 +673,11 @@ export interface VeloxGridInstance {
   getCellValue(rowIndex: number, field: string): CellValue;
   setCellValue(rowIndex: number, field: string, value: CellValue): void;
 
+  // Summary methods (Phase 13)
+  getSummaryValue(field: string): CellValue;
+  getSummaryValues(): Record<string, CellValue>;
+  refreshSummary(): void;
+
   // Options
   setOptions(options: Partial<GridOptions>): void;
   getOptions(): GridOptions;
@@ -653,10 +731,12 @@ export interface GridContext {
   readonly headerElement: HTMLElement;
   readonly bodyElement: HTMLElement;
   readonly bodyInner: HTMLElement;
+  readonly footerElement: HTMLElement | null;
   readonly fixedLeftContainer: HTMLElement | null;
   readonly fixedLeftHeader: HTMLElement | null;
   readonly fixedLeftBody: HTMLElement | null;
   readonly fixedLeftBodyInner: HTMLElement | null;
+  readonly fixedLeftFooter: HTMLElement | null;
   readonly loadingOverlay: HTMLElement | null;
 
   // ============================================
@@ -842,4 +922,12 @@ export interface GridContext {
   // ============================================
   /** 텍스트 너비 측정 */
   measureTextWidth(text: string, font?: string): number;
+
+  // ============================================
+  // Summary (Phase 13)
+  // ============================================
+  /** Summary 값 조회 */
+  getSummaryValue(field: string): CellValue;
+  /** 모든 Summary 값 조회 */
+  getSummaryValues(): Record<string, CellValue>;
 }

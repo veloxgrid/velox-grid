@@ -49,7 +49,8 @@ const actualMapping = {
   'phase8-demo.html': 'excel-demo.html',
   'phase9-demo.html': 'keyboard-demo.html',
   'phase10-11-demo.html': 'column-menu-demo.html',
-  'phase12-demo.html': 'validation-demo.html'
+  'phase12-demo.html': 'validation-demo.html',
+  'phase13-demo.html': 'summary-demo.html'
 };
 
 console.log('\n📄 Processing demo files...');

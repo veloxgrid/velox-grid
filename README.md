@@ -41,6 +41,7 @@
 - 🎛️ **커스텀 에디터** - 드롭다운, 날짜 선택기, 체크박스 에디터 (v0.7.0)
 - 💬 **셀 툴팁** - 셀 호버 시 툴팁 표시 (v0.7.0)
 - 🔧 **안정적인 Edit 모드** - 편집 중 상호작용 개선 (v0.7.1)
+- 📊 **Summary/Aggregation** - Footer 요약 행으로 데이터 집계 (sum, avg, count, min, max) (v0.7.1)
 
 ### 코드 구조 최적화 (v0.7.0+)
 
@@ -197,6 +198,9 @@ interface ColumnDefinition {
   
   // 툴팁 (v0.7.0)
   tooltip?: boolean | ((value: CellValue, row: RowData) => string);
+  
+  // Summary (v0.7.1)
+  summary?: SummaryConfig;
 }
 ```
 
@@ -244,6 +248,55 @@ interface EditorOptions {
     ]
   }
 }
+```
+
+### Summary/Aggregation (v0.7.1)
+
+```typescript
+interface SummaryConfig {
+  function: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'custom';
+  customFunction?: (values: CellValue[], data: RowData[]) => CellValue;
+  label?: string;
+  format?: string;
+  formatter?: (value: CellValue) => string;
+  className?: string;
+}
+
+// 사용 예제
+const grid = new VeloxGrid('#grid', {
+  columns: [
+    {
+      field: 'quantity',
+      header: 'Quantity',
+      type: 'number',
+      summary: {
+        function: 'sum',
+        label: 'Total:',
+        formatter: (value) => `${value} units`
+      }
+    },
+    {
+      field: 'revenue',
+      header: 'Revenue',
+      type: 'number',
+      summary: {
+        function: 'sum',
+        label: 'Total Revenue:',
+        formatter: (value) => `${value.toLocaleString()}`,
+        className: 'velox-footer-cell--total'
+      }
+    }
+  ],
+  footerSummary: {
+    visible: true,
+    height: 44
+  }
+});
+
+// API 메서드
+const totalRevenue = grid.getSummaryValue('revenue');
+const allSummaries = grid.getSummaryValues();
+grid.refreshSummary();  // 수동 새로고침
 ```
 
 ### 메서드
@@ -304,6 +357,11 @@ exportToExcel(options?: ExportOptions): void
 importFromExcel(file: File, sheetIndex?: number): Promise<ImportResult>
 exportToCSV(options?: ExportOptions): string
 downloadCSV(options?: ExportOptions): void
+
+// Summary/Aggregation (v0.7.1)
+getSummaryValue(field: string): CellValue
+getSummaryValues(): Record<string, CellValue>
+refreshSummary(): void
 
 // 유틸리티
 refresh(): void

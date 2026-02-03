@@ -1,0 +1,141 @@
+/**
+ * Footer Summary Styles (Phase 13)
+ */
+
+/* Footer Container */
+.velox-footer {
+  display: flex;
+  border-top: 2px solid var(--border-color);
+  background-color: var(--footer-bg, #f8f9fa);
+  overflow-x: auto;
+  overflow-y: hidden;
+  font-weight: 600;
+}
+
+.velox-footer--fixed {
+  border-top: 2px solid var(--border-color);
+  background-color: var(--footer-bg, #f8f9fa);
+  font-weight: 600;
+}
+
+/* Footer Row */
+.velox-footer-row {
+  display: flex;
+  min-height: var(--row-height, 40px);
+  width: 100%;
+}
+
+/* Footer Cell */
+.velox-footer-cell {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-right: 1px solid var(--border-color);
+  background-color: var(--footer-bg, #f8f9fa);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.velox-footer-cell:last-child {
+  border-right: none;
+}
+
+/* Footer Cell - Alignment */
+.velox-footer-cell--align-left {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.velox-footer-cell--align-center {
+  justify-content: center;
+  text-align: center;
+}
+
+.velox-footer-cell--align-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+/* Footer Content */
+.velox-footer-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Footer Label */
+.velox-footer-label {
+  color: var(--text-secondary, #666);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* Footer Value */
+.velox-footer-value {
+  color: var(--primary-color, #3b82f6);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* Special Cells */
+.velox-footer-cell.velox-checkbox-cell,
+.velox-footer-cell.velox-rownumber-cell {
+  background-color: var(--footer-bg, #f8f9fa);
+  justify-content: center;
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .velox-footer,
+[data-theme="dark"] .velox-footer--fixed,
+[data-theme="dark"] .velox-footer-cell {
+  background-color: var(--footer-bg-dark, #1f2937);
+  color: var(--text-color-dark, #e5e7eb);
+  border-color: var(--border-color-dark, #374151);
+}
+
+[data-theme="dark"] .velox-footer-label {
+  color: var(--text-secondary-dark, #9ca3af);
+}
+
+[data-theme="dark"] .velox-footer-value {
+  color: var(--primary-color-dark, #60a5fa);
+}
+
+/* Hover Effect */
+.velox-footer-cell:hover {
+  background-color: var(--cell-hover-bg, #f1f5f9);
+}
+
+[data-theme="dark"] .velox-footer-cell:hover {
+  background-color: var(--cell-hover-bg-dark, #374151);
+}
+
+/* Custom Summary Styles */
+.velox-footer-cell--total {
+  background-color: var(--summary-total-bg, #e0f2fe);
+  font-weight: 700;
+}
+
+.velox-footer-cell--average {
+  background-color: var(--summary-avg-bg, #fef3c7);
+}
+
+.velox-footer-cell--count {
+  background-color: var(--summary-count-bg, #f3e8ff);
+}
+
+[data-theme="dark"] .velox-footer-cell--total {
+  background-color: var(--summary-total-bg-dark, #1e3a5f);
+}
+
+[data-theme="dark"] .velox-footer-cell--average {
+  background-color: var(--summary-avg-bg-dark, #3f2f1e);
+}
+
+[data-theme="dark"] .velox-footer-cell--count {
+  background-color: var(--summary-count-bg-dark, #2e1f3f);
+}

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid - Phase 13: Summary/Aggregation Demo</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      margin-bottom: 10px;
+      font-size: 32px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .subtitle {
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+
+    .demo-section {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .demo-section h2 {
+      color: #1f2937;
+      margin-bottom: 16px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .demo-section p {
+      color: #6b7280;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .grid-container {
+      height: 500px;
+      margin-top: 16px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .info-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+    }
+
+    .info-box h3 {
+      color: #1e40af;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .info-box ul {
+      color: #1e3a8a;
+      margin-left: 20px;
+      line-height: 1.8;
+    }
+
+    .feature-badge {
+      display: inline-block;
+      background: #10b981;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Phase 13: Summary/Aggregation</h1>
+    <p class="subtitle">Footer Summary - Aggregate data with sum, avg, count, min, max functions</p>
+
+    <!-- Demo 1: Basic Footer Summary -->
+    <div class="demo-section">
+      <h2>
+        1️⃣ Basic Footer Summary
+        <span class="feature-badge">NEW</span>
+      </h2>
+      
+      <div class="info-box">
+        <h3>💡 Features</h3>
+        <ul>
+          <li>Built-in aggregation functions: <code>sum</code>, <code>avg</code>, <code>count</code>, <code>min</code>, <code>max</code></li>
+          <li>Custom label and formatter support</li>
+          <li>Number formatting with locale support</li>
+          <li>Automatic cache invalidation on data changes</li>
+        </ul>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="addRandomRow()">
+          ➕ Add Random Row
+        </button>
+        <button class="btn btn-secondary" onclick="refreshData()">
+          🔄 Refresh Data
+        </button>
+        <button class="btn btn-secondary" onclick="clearGrid()">
+          🗑️ Clear All
+        </button>
+      </div>
+
+      <div id="grid1" class="grid-container"></div>
+    </div>
+
+    <!-- Demo 2: Custom Formatters -->
+    <div class="demo-section">
+      <h2>2️⃣ Custom Formatters & Styles</h2>
+      
+      <p>Customize how summary values are displayed with formatters and CSS classes.</p>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="updatePrices()">
+          💰 Update Prices
+        </button>
+        <button class="btn btn-secondary" onclick="addProduct()">
+          📦 Add Product
+        </button>
+      </div>
+
+      <div id="grid2" class="grid-container"></div>
+    </div>
+
+    <!-- Demo 3: API Methods -->
+    <div class="demo-section">
+      <h2>3️⃣ Summary API Methods</h2>
+      
+      <div class="info-box">
+        <h3>🔧 API Methods</h3>
+        <ul>
+          <li><code>getSummaryValue(field)</code> - Get summary value for specific field</li>
+          <li><code>getSummaryValues()</code> - Get all summary values as object</li>
+          <li><code>refreshSummary()</code> - Manually refresh summary calculations</li>
+        </ul>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" onclick="showSummaryValues()">
+          📊 Show Summary Values
+        </button>
+        <button class="btn btn-secondary" onclick="manualRefresh()">
+          🔄 Manual Refresh
+        </button>
+      </div>
+
+      <div id="grid3" class="grid-container"></div>
+      
+      <div id="summaryOutput" style="margin-top: 16px; padding: 16px; background: #f9fafb; border-radius: 8px; display: none;">
+        <h3 style="margin-bottom: 12px; color: #374151;">Summary Values:</h3>
+        <pre id="summaryJson" style="background: white; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 13px;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="../dist/velox-grid.iife.js"></script>
+  <script>
+    const VeloxGridClass = VeloxGrid.VeloxGrid;
+
+    // Generate sample sales data
+    function generateSalesData(count = 20) {
+      const products = ['Laptop', 'Mouse', 'Keyboard', 'Monitor', 'Headset', 'Webcam', 'Microphone', 'SSD'];
+      const categories = ['Electronics', 'Accessories', 'Peripherals', 'Storage'];
+      const regions = ['North', 'South', 'East', 'West'];
+      
+      return Array.from({ length: count }, (_, i) => ({
+        id: i + 1,
+        product: products[Math.floor(Math.random() * products.length)],
+        category: categories[Math.floor(Math.random() * categories.length)],
+        region: regions[Math.floor(Math.random() * regions.length)],
+        quantity: Math.floor(Math.random() * 50) + 1,
+        price: Math.floor(Math.random() * 500) + 50,
+        revenue: 0, // Calculated
+        date: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toISOString().split('T')[0]
+      })).map(row => ({
+        ...row,
+        revenue: row.quantity * row.price
+      }));
+    }
+
+    // Demo 1: Basic Footer Summary
+    const data1 = generateSalesData(20);
+    
+    window.grid1 = new VeloxGridClass('#grid1', {
+      columns: [
+        { field: 'id', header: 'ID', width: 80, type: 'number' },
+        { field: 'product', header: 'Product', width: 150 },
+        { field: 'category', header: 'Category', width: 120 },
+        { field: 'region', header: 'Region', width: 100 },
+        { 
+          field: 'quantity', 
+          header: 'Quantity', 
+          width: 100, 
+          type: 'number',
+          align: 'right',
+          summary: {
+            function: 'sum',
+            label: 'Total:',
+            formatter: (value) => `${value} units`
+          }
+        },
+        { 
+          field: 'price', 
+          header: 'Unit Price', 
+          width: 120, 
+          type: 'number',
+          align: 'right',
+          formatter: (value) => `$${value.toFixed(2)}`,
+          summary: {
+            function: 'avg',
+            label: 'Avg:',
+            formatter: (value) => `$${value.toFixed(2)}`
+          }
+        },
+        { 
+          field: 'revenue', 
+          header: 'Revenue', 
+          width: 130, 
+          type: 'number',
+          align: 'right',
+          formatter: (value) => `$${value.toLocaleString()}`,
+          summary: {
+            function: 'sum',
+            label: 'Total:',
+            formatter: (value) => `$${value.toLocaleString()}`,
+            className: 'velox-footer-cell--total'
+          }
+        },
+        { field: 'date', header: 'Date', width: 120, type: 'date' }
+      ],
+      data: data1,
+      height: 500,
+      rowHeight: 40,
+      showRowNumbers: true,
+      sortable: true,
+      filterable: true,
+      editable: true,
+      selectionStyle: 'row',
+      footerSummary: {
+        visible: true,
+        height: 44
+      }
+    });
+
+    // Demo 2: Custom Formatters & Styles
+    const data2 = [
+      { id: 1, product: 'Premium Laptop', category: 'Electronics', quantity: 5, price: 1299.99, discount: 10 },
+      { id: 2, product: 'Gaming Mouse', category: 'Accessories', quantity: 15, price: 79.99, discount: 5 },
+      { id: 3, product: 'Mechanical Keyboard', category: 'Accessories', quantity: 8, price: 149.99, discount: 15 },
+      { id: 4, product: '4K Monitor', category: 'Electronics', quantity: 3, price: 599.99, discount: 20 },
+      { id: 5, product: 'Wireless Headset', category: 'Accessories', quantity: 12, price: 89.99, discount: 8 },
+      { id: 6, product: 'External SSD 1TB', category: 'Storage', quantity: 20, price: 119.99, discount: 12 }
+    ];
+
+    window.grid2 = new VeloxGridClass('#grid2', {
+      columns: [
+        { field: 'id', header: 'ID', width: 70, type: 'number' },
+        { field: 'product', header: 'Product Name', width: 200 },
+        { field: 'category', header: 'Category', width: 130 },
+        { 
+          field: 'quantity', 
+          header: 'Stock', 
+          width: 100, 
+          type: 'number',
+          align: 'right',
+          summary: {
+            function: 'count',
+            label: 'Items:',
+            className: 'velox-footer-cell--count'
+          }
+        },
+        { 
+          field: 'price', 
+          header: 'Price', 
+          width: 120, 
+          type: 'number',
+          align: 'right',
+          formatter: (value) => `$${value.toFixed(2)}`,
+          summary: {
+            function: 'avg',
+            label: 'Avg Price:',
+            formatter: (value) => `$${value.toFixed(2)}`,
+            className: 'velox-footer-cell--average'
+          }
+        },
+        { 
+          field: 'discount', 
+          header: 'Discount %', 
+          width: 120, 
+          type: 'number',
+          align: 'right',
+          formatter: (value) => `${value}%`,
+          summary: {
+            function: 'max',
+            label: 'Max:',
+            formatter: (value) => `${value}%`
+          }
+        }
+      ],
+      data: data2,
+      height: 500,
+      rowHeight: 40,
+      showRowNumbers: true,
+      sortable: true,
+      editable: true,
+      footerSummary: {
+        visible: true
+      }
+    });
+
+    // Demo 3: API Methods
+    const data3 = generateSalesData(15);
+    
+    window.grid3 = new VeloxGridClass('#grid3', {
+      columns: [
+        { field: 'id', header: 'ID', width: 80, type: 'number' },
+        { field: 'product', header: 'Product', width: 150 },
+        { 
+          field: 'quantity', 
+          header: 'Quantity', 
+          width: 120, 
+          type: 'number',
+          align: 'right',
+          summary: { function: 'sum', label: 'Total:' }
+        },
+        { 
+          field: 'price', 
+          header: 'Price', 
+          width: 120, 
+          type: 'number',
+          align: 'right',
+          formatter: (value) => `$${value.toFixed(2)}`,
+          summary: { function: 'avg', label: 'Avg:' }
+        },
+        { 
+          field: 'revenue', 
+          header: 'Revenue', 
+          width: 150, 
+          type: 'number',
+          align: 'right',
+          formatter: (value) => `$${value.toLocaleString()}`,
+          summary: { 
+            function: 'sum', 
+            label: 'Total:',
+            formatter: (value) => `$${value.toLocaleString()}`
+          }
+        }
+      ],
+      data: data3,
+      height: 500,
+      rowHeight: 40,
+      showRowNumbers: true,
+      sortable: true,
+      editable: true,
+      footerSummary: {
+        visible: true
+      }
+    });
+
+    // Demo 1 Controls
+    window.addRandomRow = () => {
+      const newRows = generateSalesData(1);
+      const currentData = grid1.getData();
+      grid1.setData([...currentData, ...newRows]);
+    };
+
+    window.refreshData = () => {
+      grid1.setData(generateSalesData(20));
+    };
+
+    window.clearGrid = () => {
+      grid1.clearData();
+    };
+
+    // Demo 2 Controls
+    window.updatePrices = () => {
+      const data = grid2.getData();
+      data.forEach((row, index) => {
+        const newPrice = Math.floor(Math.random() * 500) + 100;
+        grid2.setCellValue(index, 'price', newPrice);
+      });
+    };
+
+    window.addProduct = () => {
+      const products = ['USB Cable', 'HDMI Cable', 'Mouse Pad', 'Laptop Stand', 'Docking Station'];
+      const categories = ['Accessories', 'Cables', 'Peripherals'];
+      
+      const newProduct = {
+        id: grid2.getData().length + 1,
+        product: products[Math.floor(Math.random() * products.length)],
+        category: categories[Math.floor(Math.random() * categories.length)],
+        quantity: Math.floor(Math.random() * 30) + 1,
+        price: Math.floor(Math.random() * 200) + 20,
+        discount: Math.floor(Math.random() * 25)
+      };
+      
+      grid2.addRow(newProduct);
+    };
+
+    // Demo 3 Controls
+    window.showSummaryValues = () => {
+      const summaryValues = grid3.getSummaryValues();
+      document.getElementById('summaryOutput').style.display = 'block';
+      document.getElementById('summaryJson').textContent = JSON.stringify(summaryValues, null, 2);
+    };
+
+    window.manualRefresh = () => {
+      grid3.refreshSummary();
+      alert('Summary refreshed manually!');
+    };
+
+    console.log('✅ Phase 13 Demo loaded successfully!');
+    console.log('🎯 Try editing values to see automatic summary updates');
+  </script>
+</body>
+</html>

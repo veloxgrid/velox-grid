@@ -37,3 +37,6 @@
 
 /* 로딩 */
 @import './_loading.css';
+
+/* Footer Summary (Phase 13) */
+@import './_footer.css';

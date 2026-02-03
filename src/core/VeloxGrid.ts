@@ -60,6 +60,7 @@ import { GridRenderer } from './GridRenderer';
 import { GridFilterPopup } from './GridFilterPopup';
 import { GridColumnMenu } from './GridColumnMenu';
 import { GridDragManager } from './GridDragManager';
+import { GridSummary } from './GridSummary';
 
 const DEFAULT_OPTIONS: Partial<GridOptions> = {
   rowHeight: 40,
@@ -110,6 +111,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   public headerElement!: HTMLElement;
   public bodyElement!: HTMLElement;
   public bodyInner!: HTMLElement;
+  public footerElement: HTMLElement | null = null;
+  public fixedLeftFooter: HTMLElement | null = null;
   public loadingOverlay: HTMLElement | null = null;
   public fixedLeftContainer: HTMLElement | null = null;
   public fixedLeftHeader: HTMLElement | null = null;
@@ -156,6 +159,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   private filterPopupManager: GridFilterPopup;
   private columnMenuManager: GridColumnMenu;
   private dragManager: GridDragManager;
+  private summary: GridSummary;
 
   constructor(
     container: HTMLElement | string,
@@ -196,6 +200,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.filterPopupManager = new GridFilterPopup(this);
     this.columnMenuManager = new GridColumnMenu(this);
     this.dragManager = new GridDragManager(this);
+    this.summary = new GridSummary(this);
 
     this.state = {
       data: [],
@@ -327,6 +332,13 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       this.fixedLeftBody.appendChild(this.fixedLeftBodyInner);
       this.fixedLeftContainer.appendChild(this.fixedLeftHeader);
       this.fixedLeftContainer.appendChild(this.fixedLeftBody);
+      
+      // Phase 13: Footer Summary for fixed left
+      if (this.options.footerSummary?.visible) {
+        this.fixedLeftFooter = createElement('div', 'velox-footer velox-footer--fixed');
+        this.fixedLeftContainer.appendChild(this.fixedLeftFooter);
+      }
+      
       wrapper.appendChild(this.fixedLeftContainer);
     }
 
@@ -337,6 +349,13 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.bodyElement.appendChild(this.bodyInner);
     mainSection.appendChild(this.headerElement);
     mainSection.appendChild(this.bodyElement);
+    
+    // Phase 13: Footer Summary
+    if (this.options.footerSummary?.visible) {
+      this.footerElement = createElement('div', 'velox-footer');
+      mainSection.appendChild(this.footerElement);
+    }
+    
     wrapper.appendChild(mainSection);
 
     this.rootElement.appendChild(wrapper);
@@ -785,6 +804,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.rebuildDataIndexMap();
     this.clearSelectionState();
     this.state.checkBar.checkedRows.clear();
+    this.summary.invalidateCache();
     this.applyDataTransformations();
     this.render();
     this.events.onDataChange?.(this.state.data);
@@ -1961,10 +1981,41 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     const dataIndex = this.state.data.indexOf(displayRow);
     if (dataIndex >= 0) {
       this.state.data[dataIndex][field] = value;
+      // Invalidate summary cache
+      this.summary.invalidateCache();
       this.applyDataTransformations();
       this.render();
       this.events.onDataChange?.(this.state.data);
     }
+  }
+
+  // ============================================
+  // Phase 13: Summary Methods
+  // ============================================
+
+  /**
+   * Get summary value for a specific field
+   * @param field Column field name
+   * @returns Calculated summary value
+   */
+  getSummaryValue(field: string): CellValue {
+    return this.summary.getSummaryValue(field);
+  }
+
+  /**
+   * Get all summary values
+   * @returns Object with field names as keys and summary values
+   */
+  getSummaryValues(): Record<string, CellValue> {
+    return this.summary.getAllSummaryValues();
+  }
+
+  /**
+   * Refresh summary calculations (clear cache)
+   */
+  refreshSummary(): void {
+    this.summary.invalidateCache();
+    this.render();
   }
 
   setOptions(options: Partial<GridOptions>): void {

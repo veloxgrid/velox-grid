@@ -5,7 +5,54 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
-## [0.7.1] - 2025-02-02
+## [0.7.1] - 2025-02-03
+
+### 추가 - Phase 13: Summary/Aggregation
+
+#### 기본 기능
+- **GridSummary 모듈 추가** (380줄): 데이터 집계 핵심 모듈
+- **5가지 내장 함수**: `sum`, `avg`, `count`, `min`, `max`
+- **커스텀 함수 지원**: 사용자 정의 집계 함수
+- **Map 기반 캐싱**: 효율적인 계산 및 성능 최적화
+- **Number Formatting**: Locale 지원 숫자 포맷팅
+
+#### Footer Summary 렌더링
+- **Footer DOM 요소**: Fixed left 및 scrollable footer 지원
+- **GridRenderer.renderFooter()**: Footer 행 렌더링 메서드
+- **createFooterCell()**: Summary 셀 생성 및 포맷팅
+- **자동 업데이트**: 데이터 변경 시 자동 재계산
+
+#### API 메서드
+- `getSummaryValue(field)`: 특정 필드의 집계값 조회
+- `getSummaryValues()`: 모든 집계값을 객체로 반환
+- `refreshSummary()`: 수동 집계 새로고침
+
+#### 타입 정의
+- `SummaryFunction`, `SummaryConfig`, `FooterSummaryOptions` 타입 추가
+- `ColumnDefinition.summary`: 컴럼별 Summary 설정
+- `GridOptions.footerSummary`: Footer Summary 옵션
+- `GridContext`: Summary 메서드 추가
+
+#### CSS 스타일링
+- **_footer.css** 추가 (139줄): Footer Summary 전용 스타일
+- Footer row, cell 기본 스타일링
+- Alignment, custom className 지원
+- Dark theme 지원
+- Special styles: `velox-footer-cell--total`, `--average`, `--count`
+
+#### 데모 페이지
+- `examples/phase13-demo.html`: 3개 데모 시나리오
+- `docs/demos/summary-demo.html`: Sales Analytics 대시보드 데모
+- `docs/index.html`: Summary 데모 링크 추가
+
+#### 문서화
+- README.md: Summary API 및 사용 예제 추가
+- TypeScript 타입 완전 문서화
+
+### 번들 크기
+- UMD: 80.71 KB (gzip: 20.76 KB) - 71.35 KB에서 증가
+- ESM: 111.12 KB (gzip: 25.63 KB) - 98.05 KB에서 증가
+- CSS: 17.76 KB (gzip: 3.45 KB) - 15.38 KB에서 증가
 
 ### 수정 - Edit 모드 안정화
 

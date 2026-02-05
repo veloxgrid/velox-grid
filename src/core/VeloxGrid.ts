@@ -96,7 +96,9 @@ const DEFAULT_CHECKBAR: CheckBarOptions = {
 interface ColumnCache {
   visible: ColumnDefinition[] | null;
   fixedLeft: ColumnDefinition[] | null;
+  fixedLeftData: ColumnDefinition[] | null;  // Phase 14: Data columns fixed to left
   scrollable: ColumnDefinition[] | null;
+  fixedRight: ColumnDefinition[] | null;     // Phase 14: Columns fixed to right
   dirty: boolean;
 }
 
@@ -144,7 +146,9 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   private columnCache: ColumnCache = {
     visible: null,
     fixedLeft: null,
+    fixedLeftData: null,  // Phase 14: Data columns fixed to left
     scrollable: null,
+    fixedRight: null,     // Phase 14: Columns fixed to right
     dirty: true,
   };
 
@@ -271,26 +275,92 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.columnCache.dirty = true;
     this.columnCache.visible = null;
     this.columnCache.fixedLeft = null;
+    this.columnCache.fixedLeftData = null;
     this.columnCache.scrollable = null;
+    this.columnCache.fixedRight = null;
   }
 
+  /**
+   * Get fixed left columns (special columns only: CheckBar, RowNumbers, DragHandle)
+   * Phase 14: Changed to only return special columns
+   */
   getFixedLeftColumns(): ColumnDefinition[] {
     if (this.columnCache.dirty || !this.columnCache.fixedLeft) {
       this.columnCache.fixedLeft = this.state.columns.filter(
-        col => col.fixed === 'left' && col.visible !== false
+        col => this.isSpecialColumn(col) && col.visible !== false
       );
     }
     return this.columnCache.fixedLeft;
   }
 
+  /**
+   * Get data columns fixed to left (based on fixedOptions.colCount)
+   * Phase 14: New method for data columns fixed by fixedOptions
+   */
+  getFixedLeftDataColumns(): ColumnDefinition[] {
+    if (this.columnCache.dirty || !this.columnCache.fixedLeftData) {
+      const { colCount = 0 } = this.options.fixedOptions || {};
+      const dataColumns = this.getDataColumns();
+      this.columnCache.fixedLeftData = colCount > 0 ? dataColumns.slice(0, colCount) : [];
+    }
+    return this.columnCache.fixedLeftData;
+  }
+
+  /**
+   * Get columns fixed to right (based on fixedOptions.rightCount)
+   * Phase 14: New method for right fixed columns
+   */
+  getFixedRightColumns(): ColumnDefinition[] {
+    if (this.columnCache.dirty || !this.columnCache.fixedRight) {
+      const { rightCount = 0 } = this.options.fixedOptions || {};
+      const dataColumns = this.getDataColumns();
+      const totalCount = dataColumns.length;
+      this.columnCache.fixedRight = rightCount > 0 ? dataColumns.slice(totalCount - rightCount) : [];
+    }
+    return this.columnCache.fixedRight;
+  }
+
+  /**
+   * Get scrollable columns (middle area between fixed left and fixed right)
+   * Phase 14: Changed to calculate based on fixedOptions
+   */
   getScrollableColumns(): ColumnDefinition[] {
     if (this.columnCache.dirty || !this.columnCache.scrollable) {
-      this.columnCache.scrollable = this.state.columns.filter(
-        col => col.fixed !== 'left' && col.visible !== false
-      );
+      const { colCount = 0, rightCount = 0 } = this.options.fixedOptions || {};
+      const dataColumns = this.getDataColumns();
+      const totalCount = dataColumns.length;
+      
+      // Calculate scrollable range: colCount ~ (totalCount - rightCount)
+      const startIndex = colCount;
+      const endIndex = totalCount - rightCount;
+      
+      this.columnCache.scrollable = startIndex < endIndex 
+        ? dataColumns.slice(startIndex, endIndex)
+        : [];
+      
       this.columnCache.dirty = false; // Mark as clean after all queries
     }
     return this.columnCache.scrollable;
+  }
+
+  /**
+   * Get data columns (exclude special columns)
+   * Phase 14: Helper method to filter out special columns
+   */
+  private getDataColumns(): ColumnDefinition[] {
+    return this.state.columns.filter(
+      col => col.visible !== false && !this.isSpecialColumn(col)
+    );
+  }
+
+  /**
+   * Check if column is special (CheckBar, RowNumbers, DragHandle)
+   * Phase 14: Helper method to identify special columns
+   */
+  private isSpecialColumn(col: ColumnDefinition): boolean {
+    return col.field === '__checkbox' || 
+           col.field === '__rownum' || 
+           col.field === '__drag';
   }
 
   getVisibleColumns(): ColumnDefinition[] {
@@ -2216,6 +2286,35 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     if (this.tooltip) {
       this.tooltip.hide();
     }
+  }
+
+  // ============================================
+  // Phase 14: Fixed Columns
+  // ============================================
+
+  /**
+   * Set fixed columns options
+   * @param options - Fixed options (colCount, rightCount)
+   */
+  setFixedOptions(options: import('../types').FixedOptions): void {
+    this.options.fixedOptions = {
+      colCount: options.colCount ?? this.options.fixedOptions?.colCount ?? 0,
+      rightCount: options.rightCount ?? this.options.fixedOptions?.rightCount ?? 0,
+    };
+    
+    // Invalidate column cache to recalculate partitions
+    this.invalidateColumnCache();
+    
+    // Re-render grid with new fixed columns
+    this.render();
+  }
+
+  /**
+   * Get current fixed columns options
+   * @returns Fixed options
+   */
+  getFixedOptions(): import('../types').FixedOptions {
+    return this.options.fixedOptions || { colCount: 0, rightCount: 0 };
   }
 
   destroy(): void {

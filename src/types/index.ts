@@ -288,6 +288,33 @@ export interface ContextMenuOptions {
 }
 
 // ============================================
+// Fixed Columns Options (Phase 14)
+// ============================================
+
+/**
+ * Column fixed options (RealGrid style)
+ * @description Options for fixing columns to left or right
+ */
+export interface FixedOptions {
+  /**
+   * Number of columns to fix from left
+   * CheckBar, RowNumbers, DragHandle are counted separately
+   * @default 0
+   * @example
+   * fixedOptions: { colCount: 2 }  // Fix first 2 data columns to left
+   */
+  colCount?: number;
+  
+  /**
+   * Number of columns to fix from right
+   * @default 0
+   * @example
+   * fixedOptions: { rightCount: 1 }  // Fix last 1 column to right
+   */
+  rightCount?: number;
+}
+
+// ============================================
 // Grid Options
 // ============================================
 
@@ -352,6 +379,8 @@ export interface GridOptions {
   footerSummary?: FooterSummaryOptions;
   /** Group summary options (Phase 13) */
   groupSummary?: GroupSummaryOptions;
+  /** Fixed columns options (Phase 14) */
+  fixedOptions?: FixedOptions;
 }
 
 // ============================================
@@ -932,4 +961,12 @@ export interface GridContext {
   getSummaryValue(field: string): CellValue;
   /** 모든 Summary 값 조회 */
   getSummaryValues(): Record<string, CellValue>;
+
+  // ============================================
+  // Fixed Columns (Phase 14)
+  // ============================================
+  /** Fixed options 설정 */
+  setFixedOptions(options: FixedOptions): void;
+  /** Fixed options 조회 */
+  getFixedOptions(): FixedOptions;
 }

@@ -84,6 +84,9 @@ export class GridRenderer {
       );
       
       ctx.fixedRightHeader.appendChild(fixedRightRow);
+      
+      // Calculate and set explicit width for Fixed Right container
+      this.updateFixedRightWidth();
     }
   }
 
@@ -137,6 +140,8 @@ export class GridRenderer {
     if (column.width) {
       cell.style.width = `${column.width}px`;
       cell.style.minWidth = `${column.minWidth || column.width}px`;
+      cell.style.maxWidth = `${column.width}px`;
+      cell.style.flexShrink = '0';
     } else {
       cell.style.flex = '1';
       cell.style.minWidth = `${column.minWidth || 100}px`;
@@ -303,7 +308,58 @@ export class GridRenderer {
         }
         ctx.fixedRightBodyInner!.appendChild(row);
       });
+      
+      // Ensure Fixed Right width is consistent with header
+      this.updateFixedRightWidth();
     }
+  }
+
+  /**
+   * Update Fixed Right container width based on columns
+   * Phase 14: Ensure header and body alignment
+   */
+  private updateFixedRightWidth(): void {
+    const ctx = this.ctx;
+    if (!ctx.fixedRightContainer) return;
+    
+    const fixedRightColumns = ctx.getFixedRightColumns();
+    if (fixedRightColumns.length === 0) return;
+    
+    // Calculate total width of fixed right columns
+    let totalWidth = 0;
+    fixedRightColumns.forEach((col: ColumnDefinition) => {
+      totalWidth += col.width || col.minWidth || 100;
+    });
+    
+    // Get scrollbar width from Fixed Right body
+    const scrollbarWidth = this.getScrollbarWidth(ctx.fixedRightBody);
+    
+    // Set explicit width to Fixed Right container (including scrollbar)
+    ctx.fixedRightContainer.style.width = `${totalWidth + scrollbarWidth}px`;
+    ctx.fixedRightContainer.style.minWidth = `${totalWidth + scrollbarWidth}px`;
+    ctx.fixedRightContainer.style.maxWidth = `${totalWidth + scrollbarWidth}px`;
+    
+    // Add padding to header to account for scrollbar
+    if (ctx.fixedRightHeader && scrollbarWidth > 0) {
+      ctx.fixedRightHeader.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    
+    // Add padding to footer to account for scrollbar
+    if (ctx.fixedRightFooter && scrollbarWidth > 0) {
+      ctx.fixedRightFooter.style.paddingRight = `${scrollbarWidth}px`;
+    }
+  }
+  
+  /**
+   * Get scrollbar width of an element
+   * Phase 14: For Fixed Right alignment
+   */
+  private getScrollbarWidth(element: HTMLElement | null): number {
+    if (!element) return 0;
+    
+    // Calculate scrollbar width: offsetWidth - clientWidth
+    const scrollbarWidth = element.offsetWidth - element.clientWidth;
+    return scrollbarWidth;
   }
 
   /**
@@ -457,6 +513,8 @@ export class GridRenderer {
     if (column.width) {
       cell.style.width = `${column.width}px`;
       cell.style.minWidth = `${column.minWidth || column.width}px`;
+      cell.style.maxWidth = `${column.width}px`;
+      cell.style.flexShrink = '0';
     } else {
       cell.style.flex = '1';
       cell.style.minWidth = `${column.minWidth || 100}px`;

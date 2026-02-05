@@ -8,9 +8,24 @@
   overflow: auto; 
   position: relative; 
 }
-.velox-body--fixed { 
-  overflow-y: hidden; 
-  overflow-x: hidden; 
+
+/* Fixed Left body - no scroll, only sync */
+.velox-fixed-left .velox-body--fixed { 
+  overflow: hidden !important; /* Completely disable scrolling */
+  pointer-events: none; /* Prevent any scroll interaction */
+}
+
+/* Fixed Right body - MUST come after Fixed Left to override */
+.velox-fixed-right .velox-body--fixed {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  pointer-events: auto !important;
+}
+
+/* Re-enable pointer events for content */
+.velox-body--fixed .velox-row,
+.velox-body--fixed .velox-cell {
+  pointer-events: auto;
 }
 .velox-body-inner { 
   position: relative; 
@@ -23,6 +38,7 @@
   background: var(--velox-row-bg);
   min-height: var(--velox-row-height);
   height: var(--velox-row-height);
+  min-width: fit-content; /* Ensure row expands to fit all cells */
 }
 
 .velox-row:last-child { border-bottom: none; }

@@ -1,6 +1,6 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-05
+> 마지막 업데이트: 2025-02-05 (스크롤 동기화 버그 수정)
 
 ---
 
@@ -14,7 +14,7 @@
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
 ### 빌드 정보
-- **번들 크기**: 84.30KB (gzip 21.31KB)
+- **번들 크기**: 87.08KB (gzip 21.92KB)
 - **VeloxGrid.ts**: ~2,044줄 (최적화 완료)
 - **Core 모듈**: 11개
 - **CSS 모듈**: 11개
@@ -109,6 +109,91 @@ velox-grid/
 ---
 
 ## 📋 최근 작업 이력 (최신순)
+
+### 🔧 스크롤 동기화 버그 수정 (2025-02-05)
+
+**문제점**:
+1. 가로 스크롤 시 Header와 Body의 컬럼 정렬 불일치
+2. 세로 스크롤 시 Fixed Right와 Body의 스크롤 싱크 불일치
+
+**원인 분석**:
+
+가로 스크롤 문제:
+- 헤더는 `scrollbar-width: none`으로 스크롤바 숨김 처리
+- 바디의 스크롤을 헤더에 반영하지만, 헤더 스크롤 이벤트는 리스닝하지 않음
+- 결과: 헤더를 직접 스크롤해도 바디가 따라오지 않음
+
+세로 스크롤 문제:
+- `handleScroll`에서 Fixed Right와 Body 모두 `scrollTop` 설정
+- 두 요소가 서로 스크롤 이벤트를 트리거하면서 무한 루프 발생
+- 결과: 스크롤이 부자연스럽거나 싱크가 틀어짐
+
+**해결 방법**:
+
+1. **가로 스크롤 양방향 동기화**:
+```typescript
+// Header horizontal scroll handler
+const handleHeaderScroll = throttle(() => {
+  const scrollLeft = this.headerElement.scrollLeft;
+  this.bodyElement.scrollLeft = scrollLeft;
+  if (this.footerElement) {
+    this.footerElement.scrollLeft = scrollLeft;
+  }
+}, 16);
+
+this.headerElement.addEventListener('scroll', handleHeaderScroll);
+```
+
+2. **세로 스크롤 소스 추적 및 무한 루프 방지**:
+```typescript
+let isSyncing = false;
+let throttleTimer: number | null = null;
+
+const handleScroll = (source: 'body' | 'fixedRight') => {
+  if (isSyncing) return;  // 동기화 중 재진입 방지
+  
+  // Custom throttle
+  if (throttleTimer !== null) return;
+  throttleTimer = window.setTimeout(() => { throttleTimer = null; }, 16);
+  
+  isSyncing = true;
+  
+  // 소스 요소에서 scrollTop 가져오기
+  const scrollTop = source === 'fixedRight' 
+    ? this.fixedRightBody!.scrollTop 
+    : this.bodyElement.scrollTop;
+  
+  // 소스가 아닌 요소만 업데이트 (값 비교로 중복 방지)
+  if (source !== 'fixedRight' && this.fixedRightBody 
+      && this.fixedRightBody.scrollTop !== scrollTop) {
+    this.fixedRightBody.scrollTop = scrollTop;
+  }
+  if (source !== 'body' && this.bodyElement.scrollTop !== scrollTop) {
+    this.bodyElement.scrollTop = scrollTop;
+  }
+  
+  isSyncing = false;
+};
+
+// 각 요소에 소스 정보와 함께 핸들러 등록
+const fixedRightScrollHandler = () => handleScroll('fixedRight');
+const bodyScrollHandler = () => handleScroll('body');
+```
+
+**핵심 개선사항**:
+- 스크롤 이벤트 소스 추적으로 순환 참조 방지
+- `isSyncing` 플래그로 동기화 중 재진입 차단
+- 값 비교 (`scrollTop !== currentScrollTop`)로 불필요한 설정 제거
+- 커스텀 throttle로 TypeScript 타입 이슈 해결
+
+**번들 크기 변화**:
+- UMD: 86.73 KB → 87.08 KB (+0.35 KB)
+- ESM: 120.37 KB → 120.45 KB (+0.08 KB)
+- gzip: 21.85 KB → 21.92 KB (+0.07 KB)
+
+**Git**: 다음 커밋에 포함 예정
+
+---
 
 ### ✨ Phase 14: Fixed Columns 완료 (2025-02-05)
 

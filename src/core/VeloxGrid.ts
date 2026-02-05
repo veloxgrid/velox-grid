@@ -390,6 +390,11 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.rootElement.tabIndex = 0;
     
     if (this.options.className) addClass(this.rootElement, this.options.className);
+    
+    // Phase 14: Add has-fixed-right class for CSS styling
+    if (this.hasFixedRight()) {
+      addClass(this.rootElement, 'has-fixed-right');
+    }
 
     if (this.options.width) {
       this.rootElement.style.width = typeof this.options.width === 'number' 
@@ -405,7 +410,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     if (this.hasFixedLeft()) {
       this.fixedLeftContainer = createElement('div', 'velox-fixed-left');
       this.fixedLeftHeader = createElement('div', 'velox-header velox-header--fixed');
-      this.fixedLeftBody = createElement('div', 'velox-body velox-body--fixed');
+      this.fixedLeftBody = createElement('div', 'velox-body--fixed');
       this.fixedLeftBodyInner = createElement('div', 'velox-body-inner');
       this.fixedLeftBody.appendChild(this.fixedLeftBodyInner);
       this.fixedLeftContainer.appendChild(this.fixedLeftHeader);
@@ -440,7 +445,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     if (this.hasFixedRight()) {
       this.fixedRightContainer = createElement('div', 'velox-fixed-right');
       this.fixedRightHeader = createElement('div', 'velox-header velox-header--fixed-right');
-      this.fixedRightBody = createElement('div', 'velox-body velox-body--fixed-right');
+      this.fixedRightBody = createElement('div', 'velox-body--fixed');
       this.fixedRightBodyInner = createElement('div', 'velox-body-inner');
       this.fixedRightBody.appendChild(this.fixedRightBodyInner);
       this.fixedRightContainer.appendChild(this.fixedRightHeader);
@@ -539,26 +544,123 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.filterPopupManager.removeColumnFilter(field);
   }
 
+  // Store event handlers for cleanup
+  private scrollHandlers: (() => void)[] = [];
+  private wheelHandler: ((e: WheelEvent) => void) | null = null;
+
+  private detachEvents(): void {
+    // Remove all scroll handlers
+    this.scrollHandlers.forEach(handler => {
+      this.bodyElement.removeEventListener('scroll', handler);
+      if (this.fixedRightBody) {
+        this.fixedRightBody.removeEventListener('scroll', handler);
+      }
+    });
+    this.scrollHandlers = [];
+    
+    // Remove wheel handler
+    if (this.wheelHandler) {
+      this.bodyElement.removeEventListener('wheel', this.wheelHandler);
+      this.wheelHandler = null;
+    }
+  }
+
   private attachEvents(): void {
-    const handleScroll = throttle(() => {
-      const scrollTop = this.bodyElement.scrollTop;
+    // Clean up existing event handlers first
+    this.detachEvents();
+    
+    // Track if we're currently syncing to prevent infinite loops
+    let isSyncing = false;
+    let throttleTimer: number | null = null;
+    
+    const handleScroll = (source: 'body' | 'fixedRight') => {
+      if (isSyncing) return;
+      
+      if (throttleTimer !== null) return;
+      
+      throttleTimer = window.setTimeout(() => {
+        throttleTimer = null;
+      }, 16);
+      
+      isSyncing = true;
+      
+      // Get scroll values from the source element
+      const scrollTop = source === 'fixedRight' && this.fixedRightBody 
+        ? this.fixedRightBody.scrollTop 
+        : this.bodyElement.scrollTop;
       const scrollLeft = this.bodyElement.scrollLeft;
       
       this.state.scroll.top = scrollTop;
       this.state.scroll.left = scrollLeft;
       
-      // Sync vertical scroll (Fixed Left/Right)
-      if (this.fixedLeftBody) this.fixedLeftBody.scrollTop = scrollTop;
-      if (this.fixedRightBody) this.fixedRightBody.scrollTop = scrollTop;
+      // Sync vertical scroll to other areas (not the source)
+      if (this.fixedLeftBody && this.fixedLeftBody.scrollTop !== scrollTop) {
+        this.fixedLeftBody.scrollTop = scrollTop;
+      }
+      if (source !== 'fixedRight' && this.fixedRightBody && this.fixedRightBody.scrollTop !== scrollTop) {
+        this.fixedRightBody.scrollTop = scrollTop;
+      }
+      if (source !== 'body' && this.bodyElement.scrollTop !== scrollTop) {
+        this.bodyElement.scrollTop = scrollTop;
+      }
       
-      // Sync horizontal scroll (Header)
-      this.headerElement.scrollLeft = scrollLeft;
+      // Sync horizontal scroll (Header and Footer)
+      if (this.headerElement.scrollLeft !== scrollLeft) {
+        this.headerElement.scrollLeft = scrollLeft;
+      }
+      if (this.footerElement && this.footerElement.scrollLeft !== scrollLeft) {
+        this.footerElement.scrollLeft = scrollLeft;
+      }
       
       if (this.options.virtualScroll) this.renderBody();
       this.events.onScroll?.(this.state.scroll.top, this.state.scroll.left);
+      
+      isSyncing = false;
+    };
+    
+    // Header horizontal scroll handler
+    const handleHeaderScroll = throttle(() => {
+      const scrollLeft = this.headerElement.scrollLeft;
+      this.bodyElement.scrollLeft = scrollLeft;
+      if (this.footerElement) {
+        this.footerElement.scrollLeft = scrollLeft;
+      }
     }, 16);
 
-    this.bodyElement.addEventListener('scroll', handleScroll);
+    // Phase 14: Wheel event handler for body to control Fixed Right scroll
+    if (this.hasFixedRight()) {
+      this.wheelHandler = (e: WheelEvent) => {
+        // Prevent default scroll behavior on body
+        e.preventDefault();
+        
+        // Apply wheel delta to Fixed Right body
+        if (this.fixedRightBody) {
+          this.fixedRightBody.scrollTop += e.deltaY;
+        }
+      };
+      
+      this.bodyElement.addEventListener('wheel', this.wheelHandler, { passive: false });
+      
+      // Listen to Fixed Right scroll for synchronization
+      const fixedRightScrollHandler = () => handleScroll('fixedRight');
+      this.fixedRightBody!.addEventListener('scroll', fixedRightScrollHandler);
+      this.scrollHandlers.push(fixedRightScrollHandler);
+      
+      // Also listen to body for horizontal scroll
+      const bodyScrollHandler = () => handleScroll('body');
+      this.bodyElement.addEventListener('scroll', bodyScrollHandler);
+      this.scrollHandlers.push(bodyScrollHandler);
+    } else {
+      // No Fixed Right: normal body scroll
+      const bodyScrollHandler = () => handleScroll('body');
+      this.bodyElement.addEventListener('scroll', bodyScrollHandler);
+      this.scrollHandlers.push(bodyScrollHandler);
+    }
+    
+    // Header horizontal scroll synchronization
+    this.headerElement.addEventListener('scroll', handleHeaderScroll);
+    this.scrollHandlers.push(handleHeaderScroll);
+    
     document.addEventListener('mouseup', this.boundHandleBlockSelectionEnd);
     this.rootElement.addEventListener('keydown', this.boundHandleKeyDown);
   }
@@ -2332,16 +2434,59 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
    * @param options - Fixed options (colCount, rightCount)
    */
   setFixedOptions(options: import('../types').FixedOptions): void {
-    this.options.fixedOptions = {
+    const oldOptions = this.options.fixedOptions || { colCount: 0, rightCount: 0 };
+    const newOptions = {
       colCount: options.colCount ?? this.options.fixedOptions?.colCount ?? 0,
       rightCount: options.rightCount ?? this.options.fixedOptions?.rightCount ?? 0,
     };
     
+    // Check if DOM structure needs to be rebuilt
+    const needsRebuild = 
+      ((oldOptions.rightCount || 0) === 0 && newOptions.rightCount > 0) || // Right 추가
+      ((oldOptions.rightCount || 0) > 0 && newOptions.rightCount === 0);   // Right 제거
+    
+    this.options.fixedOptions = newOptions;
+    
     // Invalidate column cache to recalculate partitions
     this.invalidateColumnCache();
     
+    if (needsRebuild) {
+      // Rebuild DOM structure (without re-attaching events)
+      this.rebuildDOM();
+    }
+    
     // Re-render grid with new fixed columns
     this.render();
+  }
+  
+  /**
+   * Rebuild DOM structure and re-attach events
+   * Phase 14: For dynamic fixed columns
+   */
+  private rebuildDOM(): void {
+    // Save current scroll position
+    const scrollTop = this.bodyElement?.scrollTop || 0;
+    const scrollLeft = this.bodyElement?.scrollLeft || 0;
+    
+    // Detach old event handlers before rebuilding DOM
+    this.detachEvents();
+    
+    // Rebuild DOM
+    this.build();
+    
+    // Re-attach event handlers to new DOM elements
+    this.attachEvents();
+    
+    // Restore scroll position
+    if (this.bodyElement) {
+      this.bodyElement.scrollTop = scrollTop;
+      this.bodyElement.scrollLeft = scrollLeft;
+    }
+    
+    // Sync Fixed Right scroll if it exists
+    if (this.fixedRightBody) {
+      this.fixedRightBody.scrollTop = scrollTop;
+    }
   }
 
   /**
@@ -2355,6 +2500,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   destroy(): void {
     // Clean up drag manager resources
     this.dragManager.destroy();
+    // Detach all event handlers
+    this.detachEvents();
     document.removeEventListener('mouseup', this.boundHandleBlockSelectionEnd);
     // Close any open popups
     this.closeFilterPopup();

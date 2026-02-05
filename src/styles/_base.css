@@ -39,15 +39,16 @@
 }
 
 .velox-fixed-left .velox-body--fixed { 
+  flex: 1;
   overflow: hidden; 
 }
 
-/* Hide scrollbar completely for fixed areas */
-.velox-body--fixed {
+/* Hide scrollbar completely for fixed left area only */
+.velox-fixed-left .velox-body--fixed {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
 }
-.velox-body--fixed::-webkit-scrollbar {
+.velox-fixed-left .velox-body--fixed::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
 }
 
@@ -62,14 +63,49 @@
   box-shadow: -2px 0 4px rgba(0,0,0,0.1);
 }
 
+/* Fixed right body: show scrollbar */
 .velox-fixed-right .velox-body--fixed { 
-  overflow: hidden; 
+  flex: 1;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  pointer-events: auto !important;
+}
+
+/* Fixed right scrollbar styling */
+.velox-fixed-right .velox-body--fixed::-webkit-scrollbar { 
+  width: 8px; 
+  height: 8px; 
+}
+.velox-fixed-right .velox-body--fixed::-webkit-scrollbar-track { 
+  background: var(--velox-header-bg); 
+}
+.velox-fixed-right .velox-body--fixed::-webkit-scrollbar-thumb { 
+  background: #bdbdbd; 
+  border-radius: 4px; 
+}
+.velox-fixed-right .velox-body--fixed::-webkit-scrollbar-thumb:hover { 
+  background: #9e9e9e; 
 }
 
 .velox-header--fixed-right,
-.velox-body--fixed-right,
 .velox-footer--fixed-right {
   overflow: hidden;
+}
+
+/* Padding for Fixed Right header/footer will be set dynamically via JS */
+
+/* When fixed right exists: hide vertical scroll, show horizontal scroll */
+.velox-grid.has-fixed-right .velox-body {
+  overflow-y: hidden !important;
+  overflow-x: auto; /* Keep horizontal scroll */
+}
+
+/* Hide only vertical scrollbar track (allow horizontal scrollbar) */
+.velox-grid.has-fixed-right .velox-body::-webkit-scrollbar-track:vertical {
+  display: none;
+}
+.velox-grid.has-fixed-right .velox-body::-webkit-scrollbar-thumb:vertical {
+  display: none;
 }
 
 /* Empty state */

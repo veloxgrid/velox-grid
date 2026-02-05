@@ -1,535 +1,349 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-03
+> 마지막 업데이트: 2025-02-05
 
-## 📊 프로젝트 개요
+---
 
+## 📊 프로젝트 현황
+
+### 기본 정보
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
 - **현재 버전**: v0.7.1
-- **번들 크기**: 80.71KB (gzip 20.76KB)
 - **라이선스**: MIT
-- **VeloxGrid.ts 라인수**: ~2,164줄
-- **Core 모듈 수**: 11개 (GridSummary 추가)
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
----
+### 빌드 정보
+- **번들 크기**: 80.71KB (gzip 20.76KB)
+- **VeloxGrid.ts**: ~2,044줄 (최적화 완료)
+- **Core 모듈**: 11개
+- **CSS 모듈**: 11개
 
-## ✅ GitHub Pages 배포 설정 완료 (2025-02-02)
-
-### 배경
-개발된 기능들을 실시간으로 테스트할 수 있는 데모 페이지가 필요함.
-장기적 관리를 위해 GitHub Actions를 통한 자동 배포 시스템 구축.
-
-### 구현 내용
-
-#### 1. 프로젝트 구조
+### 프로젝트 구조
 ```
 velox-grid/
-├── docs/                  # GitHub Pages 배포용
-│   ├── index.html        # 메인 랜딩 페이지
-│   ├── dist/             # 빌드된 라이브러리
-│   └── demos/            # 데모 페이지들
-│       ├── selection-demo.html
-│       ├── excel-demo.html
-│       ├── keyboard-demo.html
-│       ├── column-menu-demo.html
-│       ├── row-drag-demo.html
-│       └── validation-demo.html
-├── .github/workflows/
-│   └── deploy.yml        # 자동 배포 워크플로우
-└── scripts/
-    └── build-pages.js    # 페이지 빌드 스크립트
-```
-
-#### 2. 메인 랜딩 페이지
-- 프로젝트 소개 및 주요 기능 설명
-- 6가지 데모 카드 레이아웃
-- 번들 크기, 기능 수, 라이선스 정보 표시
-- GitHub 링크 및 문서 링크
-- 그라디언트 배경 및 모던한 디자인
-
-#### 3. 빌드 스크립트 (`scripts/build-pages.js`)
-- `dist/` 파일들을 `docs/dist/`로 복사
-- `examples/` 파일들을 `docs/demos/`로 복사 및 이름 변경
-  - phase7-demo.html → selection-demo.html
-  - phase8-demo.html → excel-demo.html
-  - phase9-demo.html → keyboard-demo.html
-  - phase10-11-demo.html → column-menu-demo.html, row-drag-demo.html
-  - phase12-demo.html → validation-demo.html
-- 파일 내 경로 자동 수정
-
-#### 4. GitHub Actions 워크플로우 (`.github/workflows/deploy.yml`)
-- main 브랜치에 push 시 자동 실행
-- Node.js 18 환경에서 빌드
-- `npm run build` → `npm run build:pages` 실행
-- GitHub Pages로 자동 배포
-
-#### 5. package.json 스크립트 추가
-```json
-"scripts": {
-  "build:pages": "node scripts/build-pages.js"
-}
-```
-
-### 배포 결과
-- **Live Demo URL**: https://bart-idea.github.io/velox-grid/
-- **자동 배포**: main 브랜치 push 시 자동 실행
-- **데모 페이지**: 6개 (Selection, Excel, Keyboard, Column, Row, Validation)
-
-### 사용 방법
-```bash
-# 로컬에서 테스트
- npm run build
- npm run build:pages
-
-# Git에 반영
- git add .
- git commit -m "docs: setup GitHub Pages"
- git push origin main
-
-# GitHub Actions가 자동으로 배포 실행
-```
-
-### 수정 파일
-- `docs/index.html`: 메인 랜딩 페이지 생성
-- `scripts/build-pages.js`: 빌드 스크립트 생성
-- `.github/workflows/deploy.yml`: GitHub Actions 워크플로우 생성
-- `package.json`: build:pages 스크립트 추가
-- `README.md`: Live Demo 섹션 추가
-- `.claude/PROGRESS.md`: Live Demo URL 추가
-
----
-
-## ✅ Edit 모드 안정화 완료 (2025-02-02)
-
-### 문제점
-Edit 모드에서 다양한 상호작용 시 예기치 않게 edit 모드가 종료되는 문제 발생:
-- 편집 중인 셀/input을 클릭하면 edit 모드 해제
-- Checkbox editor를 여러 번 클릭하면 edit 모드 해제
-- CheckBar의 checkbox 클릭 시 edit 모드 해제
-
-### 해결 내용
-
-#### 1. Cell 클릭 시 Edit 모드 유지
-**문제**: 편집 중인 셀을 클릭하면 blur 이벤트로 인해 edit 종료
-**해결**: 
-- Document mousedown 이벤트로 외부 클릭 감지
-- Cell 내부 클릭은 edit 모드 유지
-- Interactive 요소(input, select, button)는 기능 허용하되 이벤트 전파 중단
-
-#### 2. Checkbox Editor 다중 클릭 지원
-**문제**: Checkbox를 여러 번 클릭하면 render()로 인해 edit 상태 초기화
-**해결**:
-- Checkbox editor는 특별 처리하여 edit 모드 유지
-- Change 시 데이터 업데이트 후 edit 상태 복원
-- `renderEditCell` 재호출로 새 값 반영
-
-#### 3. Document 리스너 중복 방지
-**문제**: `renderEditCell` 호출 시마다 document 리스너 누적 등록
-**해결**:
-- `editModeCleanup` 변수로 이전 리스너 추적
-- 새 edit 시작 시 이전 리스너 제거
-- `endEdit` 시에도 리스너 정리
-
-#### 4. 더블클릭 이벤트 처리
-**문제**: 빠른 연속 클릭이 더블클릭으로 인식되어 `startEdit` 재호출
-**해결**:
-- 이미 editing 중인 셀의 더블클릭 무시
-- `startEdit`에서 같은 셀 편집 중이면 무시
-
-#### 5. CheckBar 상태 변경 시 Edit 보존
-**문제**: `checkItem()` 호출 시 `render()`로 인해 edit 상태 초기화
-**해결**:
-- Render 전 edit 상태 백업
-- Render 후 edit 중이었다면 상태 복원 및 `renderEditCell` 재호출
-
-#### 6. Editor 타입별 중복 이벤트 제거
-**문제**: Select/Checkbox editor에서 change와 blur 중복 호출
-**해결**:
-- Select editor: blur 이벤트 제거 (change만 사용)
-- Checkbox editor: blur 이벤트 제거 (change만 사용)
-
-### 수정 파일
-- `src/core/VeloxGrid.ts`
-  - `editModeCleanup` 변수 추가
-  - `renderEditCell()`: 리스너 정리 로직 추가
-  - `startEdit()`: 같은 셀 재편집 방지
-  - `endEdit()`: 리스너 정리
-  - `checkItem()`: Edit 상태 보존
-  - Checkbox editor 콜백: Edit 유지 로직
-- `src/core/GridRenderer.ts`
-  - Cell click: Interactive 요소 예외 처리
-  - Cell dblclick: 이미 editing 중이면 무시
-  - `createCheckbarCell()`: Edit 상태 보존
-- `src/core/GridEditorFactory.ts`
-  - Select editor: blur 이벤트 제거
-  - Checkbox editor: blur 이벤트 제거
-
-### Editor 타입별 동작
-
-| Editor Type | 종료 시점 | Edit 모드 유지 | 비고 |
-|------------|---------|--------------|------|
-| Text | blur / Enter | ❌ 즉시 종료 | 입력 완료 시 자동 종료 |
-| Number | blur / Enter | ❌ 즉시 종료 | 입력 완료 시 자동 종료 |
-| Date | blur / Enter | ❌ 즉시 종료 | 날짜 선택 시 자동 종료 |
-| Select | change / Enter | ❌ 즉시 종료 | 선택 시 자동 종료 |
-| Checkbox | 외부 클릭 | ✅ 계속 유지 | 여러 번 토글 가능 |
-
-### 개발 환경 개선
-- `examples/dev.html` 추가: 소스 파일 직접 import로 핫 리로드 지원
-- `vite.config.ts`: 개발 서버 기본 페이지를 dev.html로 변경
-
----
-
-## ✅ 코드 정리 완료 (2025-02-02)
-
-### 미사용 모듈 삭제
-다음 모듈들은 VeloxGrid.ts에서 사용되지 않아 삭제됨:
-
-| 삭제된 파일 | 크기 | 사유 |
-|------------|------|------|
-| GridEventManager.ts | 13KB | VeloxGrid 자체 구현 사용 |
-| GridSelection.ts | 8KB | VeloxGrid 자체 구현 사용 |
-| GridVirtualScroll.ts | 4KB | VeloxGrid 자체 구현 사용 |
-| GridEditor.ts | 5KB | VeloxGrid 자체 구현 사용 |
-| GridKeyboard.ts | 7KB | VeloxGrid 자체 구현 사용 |
-| GridColumnManager.ts | 6KB | VeloxGrid 자체 구현 사용 |
-| GridDataManager.ts | 8KB | VeloxGrid 자체 구현 사용 |
-| GridState.ts | 9KB | VeloxGrid 자체 구현 사용 |
-| VeloxGrid.ts.backup | - | 백업 파일 불필요 |
-
-### 현재 Core 모듈 구조
-```
-src/core/
-├── VeloxGrid.ts        # Facade 클래스 (2,044줄)
-├── GridRenderer.ts     # 렌더링 위임
-├── GridFilterPopup.ts  # 필터 팝업 위임
-├── GridColumnMenu.ts   # 컬럼 메뉴 위임
-├── GridDragManager.ts  # 드래그 위임
-├── GridHistory.ts      # Undo/Redo
-├── GridValidator.ts    # 셀 검증
-├── GridEditorFactory.ts # 커스텀 에디터
-├── GridTooltip.ts      # 툴팁
-└── index.ts            # 모듈 exports
-```
-
-### 정리 결과
-- 빌드 모듈 수: 22개 → 15개 (-7개)
-- 소스 파일: ~60KB 삭제
-- 번들 크기: 동일 (Tree-shaking으로 이미 제외됨)
-- 빌드 속도: 개선 (변환 모듈 감소)
-
----
-
-## ✅ 코드 구조 최적화 - Phase 1~7 완료
-
-> **작업 목표**: VeloxGrid.ts 모듈화하여 유지보수성 향상
-> **Phase 1 완료**: GridContext 인터페이스 정의 (2025-01-30)
-> **Phase 2 완료**: VeloxGrid에 GridContext 구현 (2025-01-30)
-> **Phase 3 완료**: 모듈 생성자 수정 및 VeloxGrid 연결 (2025-01-30)
-> **Phase 4~6 완료**: 메서드 위임 및 중복 코드 정리 (2025-01-30)
-> **Phase 7 완료**: 최종 정리 및 테스트 (2025-02-02)
-> **코드 정리 완료**: 미사용 모듈 삭제 (2025-02-02)
-
-### 리팩토링 결과
-
-```
-VeloxGrid.ts 변화:
-├── 시작: 2,826줄
-├── Phase 3~4 후: 2,501줄 (-325줄)
-├── Phase 5~6 후: 2,100줄 (-726줄)
-└── Phase 7 후: 2,044줄 (-782줄, 27.7% 감소) ✅
-
-번들 크기:
-├── UMD: 71.35 KB (gzip 18.23 KB)
-├── ESM: 98.05 KB (gzip 22.32 KB)
-└── CSS: 15.38 KB (gzip 3.06 KB)
+├── .claude/              # Claude AI 작업 파일
+│   ├── PROGRESS.md      # 이 문서
+│   └── RULES.md         # 개발 규칙
+├── dist/                # 빌드 출력
+├── docs/                # GitHub Pages
+├── examples/            # 데모 페이지
+├── src/
+│   ├── core/           # 핵심 모듈 (11개)
+│   ├── styles/         # CSS 모듈 (11개)
+│   ├── types/          # TypeScript 타입
+│   └── utils/          # 유틸리티
+└── package.json
 ```
 
 ---
 
-## ✅ 완료된 Phase (1-12)
+## 🎯 현재 상태
 
-### Phase 1-4: 핵심 기능 (v0.1.0)
+### 완료된 기능 (Phase 1-13)
+
+#### Phase 1-4: 핵심 기능 (v0.1.0)
 - ✅ 테이블 렌더링, 컬럼 정의
 - ✅ 행 선택, 다중 선택
 - ✅ 컬럼 정렬, 데이터 필터링
 - ✅ 인라인 편집
 
-### Phase 5-6: 고급 기능 (v0.2.0)
+#### Phase 5-6: 고급 기능 (v0.2.0)
 - ✅ 가상 스크롤 (100,000+ 행)
 - ✅ 컬럼 고정, 헤더 필터 UI
 
-### Phase 7: Selection 고도화 (v0.3.0)
+#### Phase 7: Selection 고도화 (v0.3.0)
 - ✅ Cell/Block Selection
 - ✅ CheckBar 분리, Exclusive Check
 - ✅ Keyboard Navigation, Clipboard
 - ✅ Loading State, Auto Fit Column
 
-### Phase 8: Excel Export/Import (v0.4.0)
+#### Phase 8: Excel Export/Import (v0.4.0)
 - ✅ Excel/CSV/JSON Export/Import
 
-### Phase 9: 키보드 & Undo/Redo (v0.5.0)
+#### Phase 9: 키보드 & Undo/Redo (v0.5.0)
 - ✅ Enter/Tab 이동, Delete Key
 - ✅ Undo/Redo (Ctrl+Z/Y)
 
-### Phase 10-11: 컬럼/행 기능 (v0.6.0)
+#### Phase 10-11: 컬럼/행 기능 (v0.6.0)
 - ✅ Column Reorder, Menu, Fix/Unfix
 - ✅ Row Drag & Drop
 
-### Phase 12: 셀 기능 확장 (v0.7.0)
+#### Phase 12: 셀 기능 확장 (v0.7.0)
 - ✅ Cell Validation
 - ✅ Custom Cell Editor
 - ✅ Cell Tooltip
 
----
-
-## ✅ 완료된 최신 Phase
-
-### Phase 13: Summary/Aggregation (v0.7.1) - 완료 (2025-02-03)
-
-#### 기본 기능
-- ✅ GridSummary 모듈 (380줄) - 데이터 집계 핵심
-- ✅ 5가지 내장 함수: sum, avg, count, min, max
+#### Phase 13: Summary/Aggregation (v0.7.1)
+- ✅ GridSummary 모듈
+- ✅ Footer Summary 렌더링
+- ✅ 5가지 내장 함수 (sum, avg, count, min, max)
 - ✅ 커스텀 함수 지원
-- ✅ Map 기반 캐싱으로 성능 최적화
-- ✅ Number Formatting with Locale
+- ✅ Map 기반 캐싱
+- ✅ 자동 업데이트
 
-#### Footer Summary 렌더링
-- ✅ Footer DOM 요소 (Fixed left + scrollable)
-- ✅ GridRenderer.renderFooter() 메서드
-- ✅ createFooterCell() 메서드
-- ✅ 자동 업데이트 (데이터 변경 감지)
+### 계획된 기능
 
-#### API 메서드
-- ✅ getSummaryValue(field): 특정 필드 집계값 조회
-- ✅ getSummaryValues(): 모든 집계값 반환
-- ✅ refreshSummary(): 수동 집계 새로고침
+#### Phase 14: Group Summary
+- [ ] Group Summary (그룹별 소계)
+- [ ] Sub-total rows
 
-#### 타입 정의
-- ✅ SummaryFunction, SummaryConfig, FooterSummaryOptions
-- ✅ ColumnDefinition.summary: 컬럼별 Summary 설정
-- ✅ GridOptions.footerSummary: Footer Summary 옵션
-- ✅ GridContext 업데이트
+#### Phase 15: React 래퍼
+- [ ] React Component
+- [ ] Hooks (useVeloxGrid)
 
-#### CSS 스타일링
-- ✅ _footer.css (139줄)
-- ✅ Alignment, custom className 지원
-- ✅ Dark theme 지원
-- ✅ Special styles: --total, --average, --count
-
-#### 데모 페이지
-- ✅ examples/phase13-demo.html: 3개 데모 시나리오
-- ✅ docs/demos/summary-demo.html: Sales Analytics 대시보드
-- ✅ docs/index.html: Summary 데모 링크 추가
-
-#### 문서화
-- ✅ README.md: Summary API 및 예제
-- ✅ TypeScript 타입 완전 문서화
-
-#### 번들 크기
-- UMD: 80.71 KB (gzip: 20.76 KB) - 71.35 KB에서 증가
-- ESM: 111.12 KB (gzip: 25.63 KB) - 98.05 KB에서 증가
-- CSS: 17.76 KB (gzip: 3.45 KB) - 15.38 KB에서 증가
-
-#### Summary Cache Invalidation
-데이터 변경 시 자동으로 summary cache를 무효화하여 정확한 집계값 유지:
-- setData(), clearData()
-- addRow(), updateRow(), removeRow()
-- setCellValue()
-- endEdit() - cell edit 완료 시
+#### Phase 16: 고급 기능
+- [ ] Column Group (다단계 헤더)
+- [ ] Row Grouping
+- [ ] Row Detail (행 확장)
 
 ---
 
-## ✅ Summary Cache Invalidation 버그 수정 (2025-02-05)
+## 📋 최근 작업 이력 (최신순)
 
-### 문제점
-Checkbox editor의 save callback에서 데이터를 직접 수정하지만 summary cache를 무효화하지 않아,
-footer summary가 업데이트되지 않는 버그 발견.
+### 🔧 버그 수정 & UI 개선 (2025-02-05)
 
-### 해결 내용
-**파일**: `src/core/VeloxGrid.ts` (Line 1244-1246)
+#### 1. Summary Cache Invalidation 버그 수정 ⚠️
 
+**문제**: Checkbox editor에서 데이터 변경 시 summary cache가 무효화되지 않음
+
+**해결**:
 ```typescript
-// renderEditCell() 메서드 내부, Checkbox editor 콜백
-const row = this.state.displayData[rowIndex];
-if (row) {
-  const dataIndex = this.state.data.indexOf(row);
-  if (dataIndex >= 0) {
-    this.state.data[dataIndex][field] = newValue;
-  }
-}
-
-// ✅ 추가됨
-this.summary.invalidateCache();
+// src/core/VeloxGrid.ts - renderEditCell() 메서드
+this.summary.invalidateCache(); // ← 추가
 ```
 
-### 검증 완료
-모든 데이터 변경 시점에서 cache invalidation이 올바르게 호출되는지 검증:
+**검증**: 모든 데이터 변경 시점(13개 메서드)에서 cache invalidation 정상 동작 확인
 
-| 메서드 | Cache Invalidation |
-|--------|-------------------|
-| `setData()` | ✅ |
-| `addRow()` | ✅ |
-| `updateRow()` | ✅ |
-| `removeRow()` | ✅ |
-| `clearData()` | ✅ |
-| `setCellValue()` | ✅ |
-| `endEdit()` | ✅ |
-| **Checkbox editor callback** | ✅ **수정됨** |
-| `paste()` | ✅ |
-| `cut()` | ✅ |
-| `deleteSelectedCells()` | ✅ |
-| `undo()` | ✅ |
-| `redo()` | ✅ |
+#### 2. showRowNumbers와 Fixed Left 분리
 
----
+**변경 전**: Row numbers가 항상 fixed left 영역에 배치
+**변경 후**: Row numbers가 scrollable 영역으로 이동
 
-## ✅ UI 개선 및 옵션 분리 (2025-02-05)
-
-### 1. showRowNumbers와 Fixed Left 분리
-
-#### 문제점
-`showRowNumbers` 옵션이 활성화되면 자동으로 fixed left 영역이 생성되어,
-row numbers가 항상 고정되는 문제.
-
-#### 해결 내용
-- `hasFixedLeft()` 메서드에서 `showRowNumbers` 조건 제거
-- Row numbers를 scrollable 영역으로 이동
-- Header, body, footer 모두 일관되게 적용
+```
+Before: [Drag][#][1] | Col1 Col2  (# 고정)
+After:  [Drag]       | [#][1] Col1 Col2  (# 스크롤)
+```
 
 **수정 파일**:
-- `src/core/VeloxGrid.ts`: `hasFixedLeft()` 메서드
-- `src/core/GridRenderer.ts`: `renderHeader()`, `createRowBase()`, `renderFooter()` 메서드
+- `src/core/VeloxGrid.ts`: `hasFixedLeft()` 수정
+- `src/core/GridRenderer.ts`: header/body/footer 렌더링 수정
 
-#### 결과
-```
-이전: [Drag][#][1] | Col1 Col2  (# 고정)
-이후: [Drag]       | [#][1] Col1 Col2  (# 스크롤)
-```
+#### 3. rowDraggable 옵션 추가
 
-### 2. rowDraggable 옵션 분리
-
-#### 문제점
-Row drag handle이 별도 옵션 없이 항상 표시됨.
-
-#### 해결 내용
-- `rowDraggable` 옵션 추가 (default: false)
-- Row drag handle을 조건부 렌더링
-- Fixed left header에 placeholder 추가하여 checkbox 정렬
-
-**타입 정의**:
+**새 옵션**:
 ```typescript
 interface GridOptions {
-  showRowNumbers?: boolean;
-  rowDraggable?: boolean;  // ← 추가
+  rowDraggable?: boolean;  // default: false
 }
 ```
 
-**수정 파일**:
-- `src/types/index.ts`: `GridOptions` 인터페이스
-- `src/core/VeloxGrid.ts`: `DEFAULT_OPTIONS`, `hasFixedLeft()`
-- `src/core/GridRenderer.ts`: 조건부 drag handle 렌더링
-
-#### 결과
+**사용 예시**:
 ```typescript
-// 옵션 조합 가능
-{
-  showRowNumbers: true,
-  rowDraggable: false     // Row numbers만
-}
+// Row numbers만
+{ showRowNumbers: true, rowDraggable: false }
 
-{
-  showRowNumbers: false,
-  rowDraggable: true      // Drag handle만
-}
+// Drag handle만
+{ showRowNumbers: false, rowDraggable: true }
 
-{
-  showRowNumbers: true,
-  rowDraggable: true      // 둘 다
-}
+// 둘 다
+{ showRowNumbers: true, rowDraggable: true }
 ```
 
-### 3. Fixed Left Header Checkbox 정렬
+#### 4. Fixed Left Header Checkbox 정렬
 
-#### 문제점
-rowDraggable과 checkBar를 함께 사용할 때, header의 checkbox가 왼쪽으로 쏠려서
-body 영역의 checkbox와 정렬이 맞지 않음.
+**문제**: Header checkbox가 body와 정렬되지 않음
 
-#### 해결 내용
-Fixed left header에 row drag handle placeholder를 추가하여 body와 정렬:
+**해결**: Header에 invisible placeholder 추가
+```
+Before: Header: [✓] Col     (왼쪽으로 쏠림)
+        Body:   [☰][✓] Data
 
+After:  Header: [ ][✓] Col   (정렬됨!)
+        Body:   [☰][✓] Data
+```
+
+#### 5. Sort 아이콘 우측 정렬
+
+**변경**: Sort를 button으로 변경하고 우측 배치
+
+```
+Before: [⋮⋮] Column ↑ [filter] [menu]
+After:  [⋮⋮] Column  [sort] [filter] [menu]
+```
+
+**수정 파일**:
+- `src/core/GridRenderer.ts`: createHeaderCell() 수정
+- `src/styles/_header.css`: .velox-sort-btn 스타일 추가
+
+**Git**: `5b4ba43` - fix: summary cache invalidation and UI improvements
+
+---
+
+### ✨ Phase 13: Summary/Aggregation 완료 (2025-02-03)
+
+**v0.7.1 릴리스**
+
+#### 구현 내용
+
+**GridSummary 모듈** (380줄):
+- 5가지 내장 함수: sum, avg, count, min, max
+- 커스텀 함수 지원
+- Map 기반 캐싱으로 성능 최적화
+- Number Formatting with Locale
+
+**Footer Summary 렌더링**:
+- Footer DOM 요소 (Fixed left + scrollable)
+- GridRenderer.renderFooter() 메서드
+- 자동 업데이트 (데이터 변경 감지)
+
+**API**:
 ```typescript
-// Fixed left header
-if (options.rowDraggable) {
-  const dragPlaceholder = createElement('div', 'velox-row-drag-handle');
-  dragPlaceholder.style.visibility = 'hidden';  // 공간은 차지하지만 보이지 않음
-  headerRow.appendChild(dragPlaceholder);
-}
+getSummaryValue(field): CellValue
+getSummaryValues(): Record<string, CellValue>
+refreshSummary(): void
 ```
+
+**타입 정의**:
+- SummaryFunction, SummaryConfig
+- FooterSummaryOptions, GroupSummaryOptions
+- ColumnDefinition.summary
+- GridOptions.footerSummary
+
+**CSS**: `_footer.css` (139줄)
+- Alignment, custom className 지원
+- Dark theme 지원
+- Special styles: --total, --average, --count
+
+**번들 크기 변화**:
+- UMD: 71.35 KB → 80.71 KB (+9.36 KB)
+- ESM: 98.05 KB → 111.12 KB (+13.07 KB)
+- CSS: 15.38 KB → 17.76 KB (+2.38 KB)
+
+#### Summary Cache Invalidation
+
+데이터 변경 시 자동 cache 무효화:
+- setData(), clearData()
+- addRow(), updateRow(), removeRow()
+- setCellValue(), endEdit()
+- paste(), cut(), deleteSelectedCells()
+- undo(), redo()
+
+---
+
+### 🔧 Edit 모드 안정화 (2025-02-02)
+
+**문제**: Edit 모드에서 예기치 않게 종료되는 버그
+
+**해결 내용**:
+1. Document mousedown으로 외부 클릭 감지
+2. Checkbox editor 다중 클릭 지원
+3. Document 리스너 중복 방지 (editModeCleanup)
+4. 더블클릭 이벤트 처리
+5. CheckBar 상태 변경 시 Edit 보존
+6. Editor 타입별 중복 이벤트 제거
+
+**Editor 타입별 동작**:
+
+| Editor | 종료 시점 | Edit 모드 유지 |
+|--------|----------|--------------|
+| Text/Number/Date | blur / Enter | ❌ 즉시 종료 |
+| Select | change / Enter | ❌ 즉시 종료 |
+| Checkbox | 외부 클릭 | ✅ 계속 유지 |
 
 **수정 파일**:
-- `src/core/GridRenderer.ts`: `renderHeader()` 메서드
+- `src/core/VeloxGrid.ts`
+- `src/core/GridRenderer.ts`
+- `src/core/GridEditorFactory.ts`
 
-#### 결과
-```
-이전: Header: [✓] Col     (checkbox가 왼쪽으로 쏠림)
-      Body:   [☰][✓] Data
+**개발 환경 개선**:
+- `examples/dev.html`: 핫 리로드 지원
+- `vite.config.ts`: 개발 서버 설정
 
-이후: Header: [ ][✓] Col   (정렬됨!)
-      Body:   [☰][✓] Data
-```
+---
 
-### 4. Sort 아이콘 우측 정렬
+### 📦 GitHub Pages 배포 설정 (2025-02-02)
 
-#### 문제점
-Sort 아이콘이 header text 옆에 붙어있어 filter/menu 버튼과 시각적 일관성 부족.
+**Live Demo**: https://bart-idea.github.io/velox-grid/
 
-#### 해결 내용
-- Sort 아이콘을 `contentWrapper` 밖으로 이동
-- Button 형태로 변경 (filter 버튼과 동일한 스타일)
-- 우측 정렬: **sort - filter - menu** 순서
+**구현 내용**:
+1. 메인 랜딩 페이지 (`docs/index.html`)
+2. 6개 데모 페이지 (selection, excel, keyboard, column, row, validation)
+3. 빌드 스크립트 (`scripts/build-pages.js`)
+4. GitHub Actions 자동 배포 (`.github/workflows/deploy.yml`)
 
-**수정 파일**:
-- `src/core/GridRenderer.ts`: `createHeaderCell()` 메서드
-- `src/styles/_header.css`: `.velox-sort-btn` 스타일 추가
-
-**CSS 변경**:
-```css
-/* 이전 */
-.velox-sort-icon { /* span, inline */ }
-
-/* 이후 */
-.velox-sort-btn {
-  display: flex;
-  width: 20px;
-  height: 20px;
-  border: none;
-  background: transparent;
-  opacity: 0.5;
-}
-.velox-sort-btn--active { /* 활성화 스타일 */ }
-```
-
-#### 결과
-```
-이전: [⋮⋮] Column ↑ [filter] [menu]
-           (sort가 텍스트에 붙음)
-
-이후: [⋮⋮] Column  [sort] [filter] [menu]
-                    (우측 정렬)
+**배포 방법**:
+```bash
+npm run build
+npm run build:pages
+git push origin main  # 자동 배포
 ```
 
 ---
 
-## 🔜 다음 작업
+## 🧹 코드 최적화 이력
 
-### Fixed Left 옵션 설계
-현재 showRowNumbers, rowDraggable, checkBar의 fixed left 배치가 자동으로 결정됨.
-より 유연한 제어를 위해 옵션 설계 필요:
+### 미사용 모듈 삭제 (2025-02-02)
 
-**제안된 방안**:
+**삭제된 모듈** (9개, ~60KB):
+- GridEventManager.ts, GridSelection.ts
+- GridVirtualScroll.ts, GridEditor.ts
+- GridKeyboard.ts, GridColumnManager.ts
+- GridDataManager.ts, GridState.ts
+- VeloxGrid.ts.backup
+
+**결과**:
+- 빌드 모듈: 22개 → 15개 (-7개)
+- 번들 크기: 동일 (Tree-shaking 덕분)
+- 빌드 속도: 향상
+
+### 코드 구조 최적화 (2025-01-30 ~ 2025-02-02)
+
+**Phase 1-7 완료**
+
+**목표**: VeloxGrid.ts 모듈화로 유지보수성 향상
+
+**작업 내용**:
+1. GridContext 인터페이스 정의
+2. VeloxGrid에 GridContext 구현
+3. 모듈 생성자 수정
+4. 메서드 위임
+5. 중복 코드 정리
+6. 최종 정리 및 테스트
+
+**VeloxGrid.ts 변화**:
+```
+시작: 2,826줄
+Phase 3-4: 2,501줄 (-325줄)
+Phase 5-6: 2,100줄 (-726줄)
+Phase 7: 2,044줄 (-782줄, 27.7% 감소) ✅
+```
+
+**현재 Core 모듈 구조**:
+```
+src/core/
+├── VeloxGrid.ts         # Facade (2,044줄)
+├── GridRenderer.ts      # 렌더링
+├── GridFilterPopup.ts   # 필터
+├── GridColumnMenu.ts    # 컬럼 메뉴
+├── GridDragManager.ts   # 드래그
+├── GridHistory.ts       # Undo/Redo
+├── GridValidator.ts     # 검증
+├── GridEditorFactory.ts # 에디터
+├── GridTooltip.ts       # 툴팁
+├── GridSummary.ts       # Summary
+└── index.ts
+```
+
+---
+
+## 🔮 다음 작업 계획
+
+### 우선순위 1: Fixed Left 옵션 설계
+
+**현재 문제**: showRowNumbers, rowDraggable, checkBar의 fixed left 배치가 자동으로 결정됨
+
+**제안 방안**:
 ```typescript
 interface GridOptions {
   // 기본 기능 옵션
@@ -546,44 +360,72 @@ interface GridOptions {
 }
 ```
 
-### Phase 14: Group Summary
+**사용 예시**:
+```typescript
+// Row numbers를 fixed로
+{
+  showRowNumbers: true,
+  fixedLeft: { rowNumbers: true }
+}
+
+// Drag와 CheckBar만 fixed로
+{
+  showRowNumbers: true,
+  rowDraggable: true,
+  checkBar: { visible: true },
+  fixedLeft: {
+    rowDrag: true,
+    checkBar: true
+    // rowNumbers는 false이므로 scrollable
+  }
+}
+```
+
+### 우선순위 2: Phase 14 (Group Summary)
 - [ ] Group Summary (그룹별 소계)
 - [ ] Sub-total rows
 
-### Phase 14: React 래퍼
+### 우선순위 3: React 래퍼
 - [ ] React Component
 - [ ] Hooks (useVeloxGrid)
-
-### Phase 15: 고급 기능
-- [ ] Column Group (다단계 헤더)
-- [ ] Row Grouping
-- [ ] Row Detail (행 확장)
-
----
-
-## 📁 프로젝트 구조
-
-```
-velox-grid/
-├── .claude/              # Claude AI 작업 파일
-│   ├── PROGRESS.md
-│   └── RULES.md
-├── dist/                 # 빌드 출력
-├── examples/             # 데모 페이지
-├── src/
-│   ├── core/            # 핵심 모듈 (10개)
-│   ├── styles/          # CSS 모듈 (11개)
-│   ├── types/           # TypeScript 타입
-│   └── utils/           # 유틸리티
-├── README.md
-├── CHANGELOG.md
-└── package.json
-```
 
 ---
 
 ## 📝 다음 대화 시작 방법
 
+### 기능 개발
 ```
-D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 [작업] 시작해줘
+D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 [Phase 14] 시작해줘
 ```
+
+### 버그 수정
+```
+D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 [버그] 수정해줘
+```
+
+### Fixed Left 옵션 구현
+```
+D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 Fixed Left 옵션 구현해줘
+```
+
+---
+
+## 📚 문서 구조 가이드
+
+이 문서는 다음과 같이 구성되어 있습니다:
+
+1. **📊 프로젝트 현황**: 최신 상태 요약 (버전, 크기, 구조)
+2. **🎯 현재 상태**: 완료/계획된 기능 목록
+3. **📋 최근 작업 이력**: 시간 역순 상세 내역
+4. **🧹 코드 최적화 이력**: 리팩토링 작업 기록
+5. **🔮 다음 작업 계획**: 우선순위별 작업 목록
+6. **📝 다음 대화 시작 방법**: 컨텍스트 로딩 가이드
+
+### 작업 분류
+
+- **✨ 기능 개발**: 새로운 Phase 구현
+- **🔧 버그 수정 & UI 개선**: 기존 기능 개선
+- **🧹 코드 최적화**: 리팩토링, 정리
+- **📦 인프라**: 빌드, 배포, 도구
+
+이 구조를 통해 AI가 현재 상황을 정확히 파악하고 적절한 작업을 제안할 수 있습니다.

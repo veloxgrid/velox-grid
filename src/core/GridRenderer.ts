@@ -39,14 +39,15 @@ export class GridRenderer {
       ctx.fixedLeftHeader.innerHTML = '';
       const headerRow = createElement('div', 'velox-header-row');
       
-      if (options.checkBar?.visible) {
-        headerRow.appendChild(this.createHeaderCheckbarCell());
+      // Row drag handle placeholder (only if rowDraggable is enabled)
+      if (options.rowDraggable) {
+        const dragPlaceholder = createElement('div', 'velox-row-drag-handle');
+        dragPlaceholder.style.visibility = 'hidden';
+        headerRow.appendChild(dragPlaceholder);
       }
       
-      if (options.showRowNumbers) {
-        const rowNumCell = createElement('div', 'velox-header-cell velox-rownumber-cell');
-        rowNumCell.textContent = '#';
-        headerRow.appendChild(rowNumCell);
+      if (options.checkBar?.visible) {
+        headerRow.appendChild(this.createHeaderCheckbarCell());
       }
       
       ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => 
@@ -57,6 +58,14 @@ export class GridRenderer {
 
     // Scrollable header
     const headerRow = createElement('div', 'velox-header-row');
+    
+    // Row numbers in scrollable area
+    if (options.showRowNumbers) {
+      const rowNumCell = createElement('div', 'velox-header-cell velox-rownumber-cell');
+      rowNumCell.textContent = '#';
+      headerRow.appendChild(rowNumCell);
+    }
+    
     ctx.getScrollableColumns().forEach((col: ColumnDefinition) => 
       headerRow.appendChild(this.createHeaderCell(col))
     );
@@ -139,29 +148,31 @@ export class GridRenderer {
     text.textContent = column.header;
     contentWrapper.appendChild(text);
 
-    // Sort icon
+    cell.appendChild(contentWrapper);
+
+    // Sort button (우측 정렬)
     if (options.sortable && column.sortable !== false) {
-      const sortIcon = createElement('span', 'velox-sort-icon');
+      const sortBtn = createElement('button', 'velox-sort-btn');
       const sortState = state.sort.find((s: any) => s.field === column.field);
       
       if (sortState?.direction === 'asc') {
-        addClass(sortIcon, 'velox-sort-icon--asc');
-        sortIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" /></svg>`;
+        addClass(sortBtn, 'velox-sort-btn--asc');
+        sortBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" /></svg>`;
       } else if (sortState?.direction === 'desc') {
-        addClass(sortIcon, 'velox-sort-icon--desc');
-        sortIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
+        addClass(sortBtn, 'velox-sort-btn--desc');
+        sortBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
       } else {
-        sortIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
+        sortBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
       }
       
-      contentWrapper.appendChild(sortIcon);
-      contentWrapper.addEventListener('click', (e) => { 
+      if (sortState?.direction) addClass(sortBtn, 'velox-sort-btn--active');
+      sortBtn.title = '정렬';
+      sortBtn.addEventListener('click', (e) => { 
         e.stopPropagation(); 
         ctx.handleSort(column.field); 
       });
+      cell.appendChild(sortBtn);
     }
-
-    cell.appendChild(contentWrapper);
 
     // Filter button
     if (options.filterable && column.filterable !== false) {
@@ -297,27 +308,30 @@ export class GridRenderer {
 
     // Fixed left content
     if (isFixedLeft) {
-      // Row drag handle
-      const dragHandle = createElement('div', 'velox-row-drag-handle');
-      dragHandle.innerHTML = '☰';
-      dragHandle.title = '드래그하여 행 순서 변경';
-      dragHandle.addEventListener('mousedown', (e) => ctx.startRowDrag(e, rowIndex, row));
-      row.appendChild(dragHandle);
+      // Row drag handle (only if rowDraggable is enabled)
+      if (options.rowDraggable) {
+        const dragHandle = createElement('div', 'velox-row-drag-handle');
+        dragHandle.innerHTML = '☰';
+        dragHandle.title = '드래그하여 행 순서 변경';
+        dragHandle.addEventListener('mousedown', (e) => ctx.startRowDrag(e, rowIndex, row));
+        row.appendChild(dragHandle);
+      }
       
       if (options.checkBar?.visible) {
         row.appendChild(this.createCheckbarCell(rowIndex));
-      }
-      
-      if (options.showRowNumbers) {
-        const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
-        rowNumCell.textContent = String(rowIndex + 1);
-        row.appendChild(rowNumCell);
       }
       
       ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => 
         row.appendChild(this.createCell(rowData, rowIndex, col))
       );
     } else {
+      // Row numbers in scrollable area
+      if (options.showRowNumbers) {
+        const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
+        rowNumCell.textContent = String(rowIndex + 1);
+        row.appendChild(rowNumCell);
+      }
+      
       ctx.getScrollableColumns().forEach((col: ColumnDefinition) => 
         row.appendChild(this.createCell(rowData, rowIndex, col))
       );
@@ -509,19 +523,16 @@ export class GridRenderer {
       ctx.fixedLeftFooter.innerHTML = '';
       const footerRow = createElement('div', 'velox-footer-row');
       
-      // Row drag handle placeholder
-      const dragPlaceholder = createElement('div', 'velox-row-drag-handle');
-      dragPlaceholder.style.visibility = 'hidden';
-      footerRow.appendChild(dragPlaceholder);
+      // Row drag handle placeholder (only if rowDraggable is enabled)
+      if (options.rowDraggable) {
+        const dragPlaceholder = createElement('div', 'velox-row-drag-handle');
+        dragPlaceholder.style.visibility = 'hidden';
+        footerRow.appendChild(dragPlaceholder);
+      }
       
       if (options.checkBar?.visible) {
         const checkboxCell = createElement('div', 'velox-footer-cell velox-checkbox-cell');
         footerRow.appendChild(checkboxCell);
-      }
-      
-      if (options.showRowNumbers) {
-        const rowNumCell = createElement('div', 'velox-footer-cell velox-rownumber-cell');
-        footerRow.appendChild(rowNumCell);
       }
       
       ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => 
@@ -534,6 +545,13 @@ export class GridRenderer {
     if (ctx.footerElement) {
       ctx.footerElement.innerHTML = '';
       const footerRow = createElement('div', 'velox-footer-row');
+      
+      // Row number placeholder in footer
+      if (options.showRowNumbers) {
+        const rowNumCell = createElement('div', 'velox-footer-cell velox-rownumber-cell');
+        footerRow.appendChild(rowNumCell);
+      }
+      
       ctx.getScrollableColumns().forEach((col: ColumnDefinition) => 
         footerRow.appendChild(this.createFooterCell(col))
       );

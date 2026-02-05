@@ -306,6 +306,8 @@ export interface GridOptions {
   headerHeight?: number;
   /** Show row numbers */
   showRowNumbers?: boolean;
+  /** Enable row drag and drop to reorder */
+  rowDraggable?: boolean;
   /** Enable row selection */
   selectable?: boolean;
   /** Selection mode (Phase 7) */

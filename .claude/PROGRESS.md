@@ -342,7 +342,209 @@ VeloxGrid.ts 변화:
 
 ---
 
+## ✅ Summary Cache Invalidation 버그 수정 (2025-02-05)
+
+### 문제점
+Checkbox editor의 save callback에서 데이터를 직접 수정하지만 summary cache를 무효화하지 않아,
+footer summary가 업데이트되지 않는 버그 발견.
+
+### 해결 내용
+**파일**: `src/core/VeloxGrid.ts` (Line 1244-1246)
+
+```typescript
+// renderEditCell() 메서드 내부, Checkbox editor 콜백
+const row = this.state.displayData[rowIndex];
+if (row) {
+  const dataIndex = this.state.data.indexOf(row);
+  if (dataIndex >= 0) {
+    this.state.data[dataIndex][field] = newValue;
+  }
+}
+
+// ✅ 추가됨
+this.summary.invalidateCache();
+```
+
+### 검증 완료
+모든 데이터 변경 시점에서 cache invalidation이 올바르게 호출되는지 검증:
+
+| 메서드 | Cache Invalidation |
+|--------|-------------------|
+| `setData()` | ✅ |
+| `addRow()` | ✅ |
+| `updateRow()` | ✅ |
+| `removeRow()` | ✅ |
+| `clearData()` | ✅ |
+| `setCellValue()` | ✅ |
+| `endEdit()` | ✅ |
+| **Checkbox editor callback** | ✅ **수정됨** |
+| `paste()` | ✅ |
+| `cut()` | ✅ |
+| `deleteSelectedCells()` | ✅ |
+| `undo()` | ✅ |
+| `redo()` | ✅ |
+
+---
+
+## ✅ UI 개선 및 옵션 분리 (2025-02-05)
+
+### 1. showRowNumbers와 Fixed Left 분리
+
+#### 문제점
+`showRowNumbers` 옵션이 활성화되면 자동으로 fixed left 영역이 생성되어,
+row numbers가 항상 고정되는 문제.
+
+#### 해결 내용
+- `hasFixedLeft()` 메서드에서 `showRowNumbers` 조건 제거
+- Row numbers를 scrollable 영역으로 이동
+- Header, body, footer 모두 일관되게 적용
+
+**수정 파일**:
+- `src/core/VeloxGrid.ts`: `hasFixedLeft()` 메서드
+- `src/core/GridRenderer.ts`: `renderHeader()`, `createRowBase()`, `renderFooter()` 메서드
+
+#### 결과
+```
+이전: [Drag][#][1] | Col1 Col2  (# 고정)
+이후: [Drag]       | [#][1] Col1 Col2  (# 스크롤)
+```
+
+### 2. rowDraggable 옵션 분리
+
+#### 문제점
+Row drag handle이 별도 옵션 없이 항상 표시됨.
+
+#### 해결 내용
+- `rowDraggable` 옵션 추가 (default: false)
+- Row drag handle을 조건부 렌더링
+- Fixed left header에 placeholder 추가하여 checkbox 정렬
+
+**타입 정의**:
+```typescript
+interface GridOptions {
+  showRowNumbers?: boolean;
+  rowDraggable?: boolean;  // ← 추가
+}
+```
+
+**수정 파일**:
+- `src/types/index.ts`: `GridOptions` 인터페이스
+- `src/core/VeloxGrid.ts`: `DEFAULT_OPTIONS`, `hasFixedLeft()`
+- `src/core/GridRenderer.ts`: 조건부 drag handle 렌더링
+
+#### 결과
+```typescript
+// 옵션 조합 가능
+{
+  showRowNumbers: true,
+  rowDraggable: false     // Row numbers만
+}
+
+{
+  showRowNumbers: false,
+  rowDraggable: true      // Drag handle만
+}
+
+{
+  showRowNumbers: true,
+  rowDraggable: true      // 둘 다
+}
+```
+
+### 3. Fixed Left Header Checkbox 정렬
+
+#### 문제점
+rowDraggable과 checkBar를 함께 사용할 때, header의 checkbox가 왼쪽으로 쏠려서
+body 영역의 checkbox와 정렬이 맞지 않음.
+
+#### 해결 내용
+Fixed left header에 row drag handle placeholder를 추가하여 body와 정렬:
+
+```typescript
+// Fixed left header
+if (options.rowDraggable) {
+  const dragPlaceholder = createElement('div', 'velox-row-drag-handle');
+  dragPlaceholder.style.visibility = 'hidden';  // 공간은 차지하지만 보이지 않음
+  headerRow.appendChild(dragPlaceholder);
+}
+```
+
+**수정 파일**:
+- `src/core/GridRenderer.ts`: `renderHeader()` 메서드
+
+#### 결과
+```
+이전: Header: [✓] Col     (checkbox가 왼쪽으로 쏠림)
+      Body:   [☰][✓] Data
+
+이후: Header: [ ][✓] Col   (정렬됨!)
+      Body:   [☰][✓] Data
+```
+
+### 4. Sort 아이콘 우측 정렬
+
+#### 문제점
+Sort 아이콘이 header text 옆에 붙어있어 filter/menu 버튼과 시각적 일관성 부족.
+
+#### 해결 내용
+- Sort 아이콘을 `contentWrapper` 밖으로 이동
+- Button 형태로 변경 (filter 버튼과 동일한 스타일)
+- 우측 정렬: **sort - filter - menu** 순서
+
+**수정 파일**:
+- `src/core/GridRenderer.ts`: `createHeaderCell()` 메서드
+- `src/styles/_header.css`: `.velox-sort-btn` 스타일 추가
+
+**CSS 변경**:
+```css
+/* 이전 */
+.velox-sort-icon { /* span, inline */ }
+
+/* 이후 */
+.velox-sort-btn {
+  display: flex;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  opacity: 0.5;
+}
+.velox-sort-btn--active { /* 활성화 스타일 */ }
+```
+
+#### 결과
+```
+이전: [⋮⋮] Column ↑ [filter] [menu]
+           (sort가 텍스트에 붙음)
+
+이후: [⋮⋮] Column  [sort] [filter] [menu]
+                    (우측 정렬)
+```
+
+---
+
 ## 🔜 다음 작업
+
+### Fixed Left 옵션 설계
+현재 showRowNumbers, rowDraggable, checkBar의 fixed left 배치가 자동으로 결정됨.
+より 유연한 제어를 위해 옵션 설계 필요:
+
+**제안된 방안**:
+```typescript
+interface GridOptions {
+  // 기본 기능 옵션
+  showRowNumbers?: boolean;
+  rowDraggable?: boolean;
+  checkBar?: CheckBarOptions;
+  
+  // Fixed left 배치 설정 (통합)
+  fixedLeft?: {
+    rowNumbers?: boolean;   // showRowNumbers가 true일 때만 동작
+    rowDrag?: boolean;      // rowDraggable이 true일 때만 동작
+    checkBar?: boolean;     // checkBar.visible이 true일 때만 동작
+  };
+}
+```
 
 ### Phase 14: Group Summary
 - [ ] Group Summary (그룹별 소계)

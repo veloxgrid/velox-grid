@@ -66,6 +66,7 @@ const DEFAULT_OPTIONS: Partial<GridOptions> = {
   rowHeight: 40,
   headerHeight: 44,
   showRowNumbers: false,
+  rowDraggable: false,
   selectable: true,
   selectionMode: 'multiple',
   selectionStyle: 'row',
@@ -302,8 +303,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   hasFixedLeft(): boolean {
     return this.getFixedLeftColumns().length > 0 || 
            this.options.checkBar?.visible === true || 
-           this.options.showCheckbox === true || 
-           this.options.showRowNumbers === true;
+           this.options.showCheckbox === true ||
+           this.options.rowDraggable === true;
   }
 
   private build(): void {
@@ -1242,6 +1243,9 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
             }
           }
           
+          // Invalidate summary cache when checkbox value changes
+          this.summary.invalidateCache();
+          
           // Checkbox editor는 edit 모드를 유지 (즉시 종료하지 않음)
           if (column.editor?.type === 'checkbox') {
             console.log('✅ Checkbox editor - maintaining edit mode, new value:', newValue);
@@ -1675,6 +1679,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         });
       });
       
+      // Invalidate summary cache
+      this.summary.invalidateCache();
       this.applyDataTransformations();
       this.render();
       this.events.onDataChange?.(this.state.data);
@@ -1714,6 +1720,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       this.pushUndo({ type: 'cut', timestamp: Date.now(), data: { changes } as BulkEditUndoData });
     }
     
+    // Invalidate summary cache
+    this.summary.invalidateCache();
     this.applyDataTransformations();
     this.render();
     this.events.onCut?.(data.map(row => row.map(v => String(v ?? ''))));
@@ -1768,6 +1776,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       }
     }
     
+    // Invalidate summary cache
+    this.summary.invalidateCache();
     this.applyDataTransformations();
     this.render();
     this.events.onUndo?.(action);
@@ -1818,6 +1828,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       }
     }
     
+    // Invalidate summary cache
+    this.summary.invalidateCache();
     this.applyDataTransformations();
     this.render();
     this.events.onRedo?.(action);
@@ -1871,6 +1883,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     if (changes.length > 0) {
       this.pushUndo({ type: 'delete', timestamp: Date.now(), data: { changes } as BulkEditUndoData });
       this.applyDataTransformations();
+      // Invalidate summary cache
+      this.summary.invalidateCache();
       this.render();
       this.events.onDataChange?.(this.state.data);
     }

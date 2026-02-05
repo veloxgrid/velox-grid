@@ -9,9 +9,13 @@
   background: var(--velox-header-bg);
   border-bottom: var(--velox-border-width) solid var(--velox-border-color);
   min-height: var(--velox-header-height);
+  overflow-x: hidden; /* Phase 14: Hide horizontal scrollbar, sync with body */
+  overflow-y: hidden;
 }
 
-.velox-header--fixed { overflow: hidden; }
+.velox-header--fixed { 
+  overflow: hidden; 
+}
 .velox-header-row { display: flex; width: 100%; }
 
 .velox-header-cell {

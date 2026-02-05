@@ -542,11 +542,18 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   private attachEvents(): void {
     const handleScroll = throttle(() => {
       const scrollTop = this.bodyElement.scrollTop;
+      const scrollLeft = this.bodyElement.scrollLeft;
+      
       this.state.scroll.top = scrollTop;
-      this.state.scroll.left = this.bodyElement.scrollLeft;
+      this.state.scroll.left = scrollLeft;
+      
+      // Sync vertical scroll (Fixed Left/Right)
       if (this.fixedLeftBody) this.fixedLeftBody.scrollTop = scrollTop;
-      // Phase 14: Sync fixed right scroll
       if (this.fixedRightBody) this.fixedRightBody.scrollTop = scrollTop;
+      
+      // Sync horizontal scroll (Header)
+      this.headerElement.scrollLeft = scrollLeft;
+      
       if (this.options.virtualScroll) this.renderBody();
       this.events.onScroll?.(this.state.scroll.top, this.state.scroll.left);
     }, 16);

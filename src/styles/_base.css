@@ -38,7 +38,18 @@
   box-shadow: 2px 0 4px rgba(0,0,0,0.1);
 }
 
-.velox-fixed-left .velox-body--fixed { overflow: hidden; }
+.velox-fixed-left .velox-body--fixed { 
+  overflow: hidden; 
+}
+
+/* Hide scrollbar completely for fixed areas */
+.velox-body--fixed {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.velox-body--fixed::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
 
 /* Fixed Right (Phase 14) */
 .velox-fixed-right {
@@ -51,16 +62,14 @@
   box-shadow: -2px 0 4px rgba(0,0,0,0.1);
 }
 
-.velox-fixed-right .velox-body--fixed { overflow: hidden; }
+.velox-fixed-right .velox-body--fixed { 
+  overflow: hidden; 
+}
 
 .velox-header--fixed-right,
 .velox-body--fixed-right,
 .velox-footer--fixed-right {
   overflow: hidden;
-}
-
-.velox-body--fixed-right {
-  overflow-y: hidden;
 }
 
 /* Empty state */

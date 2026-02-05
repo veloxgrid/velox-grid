@@ -4,7 +4,7 @@
  * 
  * @author bumki
  * @license MIT
- * @version 0.7.0
+ * @version 0.8.0
  */
 
 // Core
@@ -100,4 +100,4 @@ export {
 import './styles/velox-grid.css';
 
 // Version
-export const VERSION = '0.7.0';
+export const VERSION = '0.8.0';

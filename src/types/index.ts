@@ -768,6 +768,11 @@ export interface GridContext {
   readonly fixedLeftBody: HTMLElement | null;
   readonly fixedLeftBodyInner: HTMLElement | null;
   readonly fixedLeftFooter: HTMLElement | null;
+  readonly fixedRightContainer: HTMLElement | null;  // Phase 14
+  readonly fixedRightHeader: HTMLElement | null;     // Phase 14
+  readonly fixedRightBody: HTMLElement | null;       // Phase 14
+  readonly fixedRightBodyInner: HTMLElement | null;  // Phase 14
+  readonly fixedRightFooter: HTMLElement | null;     // Phase 14
   readonly loadingOverlay: HTMLElement | null;
 
   // ============================================
@@ -787,14 +792,18 @@ export interface GridContext {
   // ============================================
   /** 모든 visible 컬럼 반환 (cached) */
   getVisibleColumns(): ColumnDefinition[];
-  /** 왼쪽 고정 컬럼 반환 (cached) */
+  /** 왼쪽 고정 컬럼 반환 (Special columns + fixedOptions.colCount data columns - cached) Phase 14 */
   getFixedLeftColumns(): ColumnDefinition[];
+  /** 오른쪽 고정 컬럼 반환 (based on fixedOptions.rightCount - cached) Phase 14 */
+  getFixedRightColumns(): ColumnDefinition[];
   /** 스크롤 가능 컬럼 반환 (cached) */
   getScrollableColumns(): ColumnDefinition[];
   /** 컬럼 캐시 무효화 */
   invalidateColumnCache(): void;
   /** 왼쪽 고정 영역 존재 여부 */
   hasFixedLeft(): boolean;
+  /** 오른쪽 고정 영역 존재 여부 Phase 14 */
+  hasFixedRight(): boolean;
 
   // ============================================
   // Data Methods

@@ -1,31 +1,41 @@
-feat(phase14): implement column partition logic v0.8.0-alpha
+feat(phase14): add Fixed Columns feature v0.8.0
 
-Phase 14: Fixed Columns - Column Partition Logic (60% Complete)
+Phase 14 Fixed Columns 기능 구현 완료:
+
+주요 기능:
+- FixedOptions API (colCount, rightCount) - RealGrid 스타일
+- 특수 컬럼 자동 처리 (CheckBar, RowNumbers, DragHandle)
+- Fixed Left/Right 렌더링 및 DOM 구조
+- 스크롤 동기화 (throttle 16ms)
+- 컬럼 파티션 로직 (getFixedLeftColumns, getFixedRightColumns, getScrollableColumns)
 
 구현 내용:
-- FixedOptions 타입 정의 (colCount, rightCount)
+- FixedOptions 타입 정의 및 API 메서드
 - ColumnCache 확장 (fixedLeftData, fixedRight)
-- 컬럼 파티션 메서드 구현:
-  * getFixedLeftColumns() - 특수 컬럼만 반환
-  * getFixedLeftDataColumns() - fixedOptions.colCount 기반
-  * getFixedRightColumns() - fixedOptions.rightCount 기반
-  * getScrollableColumns() - 중앙 스크롤 영역 계산
-  * getDataColumns() - 데이터 컬럼 필터링
-  * isSpecialColumn() - 특수 컬럼 판별
-- API 메서드: setFixedOptions(), getFixedOptions()
+- Fixed Right DOM 요소 추가
+- GridRenderer Fixed Right 렌더링
+- CSS 스타일 (_base.css)
+- 데모 페이지 (4가지 시나리오)
 
-변경 사항:
-- src/types/index.ts: FixedOptions 인터페이스 추가
-- src/core/VeloxGrid.ts: 컬럼 파티션 로직 구현
-- .claude/PHASE14_PROGRESS.md: 진행 상황 업데이트 (60%)
+Breaking Changes:
+- ColumnDefinition.fixed 속성 제거
+- GridOptions.fixedOptions 사용으로 통합
 
-빌드 결과:
-- UMD: 82.48 KB (gzip: 21.07 KB)
-- ESM: 114.58 KB (gzip: 26.26 KB)
-- CSS: 17.95 KB (gzip: 3.43 KB)
+Bundle Size:
+- UMD: 84.30 KB (gzip: 21.31 KB) - +3.59 KB
+- ESM: 116.75 KB (gzip: 26.58 KB) - +5.63 KB
+- CSS: 18.32 KB (gzip: 3.48 KB) - +0.56 KB
 
-다음 작업:
-- DOM 구조 변경 (Fixed Right Container)
-- GridRenderer 수정 (Fixed Right 렌더링)
-- CSS 스타일 추가
-- 스크롤 동기화
+Files Added:
+- examples/phase14-fixed-demo.html
+- .claude/PHASE14_PROGRESS.md (완료)
+
+Files Modified:
+- src/types/index.ts (FixedOptions 추가)
+- src/core/VeloxGrid.ts (컬럼 파티션 로직, Fixed Right DOM)
+- src/core/GridRenderer.ts (Fixed Right 렌더링)
+- src/styles/_base.css (Fixed Right 스타일)
+- package.json (v0.8.0)
+- src/index.ts (VERSION 0.8.0)
+- .claude/PROGRESS.md
+- CHANGELOG.md

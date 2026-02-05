@@ -40,6 +40,29 @@
 
 .velox-fixed-left .velox-body--fixed { overflow: hidden; }
 
+/* Fixed Right (Phase 14) */
+.velox-fixed-right {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-left: 2px solid var(--velox-border-color);
+  background: var(--velox-bg-color);
+  z-index: 2;
+  box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+}
+
+.velox-fixed-right .velox-body--fixed { overflow: hidden; }
+
+.velox-header--fixed-right,
+.velox-body--fixed-right,
+.velox-footer--fixed-right {
+  overflow: hidden;
+}
+
+.velox-body--fixed-right {
+  overflow-y: hidden;
+}
+
 /* Empty state */
 .velox-empty { 
   display: flex; 

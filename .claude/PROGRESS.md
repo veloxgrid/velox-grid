@@ -9,12 +9,12 @@
 ### 기본 정보
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
-- **현재 버전**: v0.7.1
+- **현재 버전**: v0.8.0
 - **라이선스**: MIT
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
 ### 빌드 정보
-- **번들 크기**: 80.71KB (gzip 20.76KB)
+- **번들 크기**: 84.30KB (gzip 21.31KB)
 - **VeloxGrid.ts**: ~2,044줄 (최적화 완료)
 - **Core 모듈**: 11개
 - **CSS 모듈**: 11개
@@ -84,9 +84,16 @@ velox-grid/
 - ✅ Map 기반 캐싱
 - ✅ 자동 업데이트
 
+#### Phase 14: Fixed Columns (v0.8.0)
+- ✅ fixedOptions API (colCount, rightCount)
+- ✅ 특수 컬럼 자동 처리
+- ✅ Fixed Left/Right 렌더링
+- ✅ 스크롤 동기화
+- ✅ 데모 페이지 (4가지 시나리오)
+
 ### 계획된 기능
 
-#### Phase 14: Group Summary
+#### Phase 15: Group Summary
 - [ ] Group Summary (그룹별 소계)
 - [ ] Sub-total rows
 
@@ -102,6 +109,71 @@ velox-grid/
 ---
 
 ## 📋 최근 작업 이력 (최신순)
+
+### ✨ Phase 14: Fixed Columns 완료 (2025-02-05)
+
+**v0.8.0 릴리스**
+
+#### 구현 내용
+
+**FixedOptions API** (RealGrid 스타일):
+```typescript
+interface FixedOptions {
+  colCount?: number;    // 왼쪽에서 N개 컬럼 고정
+  rightCount?: number;  // 오른쪽에서 N개 컬럼 고정
+}
+
+// API 메서드
+grid.setFixedOptions({ colCount: 2, rightCount: 1 });
+const options = grid.getFixedOptions();
+```
+
+**컬럼 파티션 로직**:
+- `getFixedLeftColumns()`: 특수 컬럼 + 왼쪽 고정 데이터 컬럼
+- `getFixedRightColumns()`: 오른쪽 고정 컬럼
+- `getScrollableColumns()`: 중앙 스크롤 가능 컬럼
+- `getDataColumns()`: 데이터 컬럼만 (특수 컬럼 제외)
+- `isSpecialColumn()`: 특수 컬럼 판별
+
+**특수 컬럼 처리**:
+- CheckBar, RowNumbers, DragHandle은 **항상 왼쪽 고정**
+- `fixedOptions.colCount`는 **데이터 컬럼만** 계산
+
+**DOM 구조**:
+```
+[Special Cols] [Fixed Left Data] [Scrollable] [Fixed Right]
+```
+
+**Fixed Right 컨테이너**:
+- `fixedRightContainer`, `fixedRightHeader`
+- `fixedRightBody`, `fixedRightBodyInner`
+- `fixedRightFooter`
+
+**스크롤 동기화**:
+- Fixed Left/Right의 세로 스크롤을 메인 body와 동기화
+- throttle(16ms)로 부드러운 스크롤
+
+**데모 페이지** (`examples/phase14-fixed-demo.html`):
+1. Left Fixed (colCount만 사용)
+2. Right Fixed (rightCount만 사용)
+3. Both Fixed (colCount + rightCount)
+4. With Special Columns (CheckBar + RowNumbers + Fixed)
+
+**CSS 스타일** (`src/styles/_base.css`):
+- `.velox-fixed-right` 컨테이너
+- 좌측 border, box-shadow
+- 스크롤 숨김 처리
+
+**번들 크기 변화**:
+- UMD: 80.71 KB → 84.30 KB (+3.59 KB)
+- ESM: 111.12 KB → 116.75 KB (+5.63 KB)
+- CSS: 17.76 KB → 18.32 KB (+0.56 KB)
+
+**Breaking Change**:
+- ❌ `ColumnDefinition.fixed` 속성 제거
+- ✅ `GridOptions.fixedOptions` 사용
+
+---
 
 ### 🔧 버그 수정 & UI 개선 (2025-02-05)
 

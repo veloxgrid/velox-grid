@@ -28,13 +28,13 @@ export class GridRenderer {
   }
 
   /**
-   * 헤더 렌더링
+   * 헤더 렌더링 (Phase 14: Fixed Right 지원)
    */
   renderHeader(): void {
     const ctx = this.ctx;
     const options = ctx.getOptions();
 
-    // Fixed left header
+    // 1. Fixed left header (Special + Fixed Left Data)
     if (ctx.fixedLeftHeader) {
       ctx.fixedLeftHeader.innerHTML = '';
       const headerRow = createElement('div', 'velox-header-row');
@@ -50,13 +50,15 @@ export class GridRenderer {
         headerRow.appendChild(this.createHeaderCheckbarCell());
       }
       
+      // Fixed left columns (Special + Data columns from fixedOptions.colCount)
       ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => 
         headerRow.appendChild(this.createHeaderCell(col))
       );
+      
       ctx.fixedLeftHeader.appendChild(headerRow);
     }
 
-    // Scrollable header
+    // 2. Scrollable header
     const headerRow = createElement('div', 'velox-header-row');
     
     // Row numbers in scrollable area
@@ -71,6 +73,18 @@ export class GridRenderer {
     );
     ctx.headerElement.innerHTML = '';
     ctx.headerElement.appendChild(headerRow);
+
+    // 3. Fixed right header (Phase 14)
+    if (ctx.fixedRightHeader) {
+      ctx.fixedRightHeader.innerHTML = '';
+      const fixedRightRow = createElement('div', 'velox-header-row');
+      
+      ctx.getFixedRightColumns().forEach((col: ColumnDefinition) => 
+        fixedRightRow.appendChild(this.createHeaderCell(col))
+      );
+      
+      ctx.fixedRightHeader.appendChild(fixedRightRow);
+    }
   }
 
   /**
@@ -208,7 +222,7 @@ export class GridRenderer {
   }
 
   /**
-   * 바디 렌더링
+   * 바디 렌더링 (Phase 14: Fixed Right 지원)
    */
   renderBody(): void {
     const ctx = this.ctx;
@@ -217,7 +231,7 @@ export class GridRenderer {
     const virtualState = ctx.getVirtualState();
     const rowHeight = options.rowHeight || 40;
 
-    // Fixed left body
+    // 1. Fixed left body (Special + Fixed Left Data)
     if (ctx.fixedLeftBodyInner) {
       ctx.fixedLeftBodyInner.innerHTML = '';
       if (options.virtualScroll) {
@@ -229,7 +243,7 @@ export class GridRenderer {
       }
 
       visibleRows.forEach(({ data, index }) => {
-        const row = this.createRowBase(data, index, true);
+        const row = this.createRowBase(data, index, 'fixedLeft');
         if (options.virtualScroll) {
           row.style.position = 'absolute';
           row.style.top = `${index * rowHeight}px`;
@@ -240,7 +254,7 @@ export class GridRenderer {
       });
     }
 
-    // Scrollable body
+    // 2. Scrollable body
     ctx.bodyInner.innerHTML = '';
     if (options.virtualScroll) {
       ctx.bodyInner.style.height = `${virtualState.totalHeight}px`;
@@ -258,7 +272,7 @@ export class GridRenderer {
     }
 
     visibleRows.forEach(({ data, index }) => {
-      const row = this.createRowBase(data, index, false);
+      const row = this.createRowBase(data, index, 'scrollable');
       if (options.virtualScroll) {
         row.style.position = 'absolute';
         row.style.top = `${index * rowHeight}px`;
@@ -267,12 +281,36 @@ export class GridRenderer {
       }
       ctx.bodyInner.appendChild(row);
     });
+
+    // 3. Fixed right body (Phase 14)
+    if (ctx.fixedRightBodyInner) {
+      ctx.fixedRightBodyInner.innerHTML = '';
+      if (options.virtualScroll) {
+        ctx.fixedRightBodyInner.style.height = `${virtualState.totalHeight}px`;
+        ctx.fixedRightBodyInner.style.position = 'relative';
+      } else {
+        ctx.fixedRightBodyInner.style.height = '';
+        ctx.fixedRightBodyInner.style.position = '';
+      }
+
+      visibleRows.forEach(({ data, index }) => {
+        const row = this.createRowBase(data, index, 'fixedRight');
+        if (options.virtualScroll) {
+          row.style.position = 'absolute';
+          row.style.top = `${index * rowHeight}px`;
+          row.style.left = '0';
+          row.style.right = '0';
+        }
+        ctx.fixedRightBodyInner!.appendChild(row);
+      });
+    }
   }
 
   /**
    * Row 생성 (통합 메서드)
+   * @param area - 'fixedLeft' | 'scrollable' | 'fixedRight' (Phase 14)
    */
-  createRowBase(rowData: RowData, rowIndex: number, isFixedLeft: boolean): HTMLElement {
+  createRowBase(rowData: RowData, rowIndex: number, area: 'fixedLeft' | 'scrollable' | 'fixedRight'): HTMLElement {
     const ctx = this.ctx;
     const options = ctx.getOptions();
     const state = ctx.getState();
@@ -289,7 +327,7 @@ export class GridRenderer {
     }
     
     // CheckBar state
-    if (isFixedLeft && state.checkBar.checkedRows.has(rowIndex)) {
+    if (area === 'fixedLeft' && state.checkBar.checkedRows.has(rowIndex)) {
       addClass(row, 'velox-row--checked');
     }
 
@@ -301,13 +339,13 @@ export class GridRenderer {
       ctx.handleRowClick(rowIndex, e);
     });
 
-    // Double click
-    if (!isFixedLeft) {
+    // Double click (only for scrollable and fixedRight areas)
+    if (area !== 'fixedLeft') {
       row.addEventListener('dblclick', (e) => ctx.handleRowDoubleClick(rowIndex, e));
     }
 
-    // Fixed left content
-    if (isFixedLeft) {
+    // Content based on area (Phase 14)
+    if (area === 'fixedLeft') {
       // Row drag handle (only if rowDraggable is enabled)
       if (options.rowDraggable) {
         const dragHandle = createElement('div', 'velox-row-drag-handle');
@@ -321,10 +359,11 @@ export class GridRenderer {
         row.appendChild(this.createCheckbarCell(rowIndex));
       }
       
+      // Fixed left columns (Special + Data columns from fixedOptions.colCount)
       ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => 
         row.appendChild(this.createCell(rowData, rowIndex, col))
       );
-    } else {
+    } else if (area === 'scrollable') {
       // Row numbers in scrollable area
       if (options.showRowNumbers) {
         const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
@@ -333,6 +372,11 @@ export class GridRenderer {
       }
       
       ctx.getScrollableColumns().forEach((col: ColumnDefinition) => 
+        row.appendChild(this.createCell(rowData, rowIndex, col))
+      );
+    } else if (area === 'fixedRight') {
+      // Fixed right columns (Phase 14)
+      ctx.getFixedRightColumns().forEach((col: ColumnDefinition) => 
         row.appendChild(this.createCell(rowData, rowIndex, col))
       );
     }
@@ -509,7 +553,7 @@ export class GridRenderer {
   }
 
   /**
-   * Footer Summary 렌더링 (Phase 13)
+   * Footer Summary 렌더링 (Phase 13, Phase 14: Fixed Right 지원)
    */
   renderFooter(): void {
     const ctx = this.ctx;
@@ -518,7 +562,7 @@ export class GridRenderer {
     // Footer summary가 비활성화되어 있으면 건너뀨기
     if (!options.footerSummary?.visible) return;
 
-    // Fixed left footer
+    // 1. Fixed left footer (Special + Fixed Left Data)
     if (ctx.fixedLeftFooter) {
       ctx.fixedLeftFooter.innerHTML = '';
       const footerRow = createElement('div', 'velox-footer-row');
@@ -535,13 +579,15 @@ export class GridRenderer {
         footerRow.appendChild(checkboxCell);
       }
       
+      // Fixed left columns (Special + Data columns from fixedOptions.colCount)
       ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => 
         footerRow.appendChild(this.createFooterCell(col))
       );
+      
       ctx.fixedLeftFooter.appendChild(footerRow);
     }
 
-    // Scrollable footer
+    // 2. Scrollable footer
     if (ctx.footerElement) {
       ctx.footerElement.innerHTML = '';
       const footerRow = createElement('div', 'velox-footer-row');
@@ -556,6 +602,18 @@ export class GridRenderer {
         footerRow.appendChild(this.createFooterCell(col))
       );
       ctx.footerElement.appendChild(footerRow);
+    }
+
+    // 3. Fixed right footer (Phase 14)
+    if (ctx.fixedRightFooter) {
+      ctx.fixedRightFooter.innerHTML = '';
+      const fixedRightRow = createElement('div', 'velox-footer-row');
+      
+      ctx.getFixedRightColumns().forEach((col: ColumnDefinition) => 
+        fixedRightRow.appendChild(this.createFooterCell(col))
+      );
+      
+      ctx.fixedRightFooter.appendChild(fixedRightRow);
     }
   }
 

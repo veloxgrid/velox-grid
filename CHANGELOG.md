@@ -5,6 +5,71 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
+## [0.8.0] - 2025-02-05
+
+### 추가 - Phase 14: Fixed Columns
+
+#### RealGrid 스타일 Fixed Columns API
+- **FixedOptions 인터페이스 추가**: `colCount`, `rightCount` 지원
+- **fixedOptions API**: 왼쪽/오른쪽 컬럼 고정 설정
+- **API 메서드**: `setFixedOptions()`, `getFixedOptions()`
+
+#### 컬럼 파티션 로직
+- **특수 컬럼 자동 처리**: CheckBar, RowNumbers, DragHandle은 항상 왼쪽 고정
+- **getFixedLeftColumns()**: 특수 컬럼 + 왼쪽 고정 데이터 컬럼 반환
+- **getFixedRightColumns()**: 오른쪽 고정 컬럼 반환
+- **getScrollableColumns()**: 중앙 스크롤 가능 컬럼 반환
+- **getDataColumns()**: 데이터 컬럼만 반환 (특수 컬럼 제외)
+- **isSpecialColumn()**: 특수 컬럼 판별 헬퍼 메서드
+
+#### Fixed Right 컨테이너
+- **DOM 요소 추가**: `fixedRightContainer`, `fixedRightHeader`, `fixedRightBody`, `fixedRightBodyInner`, `fixedRightFooter`
+- **GridRenderer 확장**: Fixed Right 영역 렌더링 지원
+- **hasFixedRight()**: Fixed Right 유무 확인 메서드
+
+#### 스크롤 동기화
+- **세로 스크롤 동기화**: Fixed Left/Right의 scrollTop을 메인 body와 동기화
+- **throttle(16ms)**: 부드러운 스크롤 성능 최적화
+
+#### CSS 스타일링
+- **_base.css 확장**: `.velox-fixed-right` 스타일 추가
+- 좌측 border, box-shadow 스타일
+- 스크롤 숨김 처리
+
+#### 데모 페이지
+- **examples/phase14-fixed-demo.html**: 4가지 시나리오 데모
+  1. Left Fixed (colCount만 사용)
+  2. Right Fixed (rightCount만 사용)
+  3. Both Fixed (colCount + rightCount)
+  4. With Special Columns (CheckBar + RowNumbers + Fixed)
+
+### 번들 크기
+- UMD: 84.30 KB (gzip: 21.31 KB) - 80.71 KB에서 +3.59 KB
+- ESM: 116.75 KB (gzip: 26.58 KB) - 111.12 KB에서 +5.63 KB
+- CSS: 18.32 KB (gzip: 3.48 KB) - 17.76 KB에서 +0.56 KB
+
+### Breaking Changes
+- **ColumnDefinition.fixed 제거**: 개별 컬럼의 `fixed` 속성 제거
+- **GridOptions.fixedOptions 사용**: RealGrid 스타일의 통합 API로 전환
+
+### 마이그레이션 가이드
+```typescript
+// 변경 전 (Phase 1-13)
+columns: [
+  { field: 'id', header: 'ID', fixed: 'left' },  // ❌
+]
+
+// 변경 후 (Phase 14)
+columns: [
+  { field: 'id', header: 'ID' },  // fixed 속성 제거
+],
+fixedOptions: {
+  colCount: 1  // 첫 번째 데이터 컬럼 고정
+}
+```
+
+---
+
 ## [0.7.1] - 2025-02-03
 
 ### 추가 - Phase 13: Summary/Aggregation

@@ -96,7 +96,6 @@ const DEFAULT_CHECKBAR: CheckBarOptions = {
 interface ColumnCache {
   visible: ColumnDefinition[] | null;
   fixedLeft: ColumnDefinition[] | null;
-  fixedLeftData: ColumnDefinition[] | null;  // Phase 14: Data columns fixed to left
   scrollable: ColumnDefinition[] | null;
   fixedRight: ColumnDefinition[] | null;     // Phase 14: Columns fixed to right
   dirty: boolean;
@@ -121,6 +120,12 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   public fixedLeftHeader: HTMLElement | null = null;
   public fixedLeftBody: HTMLElement | null = null;
   public fixedLeftBodyInner: HTMLElement | null = null;
+  // Phase 14: Fixed Right DOM elements
+  public fixedRightContainer: HTMLElement | null = null;
+  public fixedRightHeader: HTMLElement | null = null;
+  public fixedRightBody: HTMLElement | null = null;
+  public fixedRightBodyInner: HTMLElement | null = null;
+  public fixedRightFooter: HTMLElement | null = null;
 
   // Internal state
   private blockSelecting: { startRow: number; startField: string } | null = null;
@@ -146,7 +151,6 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   private columnCache: ColumnCache = {
     visible: null,
     fixedLeft: null,
-    fixedLeftData: null,  // Phase 14: Data columns fixed to left
     scrollable: null,
     fixedRight: null,     // Phase 14: Columns fixed to right
     dirty: true,
@@ -275,35 +279,29 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.columnCache.dirty = true;
     this.columnCache.visible = null;
     this.columnCache.fixedLeft = null;
-    this.columnCache.fixedLeftData = null;
     this.columnCache.scrollable = null;
     this.columnCache.fixedRight = null;
   }
 
   /**
-   * Get fixed left columns (special columns only: CheckBar, RowNumbers, DragHandle)
-   * Phase 14: Changed to only return special columns
+   * Get fixed left columns (Special columns + fixedOptions.colCount data columns)
+   * Phase 14: Unified method for all fixed left columns
    */
   getFixedLeftColumns(): ColumnDefinition[] {
     if (this.columnCache.dirty || !this.columnCache.fixedLeft) {
-      this.columnCache.fixedLeft = this.state.columns.filter(
+      // Special columns (CheckBar, RowNumbers, DragHandle)
+      const specialColumns = this.state.columns.filter(
         col => this.isSpecialColumn(col) && col.visible !== false
       );
-    }
-    return this.columnCache.fixedLeft;
-  }
-
-  /**
-   * Get data columns fixed to left (based on fixedOptions.colCount)
-   * Phase 14: New method for data columns fixed by fixedOptions
-   */
-  getFixedLeftDataColumns(): ColumnDefinition[] {
-    if (this.columnCache.dirty || !this.columnCache.fixedLeftData) {
+      
+      // Data columns fixed by fixedOptions.colCount
       const { colCount = 0 } = this.options.fixedOptions || {};
       const dataColumns = this.getDataColumns();
-      this.columnCache.fixedLeftData = colCount > 0 ? dataColumns.slice(0, colCount) : [];
+      const fixedDataColumns = colCount > 0 ? dataColumns.slice(0, colCount) : [];
+      
+      this.columnCache.fixedLeft = [...specialColumns, ...fixedDataColumns];
     }
-    return this.columnCache.fixedLeftData;
+    return this.columnCache.fixedLeft;
   }
 
   /**
@@ -377,6 +375,15 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
            this.options.rowDraggable === true;
   }
 
+  /**
+   * Check if grid has fixed right columns
+   * Phase 14: New method for hasFixedRight
+   */
+  hasFixedRight(): boolean {
+    const { rightCount = 0 } = this.options.fixedOptions || {};
+    return rightCount > 0;
+  }
+
   private build(): void {
     this.rootElement = createElement('div', 'velox-grid');
     this.rootElement.id = this.gridId;
@@ -428,6 +435,25 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     }
     
     wrapper.appendChild(mainSection);
+
+    // Phase 14: Fixed Right Container
+    if (this.hasFixedRight()) {
+      this.fixedRightContainer = createElement('div', 'velox-fixed-right');
+      this.fixedRightHeader = createElement('div', 'velox-header velox-header--fixed-right');
+      this.fixedRightBody = createElement('div', 'velox-body velox-body--fixed-right');
+      this.fixedRightBodyInner = createElement('div', 'velox-body-inner');
+      this.fixedRightBody.appendChild(this.fixedRightBodyInner);
+      this.fixedRightContainer.appendChild(this.fixedRightHeader);
+      this.fixedRightContainer.appendChild(this.fixedRightBody);
+      
+      // Phase 14: Footer Summary for fixed right
+      if (this.options.footerSummary?.visible) {
+        this.fixedRightFooter = createElement('div', 'velox-footer velox-footer--fixed-right');
+        this.fixedRightContainer.appendChild(this.fixedRightFooter);
+      }
+      
+      wrapper.appendChild(this.fixedRightContainer);
+    }
 
     this.rootElement.appendChild(wrapper);
     this.container.innerHTML = '';
@@ -519,6 +545,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       this.state.scroll.top = scrollTop;
       this.state.scroll.left = this.bodyElement.scrollLeft;
       if (this.fixedLeftBody) this.fixedLeftBody.scrollTop = scrollTop;
+      // Phase 14: Sync fixed right scroll
+      if (this.fixedRightBody) this.fixedRightBody.scrollTop = scrollTop;
       if (this.options.virtualScroll) this.renderBody();
       this.events.onScroll?.(this.state.scroll.top, this.state.scroll.left);
     }, 16);

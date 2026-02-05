@@ -1,41 +1,11 @@
-feat(phase14): add Fixed Columns feature v0.8.0
+docs: cleanup Phase 14 documentation
 
-Phase 14 Fixed Columns 기능 구현 완료:
+PROGRESS.md 정리:
+- fixedLeft/fixedLeftData 통합 내용 반영
+- 컬럼 배치 구조 명확화
+- ColumnCache 구조 추가 설명
+- DOM 구조 정리
 
-주요 기능:
-- FixedOptions API (colCount, rightCount) - RealGrid 스타일
-- 특수 컬럼 자동 처리 (CheckBar, RowNumbers, DragHandle)
-- Fixed Left/Right 렌더링 및 DOM 구조
-- 스크롤 동기화 (throttle 16ms)
-- 컬럼 파티션 로직 (getFixedLeftColumns, getFixedRightColumns, getScrollableColumns)
-
-구현 내용:
-- FixedOptions 타입 정의 및 API 메서드
-- ColumnCache 확장 (fixedLeftData, fixedRight)
-- Fixed Right DOM 요소 추가
-- GridRenderer Fixed Right 렌더링
-- CSS 스타일 (_base.css)
-- 데모 페이지 (4가지 시나리오)
-
-Breaking Changes:
-- ColumnDefinition.fixed 속성 제거
-- GridOptions.fixedOptions 사용으로 통합
-
-Bundle Size:
-- UMD: 84.30 KB (gzip: 21.31 KB) - +3.59 KB
-- ESM: 116.75 KB (gzip: 26.58 KB) - +5.63 KB
-- CSS: 18.32 KB (gzip: 3.48 KB) - +0.56 KB
-
-Files Added:
-- examples/phase14-fixed-demo.html
-- .claude/PHASE14_PROGRESS.md (완료)
-
-Files Modified:
-- src/types/index.ts (FixedOptions 추가)
-- src/core/VeloxGrid.ts (컬럼 파티션 로직, Fixed Right DOM)
-- src/core/GridRenderer.ts (Fixed Right 렌더링)
-- src/styles/_base.css (Fixed Right 스타일)
-- package.json (v0.8.0)
-- src/index.ts (VERSION 0.8.0)
-- .claude/PROGRESS.md
-- CHANGELOG.md
+파일 삭제:
+- .claude/PHASE14_PROGRESS.md (PROGRESS.md에 통합)
+- commit-msg.txt (임시 파일)

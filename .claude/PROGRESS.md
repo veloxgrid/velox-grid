@@ -129,25 +129,34 @@ const options = grid.getFixedOptions();
 ```
 
 **컬럼 파티션 로직**:
-- `getFixedLeftColumns()`: 특수 컬럼 + 왼쪽 고정 데이터 컬럼
-- `getFixedRightColumns()`: 오른쪽 고정 컬럼
-- `getScrollableColumns()`: 중앙 스크롤 가능 컬럼
-- `getDataColumns()`: 데이터 컬럼만 (특수 컬럼 제외)
-- `isSpecialColumn()`: 특수 컬럼 판별
+- `getFixedLeftColumns()`: 특수 컬럼(CheckBar, RowNumbers, DragHandle) + fixedOptions.colCount 데이터 컬럼 반환
+- `getFixedRightColumns()`: fixedOptions.rightCount 데이터 컬럼 반환
+- `getScrollableColumns()`: 중앙 스크롤 가능 컬럼 반환
+- `getDataColumns()`: 데이터 컬럼만 반환 (특수 컬럼 제외)
+- `isSpecialColumn()`: 특수 컬럼 판별 헬퍼 메서드
+- `hasFixedRight()`: Fixed Right 유무 확인
 
 **특수 컬럼 처리**:
 - CheckBar, RowNumbers, DragHandle은 **항상 왼쪽 고정**
 - `fixedOptions.colCount`는 **데이터 컬럼만** 계산
 
-**DOM 구조**:
+**컬럼 배치 구조**:
 ```
-[Special Cols] [Fixed Left Data] [Scrollable] [Fixed Right]
+[Fixed Left: Special + Data] [Scrollable] [Fixed Right: Data]
+      ↑                          ↑                ↑
+특수 컬럼 + colCount개      중앙 스크롤    rightCount개
 ```
 
-**Fixed Right 컨테이너**:
-- `fixedRightContainer`, `fixedRightHeader`
-- `fixedRightBody`, `fixedRightBodyInner`
-- `fixedRightFooter`
+예시 (총 10개 데이터 컬럼, fixedOptions: { colCount: 2, rightCount: 1 }):
+```
+[CheckBar][RowNum][Drag] [Col0][Col1] | [Col2]...[Col7] | [Col8][Col9]
+        특수 컬럼            colCount:2    Scrollable(6개)   rightCount:2
+```
+
+**DOM 구조**:
+- **Fixed Left**: fixedLeftContainer, fixedLeftHeader, fixedLeftBody, fixedLeftFooter
+- **Scrollable**: headerElement, bodyElement, footerElement (메인 영역)
+- **Fixed Right**: fixedRightContainer, fixedRightHeader, fixedRightBody, fixedRightFooter
 
 **스크롤 동기화**:
 - Fixed Left/Right의 세로 스크롤을 메인 body와 동기화
@@ -169,9 +178,20 @@ const options = grid.getFixedOptions();
 - ESM: 111.12 KB → 116.75 KB (+5.63 KB)
 - CSS: 17.76 KB → 18.32 KB (+0.56 KB)
 
+**ColumnCache 구조**:
+```typescript
+interface ColumnCache {
+  visible: ColumnDefinition[] | null;
+  fixedLeft: ColumnDefinition[] | null;   // 특수 + 왼쪽 고정 데이터 컬럼
+  scrollable: ColumnDefinition[] | null;  // 중앙 스크롤 컬럼
+  fixedRight: ColumnDefinition[] | null;  // 오른쪽 고정 데이터 컬럼
+  dirty: boolean;
+}
+```
+
 **Breaking Change**:
 - ❌ `ColumnDefinition.fixed` 속성 제거
-- ✅ `GridOptions.fixedOptions` 사용
+- ✅ `GridOptions.fixedOptions` 사용 (RealGrid 스타일)
 
 ---
 

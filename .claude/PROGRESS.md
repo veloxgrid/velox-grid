@@ -22,18 +22,20 @@
 ### 프로젝트 구조
 ```
 velox-grid/
-├── .claude/              # Claude AI 작업 파일
-│   ├── PROGRESS.md      # 이 문서
-│   └── RULES.md         # 개발 규칙
-├── dist/                # 빌드 출력
-├── docs/                # GitHub Pages
-├── examples/            # 데모 페이지
-├── src/
-│   ├── core/           # 핵심 모듈 (11개)
-│   ├── styles/         # CSS 모듈 (11개)
-│   ├── types/          # TypeScript 타입
-│   └── utils/          # 유틸리티
-└── package.json
+├── README.md            # 프로젝트 소개 및 API 문서 (한글)
+├── CHANGELOG.md         # 버전 변경 이력 (한글)
+├── package.json         # NPM 패키지 정보
+├── .claude/             # Claude AI 작업 파일
+│   ├── PROGRESS.md     # 이 문서 - 개발 진행 상황
+│   └── RULES.md        # 개발 규칙 및 작업 가이드
+├── dist/               # 빌드 출력
+├── docs/               # GitHub Pages 배포용
+├── examples/           # 데모 페이지
+└── src/
+    ├── core/          # 핵심 모듈 (11개)
+    ├── styles/        # CSS 모듈 (11개)
+    ├── types/         # TypeScript 타입
+    └── utils/         # 유틸리티
 ```
 
 ---

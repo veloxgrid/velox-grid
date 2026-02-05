@@ -30,6 +30,41 @@
 | .claude/PROGRESS.md | 한글 | 개발 진행 상황 |
 | .claude/RULES.md | 한글 | 이 파일 |
 
+### 문서 동기화 규칙
+
+#### README.md ↔ PROGRESS.md 동기화
+
+**중요**: README.md와 PROGRESS.md는 항상 동기화되어야 합니다.
+
+**동기화 대상**:
+1. **버전 정보**: package.json, README.md, PROGRESS.md 모두 일치
+2. **번들 크기**: PROGRESS.md의 "프로젝트 현황" → README.md의 "특징" 섭션
+3. **새 기능**: PROGRESS.md에 Phase 완료 표시 → README.md에 API 문서 추가
+4. **프로젝트 구조**: PROGRESS.md의 "프로젝트 구조" → README.md에도 포함
+
+**동기화 시점**:
+- Phase 완료 시
+- 버그 수정 시
+- 주요 기능 변경 시
+- 번들 크기 변경 시
+
+**업데이트 순서**:
+```
+1. PROGRESS.md 업데이트 (개발 진행 상황 기록)
+2. README.md 동기화 (사용자 문서 갱신)
+3. CHANGELOG.md 추가 (버전 이력)
+4. Git 커밋
+```
+
+**README.md 업데이트 체크리스트**:
+- [ ] 버전 번호 확인 (package.json과 일치)
+- [ ] 특징 섭션에 번들 크기 업데이트
+- [ ] 새 기능 API 문서 추가
+- [ ] 사용 예제 코드 업데이트
+- [ ] Live Demo 링크 확인
+- [ ] 설치 가이드 확인
+- [ ] 브라우저 지원 정보 확인
+
 ---
 
 ## 🛠️ Claude AI 작업 도구 규칙
@@ -199,12 +234,26 @@ Files Modified:
 5. 개발 서버 실행 (npm run dev)
 ```
 
-### 4. 문서 업데이트
+### 4. 문서 업데이트 (⚠️ 중요: 동기화 필수)
 ```
-1. README.md 업데이트 (새 기능, API 추가)
-2. CHANGELOG.md 업데이트 (버전 이력 추가)
-3. .claude/PROGRESS.md 업데이트 (완료 표시)
+1. .claude/PROGRESS.md 업데이트
+   - 작업 내용 기록
+   - Phase 완료 표시
+   - 번들 크기 업데이트
+
+2. README.md 동기화 (⚠️ 필수)
+   - 버전 정보 일치 (package.json)
+   - 번들 크기 동기화 (PROGRESS.md)
+   - 새 기능 API 문서 추가
+   - 사용 예제 코드 업데이트
+   - 프로젝트 구조 동기화
+
+3. CHANGELOG.md 업데이트
+   - 버전 이력 추가
+
 4. package.json 메타데이터 확인
+   - version 필드
+   - description 필드
 ```
 
 ### 5. Git 커밋 및 푸시
@@ -270,9 +319,19 @@ dist/
 - [ ] examples/phaseN-demo.html 데모 페이지 생성
 - [ ] package.json 버전 업데이트
 - [ ] src/index.ts VERSION 업데이트
-- [ ] README.md 문서 업데이트 (한글)
-- [ ] CHANGELOG.md 버전 추가 (한글)
-- [ ] .claude/PROGRESS.md 상태 업데이트
+- [ ] .claude/PROGRESS.md 업데이트
+  - [ ] 작업 내용 기록
+  - [ ] Phase 완료 표시
+  - [ ] 번들 크기 업데이트
+  - [ ] 프로젝트 구조 업데이트
+- [ ] README.md 동기화 (⚠️ 필수)
+  - [ ] 버전 정보 일치 (package.json)
+  - [ ] 번들 크기 동기화 (PROGRESS.md)
+  - [ ] 새 기능 API 문서 추가
+  - [ ] 사용 예제 코드 업데이트
+  - [ ] 프로젝트 구조 동기화
+  - [ ] Live Demo 링크 확인
+- [ ] CHANGELOG.md 버전 추가
 - [ ] commit-msg.txt 작성
 - [ ] git commit -F commit-msg.txt
 - [ ] git push origin main
@@ -343,12 +402,22 @@ dist/
 ### 프로젝트 루트
 ```
 D:\Dev\git\velox-grid\
-├── README.md              # 프로젝트 소개 (한글)
+├── README.md              # 프로젝트 소개 & API 문서 (한글)
+│                         │
+│                         └─> PROGRESS.md와 동기화 필수
+│                             - 버전 정보
+│                             - 번들 크기
+│                             - 새 기능 API
+│                             - 프로젝트 구조
 ├── CHANGELOG.md           # 변경 이력 (한글)
 ├── ROADMAP.md             # 로드맵 (한글)
-├── package.json           # NPM 패키지 정보
+├── package.json           # NPM 패키지 정보 (version 필드 중요)
 └── .claude/
     ├── PROGRESS.md        # 개발 진행 상황 (한글)
+    │                     │
+    │                     └─> README.md의 원본 소스
+    │                         - 먼저 PROGRESS.md 업데이트
+    │                         - 그 다음 README.md 동기화
     └── RULES.md           # 이 파일 (한글)
 ```
 

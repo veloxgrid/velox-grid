@@ -8,7 +8,7 @@
 - **GitHub**: https://github.com/bart-idea/velox-grid
 - **작성자**: bart (ki89.choi@samsung.com)
 - **OS**: Windows
-- **현재 버전**: v0.7.0
+- **현재 버전**: v0.7.1
 
 ---
 
@@ -30,40 +30,98 @@
 | .claude/PROGRESS.md | 한글 | 개발 진행 상황 |
 | .claude/RULES.md | 한글 | 이 파일 |
 
-### 문서 동기화 규칙
+### 문서 관리 규칙
 
-#### README.md ↔ PROGRESS.md 동기화
+#### 문서별 목적과 역할
 
-**중요**: README.md와 PROGRESS.md는 항상 동기화되어야 합니다.
+**PROGRESS.md** (.claude/PROGRESS.md):
+- **목적**: 개발 진행 상황 추적, AI 컨텍스트
+- **독자**: 개발자, Claude AI
+- **내용**: 
+  - 작업 이력 (시간순)
+  - 버그 수정 상세 내역
+  - 코드 최적화 기록
+  - 다음 작업 계획
+  - 기술적 의사결정
 
-**동기화 대상**:
-1. **버전 정보**: package.json, README.md, PROGRESS.md 모두 일치
-2. **번들 크기**: PROGRESS.md의 "프로젝트 현황" → README.md의 "특징" 섭션
-3. **새 기능**: PROGRESS.md에 Phase 완료 표시 → README.md에 API 문서 추가
-4. **프로젝트 구조**: PROGRESS.md의 "프로젝트 구조" → README.md에도 포함
+**README.md**:
+- **목적**: 프로젝트 소개, 사용 가이드
+- **독자**: 일반 사용자, 잠재 사용자
+- **내용**:
+  - 프로젝트 개요
+  - 설치 방법
+  - 사용 예제
+  - API 문서
+  - 기능 목록
+  - 라이선스
 
-**동기화 시점**:
-- Phase 완료 시
-- 버그 수정 시
-- 주요 기능 변경 시
-- 번들 크기 변경 시
+#### 선택적 동기화 규칙
 
-**업데이트 순서**:
+**⚠️ 중요**: 두 문서는 **목적이 다르므로** 전체를 동기화하지 않고, **특정 정보만 선택적으로 동기화**합니다.
+
+**동기화가 필요한 정보**:
+
+| 정보 | PROGRESS.md | README.md | 동기화 방법 |
+|------|-------------|-----------|------------|
+| 버전 번호 | "프로젝트 현황" → **현재 버전** | 상단 뱃지 또는 소개 | package.json과 일치 |
+| 번들 크기 | "프로젝트 현황" → **빌드 정보** | "특징" 또는 "성능" 섹션 | 최신 빌드 결과 반영 |
+| 새 기능 | "최근 작업 이력" → Phase 완료 | "기능" + "API 문서" 추가 | 사용자 관점으로 재작성 |
+| Live Demo | "프로젝트 현황" → **Live Demo** | 상단 링크 | URL 일치 |
+| 프로젝트 구조 | "프로젝트 현황" → **구조** | "프로젝트 구조" (선택) | 사용자에게 필요시만 |
+
+**동기화가 불필요한 정보**:
+
+| 정보 | PROGRESS.md만 | README.md만 |
+|------|--------------|-------------|
+| 작업 이력 | ✅ 상세 기록 | ❌ 불필요 |
+| 버그 수정 상세 | ✅ 기술 상세 | ❌ 불필요 |
+| 코드 최적화 | ✅ 리팩토링 기록 | ❌ 불필요 |
+| 설치 방법 | ❌ 불필요 | ✅ npm install |
+| 사용 예제 | ❌ 불필요 | ✅ 코드 예제 |
+| 브라우저 지원 | ❌ 불필요 | ✅ 지원 목록 |
+
+#### 업데이트 워크플로우
+
+**Phase 완료 시**:
 ```
-1. PROGRESS.md 업데이트 (개발 진행 상황 기록)
-2. README.md 동기화 (사용자 문서 갱신)
-3. CHANGELOG.md 추가 (버전 이력)
+1. PROGRESS.md 업데이트
+   - "최근 작업 이력"에 Phase 완료 기록
+   - "현재 상태"에 완료 체크
+   - 번들 크기 업데이트
+
+2. README.md 업데이트 (선택적)
+   - "기능" 섹션에 새 기능 추가 (사용자 관점)
+   - "API 문서"에 새 API 추가 (사용 예제)
+   - 번들 크기 동기화 (특징 섹션)
+   - 버전 정보 동기화 (package.json 기준)
+
+3. CHANGELOG.md 추가
+   - 버전별 변경 사항 기록
+
 4. Git 커밋
 ```
 
-**README.md 업데이트 체크리스트**:
+**버그 수정 시**:
+```
+1. PROGRESS.md 업데이트
+   - "최근 작업 이력"에 버그 수정 기록
+   - 상세한 문제/해결 방법 기록
+
+2. README.md 업데이트 (필요시)
+   - 사용자에게 영향이 있는 중요 버그만
+   - Breaking change가 있는 경우만
+
+3. CHANGELOG.md 추가
+```
+
+**README.md 업데이트 체크리스트** (Phase 완료 시):
 - [ ] 버전 번호 확인 (package.json과 일치)
-- [ ] 특징 섭션에 번들 크기 업데이트
-- [ ] 새 기능 API 문서 추가
-- [ ] 사용 예제 코드 업데이트
+- [ ] 번들 크기 동기화 (PROGRESS.md → README.md)
+- [ ] 새 기능을 **사용자 관점**으로 재작성
+- [ ] API 문서에 **사용 예제** 추가
+- [ ] 기존 예제 코드가 여전히 작동하는지 확인
 - [ ] Live Demo 링크 확인
-- [ ] 설치 가이드 확인
-- [ ] 브라우저 지원 정보 확인
+- [ ] 설치 방법 변경사항 확인
 
 ---
 
@@ -234,22 +292,23 @@ Files Modified:
 5. 개발 서버 실행 (npm run dev)
 ```
 
-### 4. 문서 업데이트 (⚠️ 중요: 동기화 필수)
+### 4. 문서 업데이트 (⚠️ 각 문서 목적에 맞게)
 ```
-1. .claude/PROGRESS.md 업데이트
-   - 작업 내용 기록
+1. PROGRESS.md 업데이트 (개발 진행 상황)
+   - "최근 작업 이력"에 상세 기록
    - Phase 완료 표시
    - 번들 크기 업데이트
+   - 기술적 의사결정 기록
 
-2. README.md 동기화 (⚠️ 필수)
-   - 버전 정보 일치 (package.json)
-   - 번들 크기 동기화 (PROGRESS.md)
-   - 새 기능 API 문서 추가
-   - 사용 예제 코드 업데이트
-   - 프로젝트 구조 동기화
+2. README.md 선택적 업데이트 (사용자 문서)
+   - 버전 정보 (package.json 기준)
+   - 번들 크기 (PROGRESS.md 참조)
+   - 새 기능 (사용자 관점으로 재작성)
+   - API 문서 (사용 예제 추가)
+   - 사용 예제 코드 검증
 
-3. CHANGELOG.md 업데이트
-   - 버전 이력 추가
+3. CHANGELOG.md 업데이트 (버전 이력)
+   - 버전별 주요 변경사항
 
 4. package.json 메타데이터 확인
    - version 필드
@@ -319,17 +378,17 @@ dist/
 - [ ] examples/phaseN-demo.html 데모 페이지 생성
 - [ ] package.json 버전 업데이트
 - [ ] src/index.ts VERSION 업데이트
-- [ ] .claude/PROGRESS.md 업데이트
-  - [ ] 작업 내용 기록
+- [ ] **PROGRESS.md 업데이트** (개발 기록)
+  - [ ] "최근 작업 이력"에 상세 기록
   - [ ] Phase 완료 표시
   - [ ] 번들 크기 업데이트
-  - [ ] 프로젝트 구조 업데이트
-- [ ] README.md 동기화 (⚠️ 필수)
+  - [ ] 프로젝트 구조 확인
+- [ ] **README.md 선택적 업데이트** (사용자 문서)
   - [ ] 버전 정보 일치 (package.json)
-  - [ ] 번들 크기 동기화 (PROGRESS.md)
-  - [ ] 새 기능 API 문서 추가
-  - [ ] 사용 예제 코드 업데이트
-  - [ ] 프로젝트 구조 동기화
+  - [ ] 번들 크기 동기화 (PROGRESS.md 참조)
+  - [ ] 새 기능을 **사용자 관점**으로 작성
+  - [ ] API 문서에 **실제 사용 예제** 추가
+  - [ ] 기존 예제 코드 작동 확인
   - [ ] Live Demo 링크 확인
 - [ ] CHANGELOG.md 버전 추가
 - [ ] commit-msg.txt 작성
@@ -402,35 +461,44 @@ dist/
 ### 프로젝트 루트
 ```
 D:\Dev\git\velox-grid\
-├── README.md              # 프로젝트 소개 & API 문서 (한글)
+├── README.md              # 프로젝트 소개 & 사용자 가이드 (한글)
 │                         │
-│                         └─> PROGRESS.md와 동기화 필수
-│                             - 버전 정보
-│                             - 번들 크기
-│                             - 새 기능 API
-│                             - 프로젝트 구조
+│                         └─> 목적: 사용자에게 사용법 안내
+│                             - 설치 방법
+│                             - 사용 예제
+│                             - API 문서
+│                             - 기능 소개
+│
 ├── CHANGELOG.md           # 변경 이력 (한글)
 ├── ROADMAP.md             # 로드맵 (한글)
-├── package.json           # NPM 패키지 정보 (version 필드 중요)
+├── package.json           # NPM 패키지 정보
 └── .claude/
     ├── PROGRESS.md        # 개발 진행 상황 (한글)
     │                     │
-    │                     └─> README.md의 원본 소스
-    │                         - 먼저 PROGRESS.md 업데이트
-    │                         - 그 다음 README.md 동기화
+    │                     └─> 목적: 개발 이력 추적
+    │                         - 작업 기록 (시간순)
+    │                         - 버그 수정 상세
+    │                         - 코드 최적화
+    │                         - 기술 의사결정
+    │
     └── RULES.md           # 이 파일 (한글)
 ```
+
+**문서 간 관계**:
+- PROGRESS.md: 개발자/AI를 위한 **기술 기록**
+- README.md: 사용자를 위한 **사용 가이드**
+- 특정 정보만 **선택적으로 동기화** (버전, 번들 크기, 새 기능)
 
 ### 소스 코드
 ```
 src/
 ├── core/
-│   ├── VeloxGrid.ts       # 메인 클래스 (~2700줄)
+│   ├── VeloxGrid.ts       # 메인 클래스 (~2,044줄)
 │   ├── GridHistory.ts     # Undo/Redo
-│   ├── GridSelection.ts   # 선택 관리
-│   ├── GridValidator.ts   # 검증 (v0.7.0)
-│   ├── GridEditorFactory.ts  # 에디터 (v0.7.0)
-│   └── GridTooltip.ts     # 툴팁 (v0.7.0)
+│   ├── GridValidator.ts   # 검증
+│   ├── GridEditorFactory.ts  # 에디터
+│   ├── GridTooltip.ts     # 툴팁
+│   └── GridSummary.ts     # Summary (v0.7.1)
 ├── types/
 │   └── index.ts           # 타입 정의
 ├── styles/
@@ -479,7 +547,7 @@ src/
 
 ---
 
-## 📊 프로젝트 현황 (v0.7.0)
+## 📊 프로젝트 현황 (v0.7.1)
 
 ### 완료된 Phase
 - ✅ Phase 1-4: 핵심 기능
@@ -490,16 +558,18 @@ src/
 - ✅ Phase 10: 컬럼 재정렬 & 메뉴
 - ✅ Phase 11: 행 드래그 앤 드롭
 - ✅ Phase 12: 셀 검증, 커스텀 에디터, 툴팁
+- ✅ Phase 13: Footer Summary, Aggregation
 
 ### 다음 작업
-- ⏭️ Phase 13: Footer Summary, Group Summary
-- ⏭️ Phase 14: React 래퍼
+- ⏭️ Phase 14: Fixed Left 옵션 설계
+- ⏭️ Phase 15: Group Summary
+- ⏭️ Phase 16: React 래퍼
 
 ### 번들 크기
-- **UMD**: 75.4 KB (gzip: 19.4 KB)
-- **ESM**: 102.8 KB (gzip: 23.5 KB)
-- **CSS**: 15.4 KB (gzip: 3.1 KB)
+- **UMD**: 80.71 KB (gzip: 20.76 KB)
+- **ESM**: 111.12 KB (gzip: 25.63 KB)
+- **CSS**: 17.76 KB (gzip: 3.45 KB)
 
 ---
 
-*마지막 업데이트: 2025-02-02 (v0.7.1)*
+*마지막 업데이트: 2025-02-05*

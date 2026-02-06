@@ -467,6 +467,43 @@ export interface CheckBarState {
 }
 
 // ============================================
+// Row State (Phase 15)
+// ============================================
+
+/**
+ * Row State Type - CRUD tracking for each row
+ * @description Tracks the modification state of each row
+ * - none: No changes (original data)
+ * - created: Newly added row
+ * - updated: Modified row
+ * - deleted: Deleted row (marked for deletion)
+ * - createAndDeleted: Created then deleted (no server action needed)
+ */
+export type RowStateType = 'none' | 'created' | 'updated' | 'deleted' | 'createAndDeleted';
+
+/**
+ * Row State Management Interface
+ * @description Manages the state map for all rows
+ */
+export interface RowStateManager {
+  /** Map of row data to their state */
+  rowStates: Map<RowData, RowStateType>;
+}
+
+/**
+ * Changes Result Interface
+ * @description Structure for getting all changes
+ */
+export interface ChangesResult {
+  /** Newly created rows */
+  created: RowData[];
+  /** Modified rows */
+  updated: RowData[];
+  /** Deleted rows */
+  deleted: RowData[];
+}
+
+// ============================================
 // Summary/Aggregation Types (Phase 13)
 // ============================================
 
@@ -733,6 +770,17 @@ export interface VeloxGridInstance {
   getSummaryValues(): Record<string, CellValue>;
   refreshSummary(): void;
 
+  // Row State methods (Phase 15)
+  getRowState(index: number): RowStateType;
+  getRowStateByData(row: RowData): RowStateType;
+  setRowState(index: number, state: RowStateType): void;
+  getChanges(): ChangesResult;
+  getCreatedRows(): RowData[];
+  getUpdatedRows(): RowData[];
+  getDeletedRows(): RowData[];
+  clearRowStates(): void;
+  commit(): void;
+
   // Options
   setOptions(options: Partial<GridOptions>): void;
   getOptions(): GridOptions;
@@ -748,6 +796,7 @@ export interface GridState {
   columns: ColumnDefinition[];
   selection: SelectionState;
   checkBar: CheckBarState; // Phase 7
+  rowStates: Map<RowData, RowStateType>; // Phase 15: Row state tracking
   sort: SortState[];
   filter: FilterState | null;
   edit: EditState;

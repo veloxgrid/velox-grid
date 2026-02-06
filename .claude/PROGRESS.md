@@ -1,6 +1,6 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-06 (특수 컬럼 displayOrder 추가)
+> 마지막 업데이트: 2025-02-06 (RowState 추가)
 
 ---
 
@@ -9,13 +9,13 @@
 ### 기본 정보
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
-- **현재 버전**: v0.8.1
+- **현재 버전**: v0.9.0
 - **라이선스**: MIT
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
 ### 빌드 정보
 - **번들 크기**: 88.77KB (gzip 22.19KB)
-- **VeloxGrid.ts**: ~2,100줄
+- **VeloxGrid.ts**: ~2,800줄
 - **Core 모듈**: 11개
 - **CSS 모듈**: 11개
 
@@ -99,6 +99,15 @@ velox-grid/
 - ✅ 특수 컬럼 정렬 로직 구현
 - ✅ 데모 페이지 (4가지 시나리오)
 
+#### Phase 15: Row State Management (v0.9.0)
+- ✅ RowState 타입 정의 (none, created, updated, deleted, createAndDeleted)
+- ✅ GridState.rowStates Map 추가
+- ✅ addRow/updateRow/removeRow/setCellValue 자동 상태 관리
+- ✅ getChanges() API (created, updated, deleted 분리)
+- ✅ commit() 메서드 (변경사항 확정)
+- ✅ clearRowStates() 메서드
+- ✅ 데모 페이지 (statistics, visual indicators)
+
 ### 계획된 기능
 
 #### Phase 15: Group Summary
@@ -117,6 +126,113 @@ velox-grid/
 ---
 
 ## 📋 최근 작업 이력 (최신순)
+
+### ✨ Phase 15: Row State Management 완료 (2025-02-06)
+
+**버전**: v0.9.0  
+**번들 크기**: 빌드 후 확인 예정
+
+#### 구현 내용
+
+**RowState 타입 정의**:
+RealGrid 스타일의 행 상태 추적 기능 추가
+
+```typescript
+type RowStateType = 'none' | 'created' | 'updated' | 'deleted' | 'createAndDeleted';
+
+interface GridState {
+  // ... 기존 필드
+  rowStates: Map<RowData, RowStateType>; // Phase 15
+}
+```
+
+**상태 전이 로직**:
+- `addRow()`: 새 행 → 'created'
+- `updateRow()`: 'none' → 'updated' (created는 유지)
+- `removeRow()`: 'created' → 'createAndDeleted', 기타 → 'deleted'
+- `setCellValue()`: 셀 수정 시 'none' → 'updated'
+- `setData()`: 모든 행을 'none'으로 초기화
+
+**Public API**:
+```typescript
+// 조회
+getRowState(index: number): RowStateType
+getRowStateByData(row: RowData): RowStateType
+getChanges(): ChangesResult  // { created, updated, deleted }
+getCreatedRows(): RowData[]
+getUpdatedRows(): RowData[]
+getDeletedRows(): RowData[]
+
+// 수동 제어
+setRowState(index: number, state: RowStateType): void
+clearRowStates(): void  // 모두 'none'으로
+commit(): void  // 변경사항 확정 (createAndDeleted 제거, 나머지 'none')
+```
+
+**ChangesResult 구조**:
+```typescript
+interface ChangesResult {
+  created: RowData[];   // 새로 추가된 행
+  updated: RowData[];   // 수정된 행
+  deleted: RowData[];   // 삭제된 행
+  // createAndDeleted는 제외 (서버 전송 불필요)
+}
+```
+
+**자동 상태 관리**:
+모든 데이터 변경 메서드에서 자동으로 RowState 업데이트:
+- `addRow()`, `updateRow()`, `removeRow()`
+- `setCellValue()`, `setData()`
+- 편집 완료 시 (`endEdit()`)
+
+**commit() 동작**:
+1. `createAndDeleted` 행 완전 제거 (data 배열에서 삭제)
+2. 나머지 모든 행을 'none'으로 초기화
+3. 인덱스 재구성 및 렌더링
+
+**데모 페이지** (`examples/phase15-row-state-demo.html`):
+- 📊 Statistics Panel (created, updated, deleted, none 카운트)
+- 🎮 Controls (Add, Update, Delete, Show Changes, Commit, Clear)
+- 🎨 Visual Indicators (행 배경색으로 상태 표시)
+  - Created: 연한 녹색 (#E8F5E9)
+  - Updated: 연한 주황색 (#FFF3E0)
+  - Deleted: 연한 빨강 + 취소선 (#FFEBEE)
+  - None: 흰색
+
+**사용 예시**:
+```typescript
+// 행 추가
+grid.addRow({ name: 'New User', email: 'user@example.com' });
+console.log(grid.getRowState(0)); // 'created'
+
+// 행 수정
+grid.updateRow(1, { salary: 85000 });
+console.log(grid.getRowState(1)); // 'updated'
+
+// 변경사항 확인
+const changes = grid.getChanges();
+console.log(changes.created.length);  // 1
+console.log(changes.updated.length);  // 1
+
+// 서버 저장 후 확정
+await saveToServer(changes);
+grid.commit();  // 모든 상태 초기화
+```
+
+**타입 Export**:
+```typescript
+export type {
+  RowStateType,
+  RowStateManager,
+  ChangesResult,
+}
+```
+
+**번들 크기 변화**: 빌드 후 확인 예정
+
+**Git**: 다음 커밋에 포함 예정
+
+---
 
 ### ✨ Phase 14.1: Special Column Display Order 완료 (2025-02-06)
 

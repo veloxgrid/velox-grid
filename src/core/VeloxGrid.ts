@@ -39,6 +39,8 @@ import type {
   RowAddUndoData,
   RowRemoveUndoData,
   GridContext,
+  RowStateType,
+  ChangesResult,
 } from '../types';
 import { createElement, addClass, throttle } from '../utils/dom';
 import { formatValue, sortData, filterData, generateId } from '../utils/data';
@@ -228,6 +230,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         checkedRows: new Set<number>(),
         checkableRows: new Set<number>(),
       },
+      rowStates: new Map<RowData, RowStateType>(), // Phase 15: Row state tracking
       sort: [],
       filter: null,
       edit: {
@@ -244,6 +247,10 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       this.rebuildDataIndexMap();
       this.state.displayData = [...this.state.data];
       this.initCheckableRows();
+      // Phase 15: Initialize all existing rows as 'none' state
+      this.state.data.forEach(row => {
+        this.state.rowStates.set(row, 'none');
+      });
     }
 
     this.build();
@@ -1097,6 +1104,13 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.rebuildDataIndexMap();
     this.clearSelectionState();
     this.state.checkBar.checkedRows.clear();
+    
+    // Phase 15: Initialize all new data rows as 'none' state
+    this.state.rowStates.clear();
+    this.state.data.forEach(row => {
+      this.state.rowStates.set(row, 'none');
+    });
+    
     this.summary.invalidateCache();
     this.applyDataTransformations();
     this.render();
@@ -1120,6 +1134,10 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     const insertIndex = index !== undefined ? index : this.state.data.length;
     this.state.data.splice(insertIndex, 0, newRow);
     this.rebuildDataIndexMap();
+    
+    // Phase 15: Set new row state as 'created'
+    this.state.rowStates.set(newRow, 'created');
+    
     // Invalidate summary cache
     this.summary.invalidateCache();
     this.applyDataTransformations();
@@ -1135,6 +1153,16 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     const dataIndex = this.state.data.indexOf(displayRow);
     if (dataIndex >= 0) {
       Object.assign(this.state.data[dataIndex], data);
+      
+      // Phase 15: Update row state
+      const currentState = this.state.rowStates.get(this.state.data[dataIndex]) || 'none';
+      if (currentState === 'none') {
+        this.state.rowStates.set(this.state.data[dataIndex], 'updated');
+      }
+      // If 'created', stay 'created'
+      // If 'updated', stay 'updated'
+      // If 'deleted', stay 'deleted' (shouldn't happen)
+      
       // Invalidate summary cache
       this.summary.invalidateCache();
       this.applyDataTransformations();
@@ -1150,7 +1178,20 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     
     const dataIndex = this.state.data.indexOf(displayRow);
     if (dataIndex >= 0) {
-      const removed = this.state.data.splice(dataIndex, 1)[0];
+      const removed = this.state.data[dataIndex];
+      
+      // Phase 15: Handle row state on deletion
+      const currentState = this.state.rowStates.get(removed) || 'none';
+      if (currentState === 'created') {
+        // Created then deleted → 'createAndDeleted' (no server action needed)
+        this.state.rowStates.set(removed, 'createAndDeleted');
+      } else {
+        // Mark as deleted (for server sync)
+        this.state.rowStates.set(removed, 'deleted');
+      }
+      
+      // Remove from data array
+      this.state.data.splice(dataIndex, 1);
       this.rebuildDataIndexMap();
       
       this.state.selection.selectedRows.delete(index);
@@ -2298,6 +2339,15 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     const dataIndex = this.state.data.indexOf(displayRow);
     if (dataIndex >= 0) {
       this.state.data[dataIndex][field] = value;
+      
+      // Phase 15: Update row state
+      const currentState = this.state.rowStates.get(this.state.data[dataIndex]) || 'none';
+      if (currentState === 'none') {
+        this.state.rowStates.set(this.state.data[dataIndex], 'updated');
+      }
+      // If 'created', stay 'created'
+      // If 'updated', stay 'updated'
+      
       // Invalidate summary cache
       this.summary.invalidateCache();
       this.applyDataTransformations();
@@ -2584,6 +2634,153 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
    */
   getFixedOptions(): import('../types').FixedOptions {
     return this.options.fixedOptions || { colCount: 0, rightCount: 0 };
+  }
+
+  // ============================================
+  // Phase 15: Row State Management
+  // ============================================
+
+  /**
+   * Get row state by display index
+   * @param index - Display index (in displayData array)
+   * @returns Row state type
+   */
+  getRowState(index: number): RowStateType {
+    const row = this.state.displayData[index];
+    if (!row) return 'none';
+    return this.state.rowStates.get(row) || 'none';
+  }
+
+  /**
+   * Get row state by row data object
+   * @param row - Row data object
+   * @returns Row state type
+   */
+  getRowStateByData(row: RowData): RowStateType {
+    return this.state.rowStates.get(row) || 'none';
+  }
+
+  /**
+   * Set row state manually
+   * @param index - Display index
+   * @param state - New state
+   */
+  setRowState(index: number, state: RowStateType): void {
+    const row = this.state.displayData[index];
+    if (!row) return;
+    
+    this.state.rowStates.set(row, state);
+    this.render();
+  }
+
+  /**
+   * Get all changes (created, updated, deleted rows)
+   * @returns Changes result with separated arrays
+   */
+  getChanges(): ChangesResult {
+    const created: RowData[] = [];
+    const updated: RowData[] = [];
+    const deleted: RowData[] = [];
+    
+    this.state.rowStates.forEach((state, row) => {
+      if (state === 'created') {
+        created.push(row);
+      } else if (state === 'updated') {
+        updated.push(row);
+      } else if (state === 'deleted') {
+        deleted.push(row);
+      }
+      // 'createAndDeleted' and 'none' are intentionally excluded
+    });
+    
+    return { created, updated, deleted };
+  }
+
+  /**
+   * Get newly created rows
+   * @returns Array of created rows
+   */
+  getCreatedRows(): RowData[] {
+    const created: RowData[] = [];
+    this.state.rowStates.forEach((state, row) => {
+      if (state === 'created') {
+        created.push(row);
+      }
+    });
+    return created;
+  }
+
+  /**
+   * Get updated rows
+   * @returns Array of updated rows
+   */
+  getUpdatedRows(): RowData[] {
+    const updated: RowData[] = [];
+    this.state.rowStates.forEach((state, row) => {
+      if (state === 'updated') {
+        updated.push(row);
+      }
+    });
+    return updated;
+  }
+
+  /**
+   * Get deleted rows (marked for deletion)
+   * @returns Array of deleted rows
+   */
+  getDeletedRows(): RowData[] {
+    const deleted: RowData[] = [];
+    this.state.rowStates.forEach((state, row) => {
+      if (state === 'deleted') {
+        deleted.push(row);
+      }
+    });
+    return deleted;
+  }
+
+  /**
+   * Clear all row states (reset to 'none')
+   */
+  clearRowStates(): void {
+    this.state.rowStates.clear();
+    // Re-initialize existing rows as 'none'
+    this.state.data.forEach(row => {
+      this.state.rowStates.set(row, 'none');
+    });
+    this.render();
+  }
+
+  /**
+   * Commit changes (mark all rows as 'none')
+   * This is typically called after successfully saving changes to server
+   */
+  commit(): void {
+    // Remove 'createAndDeleted' rows completely
+    const rowsToRemove: RowData[] = [];
+    this.state.rowStates.forEach((state, row) => {
+      if (state === 'createAndDeleted') {
+        rowsToRemove.push(row);
+      }
+    });
+    
+    // Remove createAndDeleted rows from data
+    rowsToRemove.forEach(row => {
+      const index = this.state.data.indexOf(row);
+      if (index >= 0) {
+        this.state.data.splice(index, 1);
+      }
+    });
+    
+    // Set all remaining rows to 'none'
+    this.state.rowStates.clear();
+    this.state.data.forEach(row => {
+      this.state.rowStates.set(row, 'none');
+    });
+    
+    // Rebuild indexes and re-render
+    this.rebuildDataIndexMap();
+    this.applyDataTransformations();
+    this.render();
   }
 
   destroy(): void {

@@ -1,6 +1,6 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-05 (스크롤 동기화 버그 수정)
+> 마지막 업데이트: 2025-02-06 (특수 컬럼 displayOrder 추가)
 
 ---
 
@@ -9,13 +9,13 @@
 ### 기본 정보
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
-- **현재 버전**: v0.8.0
+- **현재 버전**: v0.8.1
 - **라이선스**: MIT
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
 ### 빌드 정보
-- **번들 크기**: 87.08KB (gzip 21.92KB)
-- **VeloxGrid.ts**: ~2,044줄 (최적화 완료)
+- **번들 크기**: 88.77KB (gzip 22.19KB)
+- **VeloxGrid.ts**: ~2,100줄
 - **Core 모듈**: 11개
 - **CSS 모듈**: 11개
 
@@ -91,6 +91,14 @@ velox-grid/
 - ✅ 스크롤 동기화
 - ✅ 데모 페이지 (4가지 시나리오)
 
+#### Phase 14.1: Special Column Display Order (v0.8.1)
+- ✅ displayOrder 옵션 추가
+- ✅ CheckBar.displayOrder
+- ✅ RowNumbersOptions with displayOrder
+- ✅ RowDragOptions with displayOrder
+- ✅ 특수 컬럼 정렬 로직 구현
+- ✅ 데모 페이지 (4가지 시나리오)
+
 ### 계획된 기능
 
 #### Phase 15: Group Summary
@@ -109,6 +117,94 @@ velox-grid/
 ---
 
 ## 📋 최근 작업 이력 (최신순)
+
+### ✨ Phase 14.1: Special Column Display Order 완료 (2025-02-06)
+
+**버전**: v0.8.1  
+**번들 크기**: UMD 88.77 KB (gzip: 22.19 KB), ESM 123.68 KB
+
+#### 구현 내용
+
+**displayOrder 옵션 추가**:
+특수 컬럼(CheckBar, RowNumbers, DragHandle)의 표시 순서를 제어할 수 있는 `displayOrder` 옵션 추가
+
+**타입 정의**:
+```typescript
+interface CheckBarOptions {
+  visible: boolean;
+  displayOrder?: number;  // Phase 14.1
+}
+
+interface RowNumbersOptions {
+  visible: boolean;
+  displayOrder?: number;  // Phase 14.1
+}
+
+interface RowDragOptions {
+  enabled: boolean;
+  displayOrder?: number;  // Phase 14.1
+}
+
+interface GridOptions {
+  showRowNumbers?: boolean | RowNumbersOptions;
+  rowDraggable?: boolean | RowDragOptions;
+  checkBar?: CheckBarOptions;
+}
+```
+
+**기본 displayOrder 값**:
+- DragHandle: 0 (가장 왼쪽)
+- CheckBar: 10 (중간)
+- RowNumbers: 20 (가장 오른쪽)
+
+**사용 예시**:
+```typescript
+// 기본 순서 (DragHandle → CheckBar → RowNumbers)
+{
+  rowDraggable: true,
+  checkBar: { visible: true },
+  showRowNumbers: true,
+}
+
+// CheckBar를 가장 왼쪽에
+{
+  checkBar: { visible: true, displayOrder: 0 },
+  showRowNumbers: { visible: true, displayOrder: 10 },
+  rowDraggable: { enabled: true, displayOrder: 20 },
+}
+
+// RowNumbers를 가장 왼쪽에
+{
+  showRowNumbers: { visible: true, displayOrder: 0 },
+  rowDraggable: { enabled: true, displayOrder: 10 },
+  checkBar: { visible: true, displayOrder: 20 },
+}
+```
+
+**코드 구현**:
+- `getSpecialColumnsWithOrder()`: displayOrder에 따라 특수 컬럼을 정렬하여 반환
+- `getFixedLeftColumns()`: 정렬된 특수 컬럼 + 고정 데이터 컬럼 반환
+- `getScrollableColumns()`: 정렬된 특수 컬럼 (colCount = 0일 때) + 스크롤 가능 데이터 컬럼 반환
+
+**Backward Compatibility**:
+- `showRowNumbers: true` → `{ visible: true, displayOrder: 20 }` (기본값)
+- `rowDraggable: true` → `{ enabled: true, displayOrder: 0 }` (기본값)
+- `checkBar: { visible: true }` → displayOrder: 10 (기본값)
+
+**데모 페이지** (`examples/phase14-1-display-order-demo.html`):
+1. Default Order (displayOrder 미설정)
+2. Custom Order: CheckBar 먼저
+3. Custom Order: RowNumbers 먼저
+4. Negative Order: 역순 배치
+
+**번들 크기 변화**:
+- UMD: 88.38 KB → 88.77 KB (+0.39 KB)
+- ESM: 122.75 KB → 123.68 KB (+0.93 KB)
+- gzip: 22.09 KB → 22.19 KB (+0.10 KB)
+
+**Git**: 다음 커밋에 포함 예정
+
+---
 
 ### 🔧 Phase 14: 틀고정 버그 수정 (2025-02-06)
 

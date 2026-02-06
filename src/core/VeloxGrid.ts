@@ -30,6 +30,8 @@ import type {
   CellIndex,
   Selection,
   CheckBarOptions,
+  RowNumbersOptions,
+  RowDragOptions,
   ExportOptions,
   UndoAction,
   CellEditUndoData,
@@ -284,12 +286,68 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   }
 
   /**
+   * Get special columns with displayOrder
+   * Phase 14.1: Helper method to generate special columns sorted by displayOrder
+   */
+  private getSpecialColumnsWithOrder(): ColumnDefinition[] {
+    interface SpecialColumnDef {
+      col: ColumnDefinition;
+      order: number;
+    }
+    
+    const specialColumnsWithOrder: SpecialColumnDef[] = [];
+    
+    // DragHandle
+    if (typeof this.options.rowDraggable === 'object' && this.options.rowDraggable.enabled) {
+      const order = this.options.rowDraggable.displayOrder ?? 0;
+      specialColumnsWithOrder.push({
+        col: { field: '__drag', header: '', width: 44, visible: true },
+        order
+      });
+    } else if (this.options.rowDraggable === true) {
+      specialColumnsWithOrder.push({
+        col: { field: '__drag', header: '', width: 44, visible: true },
+        order: 0 // default order
+      });
+    }
+    
+    // CheckBar
+    if (this.options.checkBar?.visible) {
+      const order = this.options.checkBar.displayOrder ?? 10;
+      specialColumnsWithOrder.push({
+        col: { field: '__checkbox', header: '', width: 44, visible: true },
+        order
+      });
+    }
+    
+    // RowNumbers
+    if (typeof this.options.showRowNumbers === 'object' && this.options.showRowNumbers.visible) {
+      const order = this.options.showRowNumbers.displayOrder ?? 20;
+      specialColumnsWithOrder.push({
+        col: { field: '__rownum', header: '#', width: 50, visible: true },
+        order
+      });
+    } else if (this.options.showRowNumbers === true) {
+      specialColumnsWithOrder.push({
+        col: { field: '__rownum', header: '#', width: 50, visible: true },
+        order: 20 // default order
+      });
+    }
+    
+    // Sort by displayOrder (ascending = left to right)
+    specialColumnsWithOrder.sort((a, b) => a.order - b.order);
+    
+    return specialColumnsWithOrder.map(item => item.col);
+  }
+
+  /**
    * Get fixed left columns
    * Phase 14: Only include special columns when fixedOptions.colCount > 0
+   * Phase 14.1: Sort special columns by displayOrder
    * 
    * Logic:
    * - If colCount = 0: Fixed left is empty (special columns go to scrollable)
-   * - If colCount > 0: Fixed left = special columns + first N data columns
+   * - If colCount > 0: Fixed left = special columns (sorted by displayOrder) + first N data columns
    */
   getFixedLeftColumns(): ColumnDefinition[] {
     if (this.columnCache.dirty || !this.columnCache.fixedLeft) {
@@ -297,18 +355,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       
       // Only include special columns when colCount > 0
       if (colCount > 0) {
-        // Generate special columns based on options
-        const specialColumns: ColumnDefinition[] = [];
-        
-        if (this.options.rowDraggable) {
-          specialColumns.push({ field: '__drag', header: '', width: 44, visible: true });
-        }
-        if (this.options.checkBar?.visible) {
-          specialColumns.push({ field: '__checkbox', header: '', width: 44, visible: true });
-        }
-        if (this.options.showRowNumbers) {
-          specialColumns.push({ field: '__rownum', header: '#', width: 50, visible: true });
-        }
+        // Generate special columns with displayOrder
+        const specialColumns = this.getSpecialColumnsWithOrder();
         
         // Data columns fixed by fixedOptions.colCount
         const dataColumns = this.getDataColumns();
@@ -340,9 +388,10 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   /**
    * Get scrollable columns (middle area between fixed left and fixed right)
    * Phase 14: Include special columns when colCount = 0
+   * Phase 14.1: Sort special columns by displayOrder
    * 
    * Logic:
-   * - If colCount = 0: Scrollable = special columns + all data columns (except fixed right)
+   * - If colCount = 0: Scrollable = special columns (sorted by displayOrder) + all data columns (except fixed right)
    * - If colCount > 0: Scrollable = middle data columns only (between fixed left and fixed right)
    */
   getScrollableColumns(): ColumnDefinition[] {
@@ -352,18 +401,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       const totalCount = dataColumns.length;
       
       if (colCount === 0) {
-        // Generate special columns based on options
-        const specialColumns: ColumnDefinition[] = [];
-        
-        if (this.options.rowDraggable) {
-          specialColumns.push({ field: '__drag', header: '', width: 44, visible: true });
-        }
-        if (this.options.checkBar?.visible) {
-          specialColumns.push({ field: '__checkbox', header: '', width: 44, visible: true });
-        }
-        if (this.options.showRowNumbers) {
-          specialColumns.push({ field: '__rownum', header: '#', width: 50, visible: true });
-        }
+        // Generate special columns with displayOrder
+        const specialColumns = this.getSpecialColumnsWithOrder();
         
         // Scrollable = special columns + data columns (except fixed right)
         const endIndex = totalCount - rightCount;

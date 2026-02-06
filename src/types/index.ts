@@ -143,6 +143,8 @@ export interface CheckBarOptions {
   exclusive?: boolean;
   /** Show select all checkbox in header */
   showAll?: boolean;
+  /** Display order (lower number = more left) - Phase 14.1 */
+  displayOrder?: number;
   /** Callback to determine if row is checkable */
   checkableCallback?: (rowData: RowData, rowIndex: number) => boolean;
 }
@@ -292,6 +294,28 @@ export interface ContextMenuOptions {
 // ============================================
 
 /**
+ * Row numbers options
+ * @description Options for displaying row numbers
+ */
+export interface RowNumbersOptions {
+  /** Show row numbers */
+  visible: boolean;
+  /** Display order (lower number = more left) - Phase 14.1 */
+  displayOrder?: number;
+}
+
+/**
+ * Row drag options
+ * @description Options for row drag and drop
+ */
+export interface RowDragOptions {
+  /** Enable row drag and drop */
+  enabled: boolean;
+  /** Display order (lower number = more left) - Phase 14.1 */
+  displayOrder?: number;
+}
+
+/**
  * Column fixed options (RealGrid style)
  * @description Options for fixing columns to left or right
  */
@@ -331,10 +355,10 @@ export interface GridOptions {
   rowHeight?: number;
   /** Header height in pixels */
   headerHeight?: number;
-  /** Show row numbers */
-  showRowNumbers?: boolean;
-  /** Enable row drag and drop to reorder */
-  rowDraggable?: boolean;
+  /** Show row numbers (boolean for backward compatibility, or RowNumbersOptions for advanced control) */
+  showRowNumbers?: boolean | RowNumbersOptions;
+  /** Enable row drag and drop to reorder (boolean for backward compatibility, or RowDragOptions for advanced control) */
+  rowDraggable?: boolean | RowDragOptions;
   /** Enable row selection */
   selectable?: boolean;
   /** Selection mode (Phase 7) */

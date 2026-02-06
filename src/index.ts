@@ -4,7 +4,7 @@
  * 
  * @author bumki
  * @license MIT
- * @version 0.8.0
+ * @version 0.8.1
  */
 
 // Core
@@ -38,6 +38,8 @@ export type {
   Selection,
   CheckBarOptions,
   CheckBarState,
+  RowNumbersOptions,
+  RowDragOptions,
   
   // Edit
   EditState,
@@ -100,4 +102,4 @@ export {
 import './styles/velox-grid.css';
 
 // Version
-export const VERSION = '0.8.0';
+export const VERSION = '0.8.1';

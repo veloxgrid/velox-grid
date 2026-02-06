@@ -255,11 +255,9 @@
       width: '100%',
       height: '100%',
       virtualScroll: true,
-      showRowNumbers: true,
-      checkBar: {
-        visible: true,
-        showAll: true
-      },
+      rowDraggable: { enabled: true, displayOrder: 3 },  // DragHandle last
+      showRowNumbers: { visible: true, displayOrder: 1 },  // RowNumbers second
+      checkBar: { visible: true, showAll: true, displayOrder: 2 },  // CheckBar first
       fixedOptions: {
         colCount: 1,
         rightCount: 1

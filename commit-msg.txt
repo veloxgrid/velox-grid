@@ -1,27 +1,45 @@
-fix: scroll sync issues in Phase 14 v0.8.0
+feat(phase14.1): add special column display order v0.8.1
 
-Fixed horizontal and vertical scroll synchronization bugs:
+특수 컬럼(CheckBar, RowNumbers, DragHandle)의 표시 순서를 제어할 수 있는 displayOrder 옵션 추가
 
-**Horizontal Scroll (Header ↔ Body)**:
-- Added bidirectional header scroll sync
-- Header scroll now updates body/footer scrollLeft
-- Body scroll updates header/footer scrollLeft
+구현 내용:
+- CheckBarOptions에 displayOrder 추가
+- RowNumbersOptions 인터페이스 추가 (visible, displayOrder)
+- RowDragOptions 인터페이스 추가 (enabled, displayOrder)
+- showRowNumbers와 rowDraggable이 boolean | Object 지원
+- getSpecialColumnsWithOrder() 메서드로 displayOrder 기반 정렬
+- getFixedLeftColumns()와 getScrollableColumns()에서 정렬 적용
 
-**Vertical Scroll (Fixed Right ↔ Body)**:
-- Prevent infinite loop with source tracking
-- Use isSyncing flag to prevent re-entry
-- Skip updates when scrollTop values match
-- Custom throttle to avoid TypeScript issues
+기본 displayOrder:
+- DragHandle: 0 (가장 왼쪽)
+- CheckBar: 10 (중간)
+- RowNumbers: 20 (가장 오른쪽)
 
-Key improvements:
-- Source parameter ('body' | 'fixedRight') tracks event origin
-- Only update non-source elements to prevent circular updates
-- Compare values before setting to avoid unnecessary updates
+사용 예시:
+```typescript
+// CheckBar를 가장 왼쪽에
+{
+  checkBar: { visible: true, displayOrder: 0 },
+  showRowNumbers: { visible: true, displayOrder: 10 },
+  rowDraggable: { enabled: true, displayOrder: 20 },
+}
+```
+
+Backward Compatibility:
+- showRowNumbers: true → { visible: true, displayOrder: 20 }
+- rowDraggable: true → { enabled: true, displayOrder: 0 }
+- checkBar: { visible: true } → displayOrder: 10
 
 Bundle Size:
-- UMD: 86.73 KB → 87.08 KB (+0.35 KB, gzip: 21.92 KB)
-- ESM: 120.37 KB → 120.45 KB (+0.08 KB)
+- UMD: 88.77 KB (gzip: 22.19 KB)
+- ESM: 123.68 KB (gzip: 27.98 KB)
+
+Files Added:
+- examples/phase14-1-display-order-demo.html
 
 Files Modified:
-- src/core/VeloxGrid.ts (attachEvents method)
+- src/types/index.ts
+- src/core/VeloxGrid.ts
+- src/index.ts
+- package.json
 - .claude/PROGRESS.md

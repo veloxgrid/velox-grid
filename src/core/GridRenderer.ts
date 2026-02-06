@@ -32,45 +32,59 @@ export class GridRenderer {
    */
   renderHeader(): void {
     const ctx = this.ctx;
-    const options = ctx.getOptions();
 
-    // 1. Fixed left header (Special + Fixed Left Data)
+    // 1. Fixed left header (only when colCount > 0)
     if (ctx.fixedLeftHeader) {
       ctx.fixedLeftHeader.innerHTML = '';
       const headerRow = createElement('div', 'velox-header-row');
       
-      // Row drag handle placeholder (only if rowDraggable is enabled)
-      if (options.rowDraggable) {
-        const dragPlaceholder = createElement('div', 'velox-row-drag-handle');
-        dragPlaceholder.style.visibility = 'hidden';
-        headerRow.appendChild(dragPlaceholder);
-      }
-      
-      if (options.checkBar?.visible) {
-        headerRow.appendChild(this.createHeaderCheckbarCell());
-      }
-      
-      // Fixed left columns (Special + Data columns from fixedOptions.colCount)
-      ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => 
-        headerRow.appendChild(this.createHeaderCell(col))
-      );
+      // Fixed left columns (Special + Data columns when colCount > 0)
+      ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => {
+        if (col.field === '__drag') {
+          // Drag handle placeholder
+          const dragPlaceholder = createElement('div', 'velox-row-drag-handle');
+          dragPlaceholder.style.visibility = 'hidden';
+          headerRow.appendChild(dragPlaceholder);
+        } else if (col.field === '__checkbox') {
+          // CheckBar header
+          headerRow.appendChild(this.createHeaderCheckbarCell());
+        } else if (col.field === '__rownum') {
+          // Row numbers header
+          const rowNumCell = createElement('div', 'velox-header-cell velox-rownumber-cell');
+          rowNumCell.textContent = '#';
+          headerRow.appendChild(rowNumCell);
+        } else {
+          // Data column
+          headerRow.appendChild(this.createHeaderCell(col));
+        }
+      });
       
       ctx.fixedLeftHeader.appendChild(headerRow);
     }
 
-    // 2. Scrollable header
+    // 2. Scrollable header (includes special columns when colCount = 0)
     const headerRow = createElement('div', 'velox-header-row');
     
-    // Row numbers in scrollable area
-    if (options.showRowNumbers) {
-      const rowNumCell = createElement('div', 'velox-header-cell velox-rownumber-cell');
-      rowNumCell.textContent = '#';
-      headerRow.appendChild(rowNumCell);
-    }
+    ctx.getScrollableColumns().forEach((col: ColumnDefinition) => {
+      if (col.field === '__drag') {
+        // Drag handle placeholder
+        const dragPlaceholder = createElement('div', 'velox-row-drag-handle');
+        dragPlaceholder.style.visibility = 'hidden';
+        headerRow.appendChild(dragPlaceholder);
+      } else if (col.field === '__checkbox') {
+        // CheckBar header
+        headerRow.appendChild(this.createHeaderCheckbarCell());
+      } else if (col.field === '__rownum') {
+        // Row numbers header
+        const rowNumCell = createElement('div', 'velox-header-cell velox-rownumber-cell');
+        rowNumCell.textContent = '#';
+        headerRow.appendChild(rowNumCell);
+      } else {
+        // Data column
+        headerRow.appendChild(this.createHeaderCell(col));
+      }
+    });
     
-    ctx.getScrollableColumns().forEach((col: ColumnDefinition) => 
-      headerRow.appendChild(this.createHeaderCell(col))
-    );
     ctx.headerElement.innerHTML = '';
     ctx.headerElement.appendChild(headerRow);
 
@@ -402,34 +416,51 @@ export class GridRenderer {
 
     // Content based on area (Phase 14)
     if (area === 'fixedLeft') {
-      // Row drag handle (only if rowDraggable is enabled)
-      if (options.rowDraggable) {
-        const dragHandle = createElement('div', 'velox-row-drag-handle');
-        dragHandle.innerHTML = '☰';
-        dragHandle.title = '드래그하여 행 순서 변경';
-        dragHandle.addEventListener('mousedown', (e) => ctx.startRowDrag(e, rowIndex, row));
-        row.appendChild(dragHandle);
-      }
-      
-      if (options.checkBar?.visible) {
-        row.appendChild(this.createCheckbarCell(rowIndex));
-      }
-      
-      // Fixed left columns (Special + Data columns from fixedOptions.colCount)
-      ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => 
-        row.appendChild(this.createCell(rowData, rowIndex, col))
-      );
+      // Fixed left columns (includes special columns when colCount > 0)
+      ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => {
+        if (col.field === '__drag') {
+          // Row drag handle
+          const dragHandle = createElement('div', 'velox-row-drag-handle');
+          dragHandle.innerHTML = '☰';
+          dragHandle.title = '드래그하여 행 순서 변경';
+          dragHandle.addEventListener('mousedown', (e) => ctx.startRowDrag(e, rowIndex, row));
+          row.appendChild(dragHandle);
+        } else if (col.field === '__checkbox') {
+          // CheckBar
+          row.appendChild(this.createCheckbarCell(rowIndex));
+        } else if (col.field === '__rownum') {
+          // Row numbers
+          const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
+          rowNumCell.textContent = String(rowIndex + 1);
+          row.appendChild(rowNumCell);
+        } else {
+          // Data cell
+          row.appendChild(this.createCell(rowData, rowIndex, col));
+        }
+      });
     } else if (area === 'scrollable') {
-      // Row numbers in scrollable area
-      if (options.showRowNumbers) {
-        const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
-        rowNumCell.textContent = String(rowIndex + 1);
-        row.appendChild(rowNumCell);
-      }
-      
-      ctx.getScrollableColumns().forEach((col: ColumnDefinition) => 
-        row.appendChild(this.createCell(rowData, rowIndex, col))
-      );
+      // Scrollable columns (includes special columns when colCount = 0)
+      ctx.getScrollableColumns().forEach((col: ColumnDefinition) => {
+        if (col.field === '__drag') {
+          // Row drag handle
+          const dragHandle = createElement('div', 'velox-row-drag-handle');
+          dragHandle.innerHTML = '☰';
+          dragHandle.title = '드래그하여 행 순서 변경';
+          dragHandle.addEventListener('mousedown', (e) => ctx.startRowDrag(e, rowIndex, row));
+          row.appendChild(dragHandle);
+        } else if (col.field === '__checkbox') {
+          // CheckBar
+          row.appendChild(this.createCheckbarCell(rowIndex));
+        } else if (col.field === '__rownum') {
+          // Row numbers
+          const rowNumCell = createElement('div', 'velox-cell velox-rownumber-cell');
+          rowNumCell.textContent = String(rowIndex + 1);
+          row.appendChild(rowNumCell);
+        } else {
+          // Data cell
+          row.appendChild(this.createCell(rowData, rowIndex, col));
+        }
+      });
     } else if (area === 'fixedRight') {
       // Fixed right columns (Phase 14)
       ctx.getFixedRightColumns().forEach((col: ColumnDefinition) => 

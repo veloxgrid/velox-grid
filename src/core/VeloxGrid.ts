@@ -284,22 +284,41 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   }
 
   /**
-   * Get fixed left columns (Special columns + fixedOptions.colCount data columns)
-   * Phase 14: Unified method for all fixed left columns
+   * Get fixed left columns
+   * Phase 14: Only include special columns when fixedOptions.colCount > 0
+   * 
+   * Logic:
+   * - If colCount = 0: Fixed left is empty (special columns go to scrollable)
+   * - If colCount > 0: Fixed left = special columns + first N data columns
    */
   getFixedLeftColumns(): ColumnDefinition[] {
     if (this.columnCache.dirty || !this.columnCache.fixedLeft) {
-      // Special columns (CheckBar, RowNumbers, DragHandle)
-      const specialColumns = this.state.columns.filter(
-        col => this.isSpecialColumn(col) && col.visible !== false
-      );
-      
-      // Data columns fixed by fixedOptions.colCount
       const { colCount = 0 } = this.options.fixedOptions || {};
-      const dataColumns = this.getDataColumns();
-      const fixedDataColumns = colCount > 0 ? dataColumns.slice(0, colCount) : [];
       
-      this.columnCache.fixedLeft = [...specialColumns, ...fixedDataColumns];
+      // Only include special columns when colCount > 0
+      if (colCount > 0) {
+        // Generate special columns based on options
+        const specialColumns: ColumnDefinition[] = [];
+        
+        if (this.options.rowDraggable) {
+          specialColumns.push({ field: '__drag', header: '', width: 44, visible: true });
+        }
+        if (this.options.checkBar?.visible) {
+          specialColumns.push({ field: '__checkbox', header: '', width: 44, visible: true });
+        }
+        if (this.options.showRowNumbers) {
+          specialColumns.push({ field: '__rownum', header: '#', width: 50, visible: true });
+        }
+        
+        // Data columns fixed by fixedOptions.colCount
+        const dataColumns = this.getDataColumns();
+        const fixedDataColumns = dataColumns.slice(0, colCount);
+        
+        this.columnCache.fixedLeft = [...specialColumns, ...fixedDataColumns];
+      } else {
+        // colCount = 0: no fixed left columns
+        this.columnCache.fixedLeft = [];
+      }
     }
     return this.columnCache.fixedLeft;
   }
@@ -320,7 +339,11 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
 
   /**
    * Get scrollable columns (middle area between fixed left and fixed right)
-   * Phase 14: Changed to calculate based on fixedOptions
+   * Phase 14: Include special columns when colCount = 0
+   * 
+   * Logic:
+   * - If colCount = 0: Scrollable = special columns + all data columns (except fixed right)
+   * - If colCount > 0: Scrollable = middle data columns only (between fixed left and fixed right)
    */
   getScrollableColumns(): ColumnDefinition[] {
     if (this.columnCache.dirty || !this.columnCache.scrollable) {
@@ -328,13 +351,34 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       const dataColumns = this.getDataColumns();
       const totalCount = dataColumns.length;
       
-      // Calculate scrollable range: colCount ~ (totalCount - rightCount)
-      const startIndex = colCount;
-      const endIndex = totalCount - rightCount;
-      
-      this.columnCache.scrollable = startIndex < endIndex 
-        ? dataColumns.slice(startIndex, endIndex)
-        : [];
+      if (colCount === 0) {
+        // Generate special columns based on options
+        const specialColumns: ColumnDefinition[] = [];
+        
+        if (this.options.rowDraggable) {
+          specialColumns.push({ field: '__drag', header: '', width: 44, visible: true });
+        }
+        if (this.options.checkBar?.visible) {
+          specialColumns.push({ field: '__checkbox', header: '', width: 44, visible: true });
+        }
+        if (this.options.showRowNumbers) {
+          specialColumns.push({ field: '__rownum', header: '#', width: 50, visible: true });
+        }
+        
+        // Scrollable = special columns + data columns (except fixed right)
+        const endIndex = totalCount - rightCount;
+        const scrollableDataColumns = endIndex > 0 ? dataColumns.slice(0, endIndex) : [];
+        
+        this.columnCache.scrollable = [...specialColumns, ...scrollableDataColumns];
+      } else {
+        // Calculate scrollable range: colCount ~ (totalCount - rightCount)
+        const startIndex = colCount;
+        const endIndex = totalCount - rightCount;
+        
+        this.columnCache.scrollable = startIndex < endIndex 
+          ? dataColumns.slice(startIndex, endIndex)
+          : [];
+      }
       
       this.columnCache.dirty = false; // Mark as clean after all queries
     }
@@ -368,11 +412,13 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     return this.columnCache.visible;
   }
 
+  /**
+   * Check if grid has fixed left columns
+   * Phase 14: Only true when fixedOptions.colCount > 0
+   */
   hasFixedLeft(): boolean {
-    return this.getFixedLeftColumns().length > 0 || 
-           this.options.checkBar?.visible === true || 
-           this.options.showCheckbox === true ||
-           this.options.rowDraggable === true;
+    const { colCount = 0 } = this.options.fixedOptions || {};
+    return colCount > 0;
   }
 
   /**
@@ -2442,6 +2488,10 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     
     // Check if DOM structure needs to be rebuilt
     const needsRebuild = 
+      // Left fixed changes
+      ((oldOptions.colCount || 0) === 0 && newOptions.colCount > 0) ||   // Left 추가
+      ((oldOptions.colCount || 0) > 0 && newOptions.colCount === 0) ||   // Left 제거
+      // Right fixed changes
       ((oldOptions.rightCount || 0) === 0 && newOptions.rightCount > 0) || // Right 추가
       ((oldOptions.rightCount || 0) > 0 && newOptions.rightCount === 0);   // Right 제거
     
@@ -2451,7 +2501,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.invalidateColumnCache();
     
     if (needsRebuild) {
-      // Rebuild DOM structure (without re-attaching events)
+      // Rebuild DOM structure (with re-attaching events)
       this.rebuildDOM();
     }
     

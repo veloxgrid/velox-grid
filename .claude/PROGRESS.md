@@ -110,6 +110,59 @@ velox-grid/
 
 ## 📋 최근 작업 이력 (최신순)
 
+### 🔧 Phase 14: 틀고정 버그 수정 (2025-02-06)
+
+**버전**: v0.8.0  
+**번들 크기**: UMD 88.38 KB (gzip: 22.09 KB), ESM 122.75 KB
+
+**수정 내용**:
+
+#### 1. Left 틀고정 해제 후 재설정 시 DOM 재구성 버그
+
+**문제**: Left 틀고정 → 해제 → 다시 Left 틀고정 시 Fixed Left 영역이 사라짐
+
+**원인**: `setFixedOptions`에서 `rightCount` 변경만 체크하고 `colCount` 변경은 체크하지 않음
+
+**해결**:
+```typescript
+const needsRebuild = 
+  // Left fixed changes
+  ((oldOptions.colCount || 0) === 0 && newOptions.colCount > 0) ||   // Left 추가
+  ((oldOptions.colCount || 0) > 0 && newOptions.colCount === 0) ||   // Left 제거
+  // Right fixed changes
+  ((oldOptions.rightCount || 0) === 0 && newOptions.rightCount > 0) || // Right 추가
+  ((oldOptions.rightCount || 0) > 0 && newOptions.rightCount === 0);   // Right 제거
+```
+
+#### 2. 특수 컬럼 사라지는 버그
+
+**문제**: CheckBar와 DragHandle이 화면에서 사라짐
+
+**원인**: `getFixedLeftColumns()`와 `getScrollableColumns()`에서 특수 컬럼을 `state.columns`에서 필터링하려 했으나, 특수 컬럼은 `state.columns`에 존재하지 않음
+
+**해결**: 특수 컬럼을 옵션 기반으로 직접 생성하여 반환
+```typescript
+if (this.options.rowDraggable) {
+  specialColumns.push({ field: '__drag', header: '', width: 44, visible: true });
+}
+if (this.options.checkBar?.visible) {
+  specialColumns.push({ field: '__checkbox', header: '', width: 44, visible: true });
+}
+if (this.options.showRowNumbers) {
+  specialColumns.push({ field: '__rownum', header: '#', width: 50, visible: true });
+}
+```
+
+**테스트 시나리오**:
+1. Left 틀고정 (colCount: 2) → Fixed Left 생성 ✅
+2. 틀고정 해제 (colCount: 0) → Fixed Left 제거 ✅
+3. 다시 Left 틀고정 (colCount: 2) → Fixed Left 재생성 ✅
+4. 특수 컬럼 (CheckBar, DragHandle) 정상 표시 ✅
+
+**Git**: 다음 커밋에 포함 예정
+
+---
+
 ### 🔧 스크롤 동기화 버그 수정 (2025-02-05)
 
 **문제점**:

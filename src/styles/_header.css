@@ -165,6 +165,7 @@
   cursor: pointer;
   transition: var(--velox-transition); 
   position: relative;
+  flex-shrink: 0; /* Prevent squishing in flex containers */
 }
 .velox-checkbox:hover { border-color: var(--velox-primary-light); }
 .velox-checkbox:checked { 

@@ -27,7 +27,7 @@
 - 📦 **Zero Dependencies** - 외부 의존성 없음 (Excel 기능의 경우 SheetJS 선택적 사용)
 - 🎨 **커스터마이징 가능** - CSS Variables를 통한 쉬운 테마 커스터마이징
 - 📝 **TypeScript** - 완벽한 타입 지원
-- ⚡ **경량화** - ~75KB minified (~19KB gzipped)
+- ⚡ **경량화** - ~97KB minified (~24KB gzipped)
 
 ### 핵심 기능
 
@@ -46,6 +46,8 @@
 - 🔢 **Row State Management** - 행 상태 추적 (생성/수정/삭제) (v0.9.0)
 - ⚡ **Quick Edit** - 셀 선택 후 바로 타이핑으로 편집 (v0.9.1)
 - ⌨️ **Enhanced Keyboard** - Enter/Tab/Shift 조합 완벽 지원 (v0.9.1)
+- 📄 **Pagination** - Local/Remote 페이지네이션, 페이지 크기 변경 (v0.10.0)
+- 🌐 **Server-Side Data** - 서버 측 정렬/필터/페이징 연동 (v0.10.0)
 
 ### 코드 구조 최적화 (v0.7.0+)
 
@@ -303,6 +305,43 @@ const allSummaries = grid.getSummaryValues();
 grid.refreshSummary();  // 수동 새로고침
 ```
 
+### Pagination (v0.10.0)
+
+```typescript
+const grid = new VeloxGrid('#grid', {
+  columns: [...],
+  data: localData,  // Local mode
+  pagination: {
+    enabled: true,
+    pageSize: 20,
+    showInfo: true,           // "1-20 / 500" 표시
+    showSizeChanger: true,    // 페이지 크기 셀렉터
+    pageSizeOptions: [10, 20, 50, 100],
+    maxPageButtons: 5,
+  },
+});
+
+// Remote mode (서버 측 데이터)
+const grid = new VeloxGrid('#grid', {
+  columns: [...],
+  dataSource: {
+    type: 'remote',
+    fetch: async (params) => {
+      // params: { page, pageSize, sort?, filter? }
+      const res = await fetch(`/api/data?page=${params.page}&size=${params.pageSize}`);
+      return await res.json(); // { data: RowData[], totalCount: number }
+    },
+  },
+  pagination: { enabled: true, pageSize: 20 },
+});
+
+// API 메서드
+grid.goToPage(3);                  // 페이지 이동
+grid.setPageSize(50);              // 페이지 크기 변경
+grid.getPaginationState();         // { currentPage, pageSize, totalCount, totalPages }
+await grid.fetchData();            // 서버 데이터 수동 새로고침
+```
+
 ### 메서드
 
 ```typescript
@@ -367,6 +406,12 @@ getSummaryValue(field: string): CellValue
 getSummaryValues(): Record<string, CellValue>
 refreshSummary(): void
 
+// Pagination (v0.10.0)
+goToPage(page: number): void
+setPageSize(pageSize: number): void
+getPaginationState(): PaginationState
+fetchData(): Promise<void>
+
 // 유틸리티
 refresh(): void
 setLoading(loading: boolean): void
@@ -424,6 +469,10 @@ interface GridEvents {
   onFilter?: (filterState: FilterState) => void;
   onScroll?: (scrollTop: number, scrollLeft: number) => void;
   onDestroy?: () => void;
+
+  // Pagination (v0.10.0)
+  onPageChange?: (page: number, pageSize: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 ```
 
@@ -515,9 +564,9 @@ velox-grid/
 
 | 버전 | UMD | Gzipped |
 |---------|-----|---------|
+| v0.10.0 | 97.39 KB | 24.23 KB |
 | v0.7.0 | 71.35 KB | 18.23 KB |
 | v0.6.0 | 58.94 KB | 14.92 KB |
-| v0.5.0 | 50.50 KB | 12.90 KB |
 
 ## 🗺️ 로드맵
 

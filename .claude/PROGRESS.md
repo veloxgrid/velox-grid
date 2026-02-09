@@ -1,6 +1,6 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-09 (로드맵 재구성)
+> 마지막 업데이트: 2025-02-09 (Phase 18 완료)
 
 ---
 
@@ -9,15 +9,15 @@
 ### 기본 정보
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
-- **현재 버전**: v0.9.1
+- **현재 버전**: v0.10.0
 - **라이선스**: MIT
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
 ### 빌드 정보
-- **번들 크기**: 91.56KB (gzip 22.74KB)
-- **VeloxGrid.ts**: ~2,819줄
+- **번들 크기**: 97.39KB (gzip 24.23KB)
+- **VeloxGrid.ts**: ~3,148줄
 - **Core 모듈**: 11개
-- **CSS 모듈**: 11개
+- **CSS 모듈**: 12개
 
 ### 프로젝트 구조
 ```
@@ -115,6 +115,17 @@ velox-grid/
 - ✅ 모든 Editor 타입에서 키보드 동작 통일
 - ✅ 데모 페이지 (3가지 시나리오)
 
+#### Phase 18: Server-Side Data & Pagination (v0.10.0)
+- ✅ DataSource 옵션 (`local` / `remote`)
+- ✅ Remote fetch (정렬/필터/페이징 파라미터 자동 전달)
+- ✅ Pagination UI (페이지 네비게이션 바)
+- ✅ 페이지 정보 표시, 페이지 크기 변경 셀렉터
+- ✅ Local Pagination (클라이언트 데이터 페이지 분할)
+- ✅ API: goToPage(), setPageSize(), fetchData(), getPaginationState()
+- ✅ 이벤트: onPageChange, onPageSizeChange
+- ✅ CSS 모듈: _pagination.css
+- ✅ 데모 페이지 (3가지 시나리오: Local, Remote, PageSizeChanger)
+
 ### 계획된 기능 (Phase 16~25)
 
 > 아래 Phase 번호는 기존 완료된 Phase 15.1 이후로 순차 배정
@@ -138,12 +149,12 @@ velox-grid/
 - [ ] TypeScript 타입 지원 (React/Vue 공통)
 - [ ] 데모 페이지 (React + Vue)
 
-**Phase 18: Server-Side Data + Pagination**
-- [ ] DataSource 인터페이스 (`local` / `remote`)
-- [ ] Remote fetch (정렬/필터/페이징 파라미터)
-- [ ] Pagination UI (Footer 페이지 네비게이션)
-- [ ] Infinite Scroll 모드 (선택적)
-- [ ] Loading State 통합
+**Phase 18: Server-Side Data + Pagination** ✅ 완료 (v0.10.0)
+- [x] DataSource 인터페이스 (`local` / `remote`)
+- [x] Remote fetch (정렬/필터/페이징 파라미터)
+- [x] Pagination UI (Footer 페이지 네비게이션)
+- [x] Infinite Scroll 모드 (선택적) → 향후 확장 예정
+- [x] Loading State 통합
 
 **Phase 19: Column Group (다단계 헤더)**
 - [ ] ColumnGroup 타입 정의
@@ -254,6 +265,73 @@ velox-grid/
 ---
 
 ## 📋 최근 작업 이력 (최신순)
+
+### ✨ Phase 18: Server-Side Data & Pagination 완료 (2025-02-09)
+
+**버전**: v0.10.0  
+**번들 크기**: UMD 97.39 KB (gzip: 24.23 KB), ESM 136.00 KB, CSS 21.43 KB
+
+#### 구현 내용
+
+**1. 타입 정의** (`src/types/index.ts`):
+- `DataSourceOptions`: `local` / `remote` 데이터 소스 타입
+- `DataRequestParams`: 서버 요청 파라미터 (page, pageSize, sort, filter)
+- `DataResponseResult`: 서버 응답 (data, totalCount)
+- `PaginationState`: 페이지네이션 상태 (currentPage, pageSize, totalCount, totalPages, loading)
+- `PaginationOptions`: 페이지네이션 옵션 (enabled, pageSize, pageSizeOptions, maxPageButtons, showInfo, showSizeChanger)
+- `GridOptions.dataSource`, `GridOptions.pagination` 추가
+- `GridEvents.onPageChange`, `GridEvents.onPageSizeChange` 추가
+- `GridState.pagination` 추가
+- `GridContext.goToPage()`, `setPageSize()`, `getPaginationState()`, `fetchData()`, `isRemoteDataSource()` 추가
+
+**2. 핵심 로직** (`src/core/VeloxGrid.ts`):
+- `state.pagination` 초기화 (생성자)
+- `isRemoteDataSource()`: remote 모드 판별
+- `goToPage(page)`: 페이지 이동 (local/remote 자동 분기)
+- `setPageSize(pageSize)`: 페이지 크기 변경
+- `fetchData()`: 서버 데이터 요청 (loading 상태 관리, row state 초기화)
+- `applyLocalPagination()`: 로컬 데이터 sort/filter 후 페이지 슬라이싱
+- `applyDataTransformations()`: pagination 활성화 시 별도 분기 (remote → fetchData, local → applyLocalPagination)
+- `setData()`: local pagination 시 totalCount 자동 업데이트
+- 정렬 시 remote 모드 분기 (render 스킵, fetchData 내에서 처리)
+- 생성자에서 초기 데이터 로드 (remote: fetchData 호출, local: applyLocalPagination)
+
+**3. Pagination UI** (`src/core/VeloxGrid.ts`):
+- `renderPagination()`: 페이지 네비게이션 바 렌더링
+  - 좌측: 페이지 정보 ("1-20 / 500")
+  - 중앙: 처음/이전/페이지번호/다음/마지막 버튼 + 말줄임표
+  - 우측: 페이지 크기 셀렉터 (optional)
+- `createPageButton()`: 버튼 생성 헬퍼
+- `paginationContainer` DOM 요소 (wrapper 아래에 위치)
+- `render()` 호출 시 자동으로 pagination UI 갱신
+
+**4. CSS** (`src/styles/_pagination.css`):
+- `.velox-pagination`: flexbox 레이아웃, 좌/중/우 정렬
+- `.velox-pagination-btn`: 호버/active/disabled 스타일
+- `.velox-pagination-select`: 페이지 크기 셀렉터
+- CSS Variables 활용 (primary-color, border-color, hover-bg 등)
+
+**데모 페이지** (`examples/phase18-pagination-demo.html`):
+1. Local Pagination: 500건 클라이언트 데이터, Add/Remove Row
+2. Remote Pagination: 1000건 Mock API, 서버 측 sort/filter, 페이지 크기 변경
+3. Page Size Changer: 다양한 크기 옵션 (5/10/25/50/100)
+
+**번들 크기 변화**:
+- UMD: 92.19 KB → 97.39 KB (+5.20 KB)
+- ESM: 132.98 KB → 136.00 KB (+3.02 KB)
+- CSS: 19.52 KB → 21.43 KB (+1.91 KB)
+- gzip: 22.86 KB → 24.23 KB (+1.37 KB)
+
+**수정 파일**:
+- `src/types/index.ts`: Phase 18 타입 정의 추가
+- `src/core/VeloxGrid.ts`: Pagination 로직 + UI 렌더링
+- `src/styles/_pagination.css`: 신규 CSS 모듈
+- `src/styles/velox-grid.css`: _pagination.css import 추가
+- `examples/phase18-pagination-demo.html`: 데모 페이지
+- `package.json`: v0.10.0
+- `src/index.ts`: v0.10.0
+
+**Git**: 커밋 예정
 
 ### ✨ Phase 15.1: Keyboard Enhancement 완료 (2025-02-09)
 
@@ -1114,7 +1192,7 @@ src/core/
 ## 🔮 다음 작업 계획
 
 ### 즉시 처리 (미커밋 작업)
-- [ ] Phase 15.1 키보드 버그 수정 Git 커밋 및 푸시
+- [ ] Phase 18 Server-Side Data & Pagination Git 커밋 및 푸시
 
 ### Phase 16: 단위 테스트 도입
 **목표**: 핵심 로직의 테스트 커버리지 확보로 이후 모든 Phase의 안정성 기반 마련

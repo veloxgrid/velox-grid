@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 18: Pagination Demo</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0; padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { font-size: 24px; margin-bottom: 4px; }
+    h2 { font-size: 18px; margin: 24px 0 8px; color: #333; }
+    .subtitle { color: #666; margin-bottom: 20px; }
+    .demo-section {
+      background: white; border-radius: 8px;
+      padding: 20px; margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .controls { margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .controls button {
+      padding: 6px 14px; border: 1px solid #ddd;
+      border-radius: 4px; background: #fff; cursor: pointer;
+      font-size: 13px;
+    }
+    .controls button:hover { background: #e8f0fe; border-color: #4285f4; }
+    .grid-container { margin-top: 8px; }
+    .info-panel {
+      margin-top: 8px; padding: 8px 12px;
+      background: #f8f9fa; border-radius: 4px;
+      font-size: 13px; color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>📄 Phase 18: Server-Side Data & Pagination</h1>
+  <p class="subtitle">VeloxGrid v0.10.0 - Local/Remote 페이지네이션 데모</p>
+
+  <!-- Demo 1: Local Pagination -->
+  <div class="demo-section">
+    <h2>1. Local Pagination (클라이언트 측 페이지네이션)</h2>
+    <p>500건의 데이터를 클라이언트에서 페이지 단위로 표시합니다.</p>
+    <div class="controls">
+      <button onclick="addLocalRow()">➕ Add Row</button>
+      <button onclick="removeLocalRow()">🗑️ Remove First Row</button>
+      <button onclick="showLocalState()">📊 Show State</button>
+    </div>
+    <div id="grid-local" class="grid-container"></div>
+    <div id="info-local" class="info-panel"></div>
+  </div>
+
+  <!-- Demo 2: Remote Pagination -->
+  <div class="demo-section">
+    <h2>2. Remote Pagination (서버 측 페이지네이션)</h2>
+    <p>서버에서 페이지 단위로 데이터를 가져옵니다. (Mock API로 시뮬레이션)</p>
+    <div class="controls">
+      <button onclick="refreshRemote()">🔄 Refresh</button>
+      <button onclick="showRemoteState()">📊 Show State</button>
+      <button onclick="showLastRequest()">📋 Last Request</button>
+    </div>
+    <div id="grid-remote" class="grid-container"></div>
+    <div id="info-remote" class="info-panel"></div>
+  </div>
+
+  <!-- Demo 3: Local Pagination with Page Size Changer -->
+  <div class="demo-section">
+    <h2>3. Page Size Changer</h2>
+    <p>페이지 크기를 동적으로 변경할 수 있습니다.</p>
+    <div id="grid-sizer" class="grid-container"></div>
+  </div>
+
+  <script src="../dist/velox-grid.js"></script>
+  <script>
+    // ============================================
+    // Helper: 테스트 데이터 생성
+    // ============================================
+    function generateData(count) {
+      const departments = ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance', 'Design'];
+      const statuses = ['Active', 'Inactive', 'Pending'];
+      const data = [];
+      for (let i = 1; i <= count; i++) {
+        data.push({
+          id: i,
+          name: `Employee ${i}`,
+          department: departments[i % departments.length],
+          email: `emp${i}@company.com`,
+          salary: 40000 + Math.floor(Math.random() * 60000),
+          status: statuses[i % statuses.length],
+          joinDate: `2020-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`,
+        });
+      }
+      return data;
+    }
+
+    const columns = [
+      { field: 'id', header: 'ID', type: 'number', width: 60, align: 'center' },
+      { field: 'name', header: 'Name', type: 'text', width: 150, editable: true },
+      { field: 'department', header: 'Department', type: 'text', width: 120, editable: true,
+        editor: { type: 'select', options: [
+          { value: 'Engineering', label: 'Engineering' },
+          { value: 'Marketing', label: 'Marketing' },
+          { value: 'Sales', label: 'Sales' },
+          { value: 'HR', label: 'HR' },
+          { value: 'Finance', label: 'Finance' },
+          { value: 'Design', label: 'Design' },
+        ]}
+      },
+      { field: 'email', header: 'Email', type: 'text', width: 200 },
+      { field: 'salary', header: 'Salary', type: 'number', width: 100, align: 'right',
+        formatter: (v) => v ? `$${Number(v).toLocaleString()}` : '' },
+      { field: 'status', header: 'Status', type: 'text', width: 90, align: 'center' },
+      { field: 'joinDate', header: 'Join Date', type: 'text', width: 110, align: 'center' },
+    ];
+
+    // ============================================
+    // Demo 1: Local Pagination
+    // ============================================
+    const localData = generateData(500);
+    const gridLocal = new VeloxGrid.VeloxGrid('#grid-local', {
+      columns: columns,
+      data: localData,
+      height: 400,
+      editable: true,
+      sortable: true,
+      filterable: true,
+      showRowNumbers: true,
+      selectionStyle: 'cell',
+      pagination: {
+        enabled: true,
+        pageSize: 20,
+        showInfo: true,
+        showSizeChanger: false,
+      },
+    }, {
+      onPageChange: (page, pageSize) => {
+        document.getElementById('info-local').textContent =
+          `Page changed: page=${page}, pageSize=${pageSize}`;
+      },
+    });
+
+    function addLocalRow() {
+      const id = gridLocal.getData().length + 501;
+      gridLocal.addRow({
+        id, name: `New Employee ${id}`, department: 'Engineering',
+        email: `new${id}@company.com`, salary: 50000, status: 'Active', joinDate: '2025-01-01',
+      });
+      document.getElementById('info-local').textContent = `Row added. Total: ${gridLocal.getData().length}`;
+    }
+    function removeLocalRow() {
+      if (gridLocal.getData().length > 0) {
+        gridLocal.removeRow(0);
+        document.getElementById('info-local').textContent = `Row removed. Total: ${gridLocal.getData().length}`;
+      }
+    }
+    function showLocalState() {
+      const s = gridLocal.getPaginationState();
+      document.getElementById('info-local').textContent =
+        `Page: ${s.currentPage}/${s.totalPages}, Size: ${s.pageSize}, Total: ${s.totalCount}`;
+    }
+
+    // ============================================
+    // Demo 2: Remote Pagination (Mock API)
+    // ============================================
+    const allServerData = generateData(1000);
+    let lastRequestParams = null;
+
+    async function mockFetch(params) {
+      lastRequestParams = { ...params };
+      // 네트워크 지연 시뮬레이션
+      await new Promise(r => setTimeout(r, 300 + Math.random() * 200));
+
+      let data = [...allServerData];
+
+      // 서버 측 필터링
+      if (params.filter && params.filter.conditions) {
+        params.filter.conditions.forEach(cond => {
+          data = data.filter(row => {
+            const val = String(row[cond.field] || '').toLowerCase();
+            const target = String(cond.value || '').toLowerCase();
+            switch (cond.operator) {
+              case 'contains': return val.includes(target);
+              case 'equals': return val === target;
+              case 'startsWith': return val.startsWith(target);
+              default: return true;
+            }
+          });
+        });
+      }
+
+      // 서버 측 정렬
+      if (params.sort && params.sort.length > 0) {
+        const s = params.sort[0];
+        data.sort((a, b) => {
+          const va = a[s.field], vb = b[s.field];
+          const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+          return s.direction === 'desc' ? -cmp : cmp;
+        });
+      }
+
+      const totalCount = data.length;
+      const start = (params.page - 1) * params.pageSize;
+      const pageData = data.slice(start, start + params.pageSize);
+
+      return { data: pageData, totalCount };
+    }
+
+    const gridRemote = new VeloxGrid.VeloxGrid('#grid-remote', {
+      columns: columns,
+      height: 400,
+      sortable: true,
+      filterable: true,
+      showRowNumbers: true,
+      selectionStyle: 'cell',
+      dataSource: {
+        type: 'remote',
+        fetch: mockFetch,
+      },
+      pagination: {
+        enabled: true,
+        pageSize: 15,
+        showInfo: true,
+        showSizeChanger: true,
+        pageSizeOptions: [10, 15, 30, 50],
+      },
+    }, {
+      onPageChange: (page, pageSize) => {
+        document.getElementById('info-remote').textContent =
+          `Remote page changed: page=${page}, pageSize=${pageSize}`;
+      },
+      onPageSizeChange: (pageSize) => {
+        document.getElementById('info-remote').textContent =
+          `Page size changed: ${pageSize}`;
+      },
+    });
+
+    function refreshRemote() {
+      gridRemote.fetchData();
+      document.getElementById('info-remote').textContent = 'Refreshing...';
+    }
+    function showRemoteState() {
+      const s = gridRemote.getPaginationState();
+      document.getElementById('info-remote').textContent =
+        `Page: ${s.currentPage}/${s.totalPages}, Size: ${s.pageSize}, Total: ${s.totalCount}, Loading: ${s.loading}`;
+    }
+    function showLastRequest() {
+      document.getElementById('info-remote').textContent =
+        `Last request: ${JSON.stringify(lastRequestParams, null, 2)}`;
+    }
+
+    // ============================================
+    // Demo 3: Page Size Changer
+    // ============================================
+    const gridSizer = new VeloxGrid.VeloxGrid('#grid-sizer', {
+      columns: columns,
+      data: generateData(200),
+      height: 350,
+      sortable: true,
+      filterable: true,
+      showRowNumbers: true,
+      pagination: {
+        enabled: true,
+        pageSize: 10,
+        showInfo: true,
+        showSizeChanger: true,
+        pageSizeOptions: [5, 10, 25, 50, 100],
+        maxPageButtons: 7,
+      },
+    });
+  </script>
+</body>
+</html>

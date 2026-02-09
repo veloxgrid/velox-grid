@@ -107,4 +107,4 @@ export {
 import './styles/velox-grid.css';
 
 // Version
-export const VERSION = '0.9.1';
+export const VERSION = '0.10.0';

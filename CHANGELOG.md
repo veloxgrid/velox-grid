@@ -5,6 +5,26 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
+## [0.10.0] - 2025-02-09
+
+### Added - Phase 18: Server-Side Data & Pagination
+- **DataSource 옵션**: `local` / `remote` 데이터 소스 타입 지원
+- **Remote 데이터**: 서버에서 페이지 단위로 데이터를 가져오는 `fetch` 함수 지원
+- **Pagination UI**: 페이지 네비게이션 바 (처음/이전/다음/마지막, 페이지 번호)
+- **페이지 정보 표시**: "1-20 / 500" 형식의 현재 위치 정보
+- **페이지 크기 변경**: `showSizeChanger` 옵션으로 드롭다운 선택기 제공
+- **Local Pagination**: 클라이언트 데이터를 페이지 단위로 분할 표시
+- **Remote Pagination**: 서버 측 정렬/필터/페이징 자동 연동
+- **API 메서드**: `goToPage()`, `setPageSize()`, `fetchData()`, `getPaginationState()`
+- **이벤트**: `onPageChange`, `onPageSizeChange`
+- **CSS 모듈**: `_pagination.css` 추가
+
+### Bundle Size
+- UMD: 92.19 KB → 97.39 KB (+5.20 KB)
+- ESM: 132.98 KB → 136.00 KB (+3.02 KB)
+- CSS: 19.52 KB → 21.43 KB (+1.91 KB)
+- gzip: 22.86 KB → 24.23 KB (+1.37 KB)
+
 ## [0.9.1] - 2025-02-09
 
 ### Added - Phase 15.1: Enhanced Keyboard Navigation

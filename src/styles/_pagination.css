@@ -1,0 +1,102 @@
+/**
+ * VeloxGrid Pagination Styles (Phase 18)
+ */
+
+.velox-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid var(--velox-border-color, #e0e0e0);
+  background: var(--velox-header-bg, #f8f9fa);
+  font-size: 13px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.velox-pagination-info {
+  color: var(--velox-text-secondary, #666);
+  white-space: nowrap;
+}
+
+.velox-pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.velox-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 6px;
+  border: 1px solid var(--velox-border-color, #e0e0e0);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--velox-text-color, #333);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.velox-pagination-btn:hover:not(:disabled) {
+  background: var(--velox-hover-bg, #e8f0fe);
+  border-color: var(--velox-primary-color, #4285f4);
+  color: var(--velox-primary-color, #4285f4);
+}
+
+.velox-pagination-btn--active {
+  background: var(--velox-primary-color, #4285f4);
+  border-color: var(--velox-primary-color, #4285f4);
+  color: #fff;
+  font-weight: 600;
+}
+
+.velox-pagination-btn--active:hover {
+  background: var(--velox-primary-color, #4285f4);
+  color: #fff;
+}
+
+.velox-pagination-btn--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.velox-pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  color: var(--velox-text-secondary, #666);
+}
+
+.velox-pagination-sizer {
+  display: flex;
+  align-items: center;
+}
+
+.velox-pagination-select {
+  height: 32px;
+  padding: 0 24px 0 8px;
+  border: 1px solid var(--velox-border-color, #e0e0e0);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--velox-text-color, #333);
+  font-size: 13px;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.velox-pagination-select:hover {
+  border-color: var(--velox-primary-color, #4285f4);
+}
+
+.velox-pagination-select:focus {
+  outline: none;
+  border-color: var(--velox-primary-color, #4285f4);
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}

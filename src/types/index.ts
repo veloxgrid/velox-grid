@@ -339,6 +339,90 @@ export interface FixedOptions {
 }
 
 // ============================================
+// Data Source & Pagination Types (Phase 18)
+// ============================================
+
+/**
+ * 서버 요청 시 전달되는 파라미터
+ */
+export interface DataRequestParams {
+  /** 현재 페이지 (1-based) */
+  page: number;
+  /** 페이지당 행 수 */
+  pageSize: number;
+  /** 정렬 상태 */
+  sort?: SortState[];
+  /** 필터 상태 */
+  filter?: FilterState | null;
+}
+
+/**
+ * 서버 응답 결과
+ */
+export interface DataResponseResult {
+  /** 행 데이터 */
+  data: RowData[];
+  /** 전체 행 수 (페이지네이션 계산용) */
+  totalCount: number;
+}
+
+/**
+ * 페이지네이션 상태
+ */
+export interface PaginationState {
+  /** 현재 페이지 (1-based) */
+  currentPage: number;
+  /** 페이지당 행 수 */
+  pageSize: number;
+  /** 전체 행 수 */
+  totalCount: number;
+  /** 전체 페이지 수 */
+  totalPages: number;
+  /** 로딩 중 여부 */
+  loading: boolean;
+}
+
+/**
+ * 페이지네이션 옵션
+ */
+export interface PaginationOptions {
+  /** 페이지네이션 활성화 */
+  enabled: boolean;
+  /** 페이지당 행 수 (default: 20) */
+  pageSize?: number;
+  /** 페이지 크기 변경 옵션 목록 */
+  pageSizeOptions?: number[];
+  /** 표시할 페이지 버튼 수 (default: 5) */
+  maxPageButtons?: number;
+  /** 페이지 정보 표시 (default: true) */
+  showInfo?: boolean;
+  /** 페이지 크기 셀렉터 표시 (default: false) */
+  showSizeChanger?: boolean;
+}
+
+/**
+ * 데이터 소스 설정
+ */
+export interface DataSourceOptions {
+  /** 
+   * 데이터 소스 타입
+   * - 'local': 클라이언트 측 데이터 (기본값, 기존 동작)
+   * - 'remote': 서버에서 데이터를 가져옴
+   */
+  type: 'local' | 'remote';
+  /**
+   * 서버 데이터 요청 함수 (type: 'remote' 시 필수)
+   * 정렬/필터/페이지 변경 시 자동 호출
+   */
+  fetch?: (params: DataRequestParams) => Promise<DataResponseResult>;
+  /**
+   * 초기 전체 행 수 (서버 측 페이지네이션 시 사용)
+   * fetch 응답의 totalCount로 자동 업데이트됨
+   */
+  totalCount?: number;
+}
+
+// ============================================
 // Grid Options
 // ============================================
 
@@ -405,6 +489,10 @@ export interface GridOptions {
   groupSummary?: GroupSummaryOptions;
   /** Fixed columns options (Phase 14) */
   fixedOptions?: FixedOptions;
+  /** Data source options (Phase 18) */
+  dataSource?: DataSourceOptions;
+  /** Pagination options (Phase 18) */
+  pagination?: PaginationOptions;
 }
 
 // ============================================
@@ -650,6 +738,10 @@ export interface GridEvents {
   // Lifecycle events
   onReady?: (grid: VeloxGridInstance) => void;
   onDestroy?: () => void;
+
+  // Pagination events (Phase 18)
+  onPageChange?: (page: number, pageSize: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 // ============================================
@@ -800,6 +892,7 @@ export interface GridState {
   sort: SortState[];
   filter: FilterState | null;
   edit: EditState;
+  pagination: PaginationState; // Phase 18
   scroll: {
     top: number;
     left: number;
@@ -859,6 +952,10 @@ export interface GridContext {
   getEvents(): GridEvents;
   /** 그리드 고유 ID 반환 */
   getGridId(): string;
+  /** 페이지네이션 상태 반환 (Phase 18) */
+  getPaginationState(): PaginationState;
+  /** Remote 데이터 소스 여부 (Phase 18) */
+  isRemoteDataSource(): boolean;
 
   // ============================================
   // Column Methods
@@ -1051,4 +1148,16 @@ export interface GridContext {
   setFixedOptions(options: FixedOptions): void;
   /** Fixed options 조회 */
   getFixedOptions(): FixedOptions;
+
+  // ============================================
+  // Pagination (Phase 18)
+  // ============================================
+  /** 특정 페이지로 이동 */
+  goToPage(page: number): void;
+  /** 페이지 크기 변경 */
+  setPageSize(pageSize: number): void;
+  /** 현재 페이지네이션 상태 조회 */
+  getPaginationState(): PaginationState;
+  /** 서버 데이터 수동 새로고침 */
+  fetchData(): Promise<void>;
 }

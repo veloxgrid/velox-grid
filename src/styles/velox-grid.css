@@ -40,3 +40,6 @@
 
 /* Footer Summary (Phase 13) */
 @import './_footer.css';
+
+/* Pagination (Phase 18) */
+@import './_pagination.css';

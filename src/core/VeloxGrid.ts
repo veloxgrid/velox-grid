@@ -39,6 +39,8 @@ import type {
   GridContext,
   RowStateType,
   ChangesResult,
+  PaginationState,
+  DataRequestParams,
 } from '../types';
 import { createElement, addClass, throttle } from '../utils/dom';
 import { formatValue, sortData, filterData, generateId } from '../utils/data';
@@ -128,6 +130,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   public fixedRightBody: HTMLElement | null = null;
   public fixedRightBodyInner: HTMLElement | null = null;
   public fixedRightFooter: HTMLElement | null = null;
+  // Phase 18: Pagination DOM
+  public paginationContainer: HTMLElement | null = null;
 
   // Internal state
   private blockSelecting: { startRow: number; startField: string } | null = null;
@@ -237,6 +241,13 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         field: null,
         originalValue: null,
       },
+      pagination: {
+        currentPage: 1,
+        pageSize: this.options.pagination?.pageSize || 20,
+        totalCount: this.options.dataSource?.totalCount || 0,
+        totalPages: 0,
+        loading: false,
+      },
       scroll: { top: 0, left: 0 },
     };
 
@@ -253,7 +264,24 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
 
     this.build();
     this.tooltip = new GridTooltip(this.rootElement);
-    this.render();
+    
+    // Phase 18: 초기 데이터 로드
+    if (this.options.pagination?.enabled) {
+      if (this.isRemoteDataSource()) {
+        // Remote: 서버에서 첫 페이지 데이터 가져오기
+        this.render(); // 빈 상태로 먼저 렌더 (pagination UI 포함)
+        this.fetchData();
+      } else {
+        // Local: pagination 적용 후 렌더
+        this.state.pagination.totalCount = this.state.data.length;
+        this.updateTotalPages();
+        this.applyLocalPagination();
+        this.render();
+      }
+    } else {
+      this.render();
+    }
+    
     this.attachEvents();
     this.events.onReady?.(this);
   }
@@ -551,6 +579,13 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     }
 
     this.rootElement.appendChild(wrapper);
+
+    // Phase 18: Pagination Bar
+    if (this.options.pagination?.enabled) {
+      this.paginationContainer = createElement('div', 'velox-pagination');
+      this.rootElement.appendChild(this.paginationContainer);
+    }
+
     this.container.innerHTML = '';
     this.container.appendChild(this.rootElement);
 
@@ -604,6 +639,10 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   render(): void {
     console.log('🔄 render() called', { editing: this.state.edit.editing, rowIndex: this.state.edit.rowIndex, field: this.state.edit.field });
     this.renderer.render();
+    // Phase 18: Pagination UI
+    if (this.paginationContainer) {
+      this.renderPagination();
+    }
   }
 
   renderHeader(): void {
@@ -766,7 +805,12 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.state.sort = newDirection ? [{ field, direction: newDirection }] : [];
     this.clearSelectionState();
     this.applyDataTransformations();
-    this.render();
+    
+    // Remote 모드가 아닌 경우에만 즉시 render (remote는 fetchData 내에서 render)
+    if (!this.isRemoteDataSource() || !this.options.pagination?.enabled) {
+      this.render();
+    }
+    
     this.events.onSort?.(this.state.sort);
   }
 
@@ -1119,6 +1163,21 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
 
   // GridContext: Data transformation (public for module access)
   applyDataTransformations(): void {
+    // Phase 18: Pagination이 활성화된 경우 별도 로직
+    if (this.options.pagination?.enabled) {
+      if (this.isRemoteDataSource()) {
+        // Remote: 페이지 1로 리셋 후 서버 요청
+        this.state.pagination.currentPage = 1;
+        this.fetchData();
+        return;
+      } else {
+        // Local pagination: sort/filter + 페이지 슬라이싱
+        this.applyLocalPagination();
+        return;
+      }
+    }
+    
+    // 기존 로직 (pagination 없음)
     let data = [...this.state.data];
     if (this.state.filter) data = filterData(data, this.state.filter);
     if (this.state.sort.length > 0) {
@@ -1158,6 +1217,13 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.state.data.forEach(row => {
       this.state.rowStates.set(row, 'none');
     });
+    
+    // Phase 18: Local pagination인 경우 totalCount 업데이트
+    if (this.options.pagination?.enabled && !this.isRemoteDataSource()) {
+      this.state.pagination.totalCount = this.state.data.length;
+      this.state.pagination.currentPage = 1;
+      this.updateTotalPages();
+    }
     
     this.summary.invalidateCache();
     this.applyDataTransformations();
@@ -2831,6 +2897,248 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.rebuildDataIndexMap();
     this.applyDataTransformations();
     this.render();
+  }
+
+  // ============================================
+  // Phase 18: Data Source & Pagination
+  // ============================================
+
+  /**
+   * Remote 데이터 소스 여부 확인
+   */
+  isRemoteDataSource(): boolean {
+    return this.options.dataSource?.type === 'remote';
+  }
+
+  /**
+   * 페이지네이션 상태 조회
+   */
+  getPaginationState(): PaginationState {
+    return { ...this.state.pagination };
+  }
+
+  /**
+   * 특정 페이지로 이동
+   * @param page - 이동할 페이지 번호 (1-based)
+   */
+  goToPage(page: number): void {
+    const { totalPages } = this.state.pagination;
+    const targetPage = Math.max(1, Math.min(page, totalPages || 1));
+    
+    if (targetPage === this.state.pagination.currentPage && this.state.displayData.length > 0) return;
+    
+    this.state.pagination.currentPage = targetPage;
+    
+    if (this.isRemoteDataSource()) {
+      this.fetchData();
+    } else {
+      this.applyLocalPagination();
+      this.render();
+    }
+    
+    this.events.onPageChange?.(targetPage, this.state.pagination.pageSize);
+  }
+
+  /**
+   * 페이지 크기 변경
+   * @param pageSize - 새 페이지 크기
+   */
+  setPageSize(pageSize: number): void {
+    if (pageSize < 1 || pageSize === this.state.pagination.pageSize) return;
+    
+    this.state.pagination.pageSize = pageSize;
+    this.state.pagination.currentPage = 1;
+    this.updateTotalPages();
+    
+    if (this.isRemoteDataSource()) {
+      this.fetchData();
+    } else {
+      this.applyLocalPagination();
+      this.render();
+    }
+    
+    this.events.onPageSizeChange?.(pageSize);
+  }
+
+  /**
+   * 서버에서 데이터 가져오기 (remote 모드)
+   */
+  async fetchData(): Promise<void> {
+    const dataSource = this.options.dataSource;
+    if (!dataSource?.fetch) return;
+    
+    const params: DataRequestParams = {
+      page: this.state.pagination.currentPage,
+      pageSize: this.state.pagination.pageSize,
+      sort: this.state.sort.length > 0 ? this.state.sort : undefined,
+      filter: this.state.filter,
+    };
+    
+    this.state.pagination.loading = true;
+    this.setLoading(true);
+    
+    try {
+      const result = await dataSource.fetch(params);
+      
+      this.state.data = result.data.map(row => ({ ...row }));
+      this.state.displayData = this.state.data;
+      this.state.pagination.totalCount = result.totalCount;
+      this.updateTotalPages();
+      
+      // Row state 초기화
+      this.state.rowStates.clear();
+      this.state.data.forEach(row => {
+        this.state.rowStates.set(row, 'none');
+      });
+      
+      this.rebuildDataIndexMap();
+      this.summary.invalidateCache();
+      this.clearSelectionState();
+    } catch (error) {
+      console.error('VeloxGrid: fetchData error', error);
+    } finally {
+      this.state.pagination.loading = false;
+      this.setLoading(false);
+      this.render();
+    }
+  }
+
+  /**
+   * 전체 페이지 수 재계산
+   */
+  private updateTotalPages(): void {
+    const { pageSize, totalCount } = this.state.pagination;
+    this.state.pagination.totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  }
+
+  /**
+   * 로컬 데이터에 페이지네이션 적용
+   * sort/filter 적용 후 현재 페이지 데이터만 displayData에 설정
+   */
+  private applyLocalPagination(): void {
+    // 먼저 sort/filter 적용
+    let data = [...this.state.data];
+    if (this.state.filter) data = filterData(data, this.state.filter);
+    if (this.state.sort.length > 0) {
+      const columnTypes: Record<string, ValueType> = {};
+      this.state.columns.forEach(col => { columnTypes[col.field] = col.type || 'text'; });
+      data = sortData(data, this.state.sort, columnTypes);
+    }
+    
+    // totalCount 및 totalPages 업데이트
+    this.state.pagination.totalCount = data.length;
+    this.updateTotalPages();
+    
+    // 현재 페이지에 해당하는 데이터만 추출
+    const { currentPage, pageSize } = this.state.pagination;
+    const startIndex = (currentPage - 1) * pageSize;
+    this.state.displayData = data.slice(startIndex, startIndex + pageSize);
+    
+    this.initCheckableRows();
+  }
+
+  /**
+   * Pagination UI 렌더링 (Phase 18)
+   */
+  private renderPagination(): void {
+    if (!this.paginationContainer) return;
+    
+    const { currentPage, totalPages, totalCount, pageSize } = this.state.pagination;
+    const opts = this.options.pagination;
+    const maxButtons = opts?.maxPageButtons || 5;
+    
+    this.paginationContainer.innerHTML = '';
+    
+    // 좌측: 페이지 정보
+    if (opts?.showInfo !== false) {
+      const info = createElement('div', 'velox-pagination-info');
+      const start = (currentPage - 1) * pageSize + 1;
+      const end = Math.min(currentPage * pageSize, totalCount);
+      info.textContent = totalCount > 0 
+        ? `${start}-${end} / ${totalCount.toLocaleString()}`
+        : '0 items';
+      this.paginationContainer.appendChild(info);
+    }
+    
+    // 중앙: 페이지 버튼
+    const nav = createElement('div', 'velox-pagination-nav');
+    
+    // 처음 / 이전
+    nav.appendChild(this.createPageButton('«', 1, currentPage === 1));
+    nav.appendChild(this.createPageButton('‹', currentPage - 1, currentPage === 1));
+    
+    // 페이지 번호 버튼
+    const half = Math.floor(maxButtons / 2);
+    let startPage = Math.max(1, currentPage - half);
+    const endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    if (endPage - startPage + 1 < maxButtons) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+    
+    if (startPage > 1) {
+      nav.appendChild(this.createPageButton('1', 1, false));
+      if (startPage > 2) {
+        const ellipsis = createElement('span', 'velox-pagination-ellipsis');
+        ellipsis.textContent = '…';
+        nav.appendChild(ellipsis);
+      }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      const btn = this.createPageButton(String(i), i, false);
+      if (i === currentPage) addClass(btn, 'velox-pagination-btn--active');
+      nav.appendChild(btn);
+    }
+    
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        const ellipsis = createElement('span', 'velox-pagination-ellipsis');
+        ellipsis.textContent = '…';
+        nav.appendChild(ellipsis);
+      }
+      nav.appendChild(this.createPageButton(String(totalPages), totalPages, false));
+    }
+    
+    // 다음 / 마지막
+    nav.appendChild(this.createPageButton('›', currentPage + 1, currentPage === totalPages));
+    nav.appendChild(this.createPageButton('»', totalPages, currentPage === totalPages));
+    
+    this.paginationContainer.appendChild(nav);
+    
+    // 우측: 페이지 크기 변경
+    if (opts?.showSizeChanger) {
+      const sizer = createElement('div', 'velox-pagination-sizer');
+      const select = document.createElement('select');
+      select.className = 'velox-pagination-select';
+      const sizes = opts.pageSizeOptions || [10, 20, 50, 100];
+      sizes.forEach(size => {
+        const option = document.createElement('option');
+        option.value = String(size);
+        option.textContent = `${size} / page`;
+        if (size === pageSize) option.selected = true;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', () => {
+        this.setPageSize(Number(select.value));
+      });
+      sizer.appendChild(select);
+      this.paginationContainer.appendChild(sizer);
+    }
+  }
+  
+  /**
+   * 페이지 버튼 생성 헬퍼 (Phase 18)
+   */
+  private createPageButton(text: string, page: number, disabled: boolean): HTMLElement {
+    const btn = createElement('button', 'velox-pagination-btn');
+    btn.textContent = text;
+    if (disabled) {
+      btn.setAttribute('disabled', 'true');
+      addClass(btn, 'velox-pagination-btn--disabled');
+    } else {
+      btn.addEventListener('click', () => this.goToPage(page));
+    }
+    return btn;
   }
 
   destroy(): void {

@@ -1,6 +1,6 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-09 (Keyboard Enhancement 추가)
+> 마지막 업데이트: 2025-02-09 (로드맵 재구성)
 
 ---
 
@@ -115,20 +115,141 @@ velox-grid/
 - ✅ 모든 Editor 타입에서 키보드 동작 통일
 - ✅ 데모 페이지 (3가지 시나리오)
 
-### 계획된 기능
+### 계획된 기능 (Phase 16~25)
 
-#### Phase 15: Group Summary
+> 아래 Phase 번호는 기존 완료된 Phase 15.1 이후로 순차 배정
+
+#### 🔴 v1.0 이전 필수 (높은 우선순위)
+
+**Phase 16: 단위 테스트 도입**
+- [ ] Vitest 환경 설정
+- [ ] 핵심 로직 테스트 (Row State, Virtual Scroll, Sort/Filter)
+- [ ] Undo/Redo 스택 테스트
+- [ ] Fixed Column 파티셔닝 테스트
+- [ ] CI 연동 (GitHub Actions)
+
+**Phase 17: Framework Wrappers (React + Vue)**
+- [ ] 공통 래퍼 인터페이스 설계 (Props, Events, Ref 패턴)
+- [ ] 빌드 구조 분리 (`velox-grid/react`, `velox-grid/vue`)
+- [ ] React Component (`<VeloxGridReact />`)
+- [ ] React Hook (`useVeloxGrid`)
+- [ ] Vue 3 Component (`<VeloxGrid />`, Composition API)
+- [ ] Vue 3 Composable (`useVeloxGrid`)
+- [ ] TypeScript 타입 지원 (React/Vue 공통)
+- [ ] 데모 페이지 (React + Vue)
+
+**Phase 18: Server-Side Data + Pagination**
+- [ ] DataSource 인터페이스 (`local` / `remote`)
+- [ ] Remote fetch (정렬/필터/페이징 파라미터)
+- [ ] Pagination UI (Footer 페이지 네비게이션)
+- [ ] Infinite Scroll 모드 (선택적)
+- [ ] Loading State 통합
+
+**Phase 19: Column Group (다단계 헤더)**
+- [ ] ColumnGroup 타입 정의
+- [ ] 2~3단계 헤더 렌더링
+- [ ] 그룹 컬럼 리사이즈
+- [ ] Fixed Column과 통합
+
+**Phase 20: Cell Merge (셀 병합)**
+- [ ] rowSpan / colSpan 기반 병합
+- [ ] 자동 병합 (동일 값 인접 행)
+- [ ] 수동 병합 API
+- [ ] 가상 스크롤과 통합
+
+#### 🟡 v1.0 안정화 (중간 우선순위)
+
+**Phase 21: 접근성 (A11y) 기본 적용**
+- [ ] ARIA 역할 (`role="grid"`, `role="row"`, `role="gridcell"`)
+- [ ] ARIA 상태 (`aria-selected`, `aria-sort`, `aria-readonly`)
+- [ ] 포커스 관리 (tabIndex, focus trap)
+- [ ] 스크린 리더 기본 지원
+- [ ] 고대비 모드
+
+**Phase 22: Conditional Formatting (조건부 서식)**
+- [ ] 선언적 조건부 서식 API
+- [ ] 내장 프리셋 (colorScale, dataBar, iconSet)
+- [ ] 셀 스타일 동적 적용
+- [ ] 숫자 음수 빨간색 등 일반 시나리오
+
+**Phase 23: 국제화 (i18n) 기본 구조**
+- [ ] Locale 설정 인터페이스
+- [ ] 내장 텍스트 외부화 (emptyMessage, loading, filter 레이블 등)
+- [ ] 한글/영어 기본 locale
+- [ ] 커스텀 locale 등록 API
+
+**Phase 24: Row Grouping (행 그룹화)**
+- [ ] 필드 기준 행 그룹화
+- [ ] 접기/펼치기
 - [ ] Group Summary (그룹별 소계)
+- [ ] 다단계 그룹
 - [ ] Sub-total rows
 
-#### Phase 15: React 래퍼
-- [ ] React Component
-- [ ] Hooks (useVeloxGrid)
+**Phase 25: 필터 고도화**
+- [ ] 다중 조건 필터 (AND/OR 조합)
+- [ ] 날짜 범위 필터 (from ~ to)
+- [ ] 숫자 범위 필터 (이상/이하/사이)
+- [ ] 필터 프리셋 저장/불러오기
 
-#### Phase 16: 고급 기능
-- [ ] Column Group (다단계 헤더)
-- [ ] Row Grouping
-- [ ] Row Detail (행 확장)
+#### 🟢 v1.0 릴리스 및 이후 (낮은 우선순위)
+
+**Phase 26: 플러그인 아키텍처 / Tree-Shakable 구조**
+> 번들 크기가 100KB를 넘기 전에 핵심/확장 기능을 분리하는 구조적 전환 필요
+
+- [ ] 핵심 모듈(Core) 정의: 렌더링, 선택, 정렬, 필터, 편집, 가상 스크롤
+- [ ] 확장 모듈(Plugin) 분리 대상:
+  - Excel Export/Import → `velox-grid/excel`
+  - Summary/Aggregation → `velox-grid/summary`
+  - Validation → `velox-grid/validation`
+  - Row Grouping → `velox-grid/grouping`
+  - Cell Merge → `velox-grid/merge`
+- [ ] 플러그인 등록 API 설계:
+  ```typescript
+  import { VeloxGrid } from 'velox-grid';
+  import { ExcelPlugin } from 'velox-grid/excel';
+  import { SummaryPlugin } from 'velox-grid/summary';
+  
+  VeloxGrid.use(ExcelPlugin);
+  VeloxGrid.use(SummaryPlugin);
+  ```
+- [ ] 빌드 설정 분리 (각 플러그인 별도 엔트리 포인트)
+- [ ] Core만 import 시 번들 크기 목표: ~50KB (gzip ~13KB)
+- [ ] 기존 올인원 빌드도 유지 (`velox-grid/all`)
+
+**도입 시점 판단 기준**:
+- UMD 번들이 **120KB를 초과**하면 즉시 착수
+- Phase 20(Cell Merge) 완료 후 자연스럽게 전환 권장
+- 기존 사용자의 import 방식에 breaking change 최소화
+
+**v1.0 안정화 작업**
+- [ ] API 문서 사이트 (TypeDoc 또는 별도 문서)
+- [ ] 테마 시스템 (Dark, Compact, Material)
+- [ ] 성능 벤치마크
+- [ ] 번들 크기 최적화 (Tree-shakable 플러그인 구조)
+
+**v2.0+ 장기 비전**
+- [ ] Row Detail (행 확장/상세)
+- [ ] 차트 통합 (인라인 차트, 스파크라인)
+- [ ] 수식 지원 (Excel-like)
+- [ ] 실시간 데이터 (WebSocket)
+- [ ] 모바일 터치 최적화
+- [ ] 플러그인 시스템
+
+#### 📋 Phase 우선순위 요약
+
+| 순서 | Phase | 기능 | 난이도 | 번들 영향 |
+|------|-------|------|--------|-----------|
+| 1 | **16** | 단위 테스트 (Vitest) | 중 | 없음 |
+| 2 | **17** | Framework Wrappers (React + Vue) | 중 | 각 별도 ~10KB |
+| 3 | **18** | Server-Side Data + Pagination | 중~높 | +5~8KB |
+| 4 | **19** | Column Group (다단계 헤더) | 높 | +5~7KB |
+| 5 | **20** | Cell Merge (셀 병합) | 높 | +3~5KB |
+| 6 | **21** | 접근성 (A11y) | 낮~중 | +1~2KB |
+| 7 | **22** | Conditional Formatting | 중 | +2~3KB |
+| 8 | **23** | i18n 기본 구조 | 낮 | +1~2KB |
+| 9 | **24** | Row Grouping | 높 | +8~12KB |
+| 10 | **25** | 필터 고도화 | 중 | +3~5KB |
+| 11 | **26** | 플러그인 아키텍처 (Tree-Shakable) | 높 | Core ~50KB 목표 |
 
 ---
 
@@ -992,55 +1113,66 @@ src/core/
 
 ## 🔮 다음 작업 계획
 
-### 우선순위 1: Fixed Left 옵션 설계
+### 즉시 처리 (미커밋 작업)
+- [ ] Phase 15.1 키보드 버그 수정 Git 커밋 및 푸시
 
-**현재 문제**: showRowNumbers, rowDraggable, checkBar의 fixed left 배치가 자동으로 결정됨
+### Phase 16: 단위 테스트 도입
+**목표**: 핵심 로직의 테스트 커버리지 확보로 이후 모든 Phase의 안정성 기반 마련
 
-**제안 방안**:
-```typescript
-interface GridOptions {
-  // 기본 기능 옵션
-  showRowNumbers?: boolean;
-  rowDraggable?: boolean;
-  checkBar?: CheckBarOptions;
-  
-  // Fixed left 배치 설정 (통합)
-  fixedLeft?: {
-    rowNumbers?: boolean;   // showRowNumbers가 true일 때만 동작
-    rowDrag?: boolean;      // rowDraggable이 true일 때만 동작
-    checkBar?: boolean;     // checkBar.visible이 true일 때만 동작
-  };
-}
-```
+**작업 항목**:
+1. Vitest 설치 및 환경 설정 (`vitest.config.ts`)
+2. 테스트 디렉토리 구조 생성 (`tests/`)
+3. 핵심 모듈 테스트 작성:
+   - Row State 전이 로직 (`none → created → updated → deleted`)
+   - 가상 스크롤 인덱스 계산
+   - 정렬/필터 로직
+   - Undo/Redo 스택 동작
+   - Fixed Column 파티셔닝 (`getFixedLeftColumns`, `getScrollableColumns`)
+   - Summary 캐시 무효화
+4. GitHub Actions CI 연동 (PR 시 자동 테스트)
+5. `npm run test` 스크립트 정비
 
-**사용 예시**:
-```typescript
-// Row numbers를 fixed로
-{
-  showRowNumbers: true,
-  fixedLeft: { rowNumbers: true }
-}
+**선행 조건**: 없음
+**예상 작업량**: 2~3일
+**번들 영향**: 없음 (devDependency)
 
-// Drag와 CheckBar만 fixed로
-{
-  showRowNumbers: true,
-  rowDraggable: true,
-  checkBar: { visible: true },
-  fixedLeft: {
-    rowDrag: true,
-    checkBar: true
-    // rowNumbers는 false이므로 scrollable
-  }
-}
-```
+### Phase 17: Framework Wrappers (React + Vue)
+**목표**: React/Vue 생태계에서 VeloxGrid를 쉽게 사용할 수 있도록 래퍼 제공
 
-### 우선순위 2: Phase 14 (Group Summary)
-- [ ] Group Summary (그룹별 소계)
-- [ ] Sub-total rows
+**작업 항목**:
+1. 공통 래퍼 인터페이스 설계 (Props/Events/Ref 패턴 통일)
+2. 빌드 구조 분리 (package.json exports, 각 프레임워크 별도 엔트리)
+3. **React 래퍼** (`src/react/`):
+   - `VeloxGridReact` 컴포넌트 (Props → GridOptions 매핑)
+   - `useVeloxGrid` Hook (인스턴스 접근, 메서드 호출)
+   - 이벤트 바인딩, Ref forwarding
+4. **Vue 3 래퍼** (`src/vue/`):
+   - `VeloxGrid` 컴포넌트 (Composition API, `<script setup>`)
+   - `useVeloxGrid` Composable
+   - Props/Emit 바인딩, defineExpose
+5. 데모 페이지 (React + Vue 각각)
+6. README에 React/Vue 사용법 추가
 
-### 우선순위 3: React 래퍼
-- [ ] React Component
-- [ ] Hooks (useVeloxGrid)
+**선행 조건**: Phase 16 (테스트로 안정성 확보)
+**예상 작업량**: 5~6일
+**번들 영향**: 각 별도 패키지 ~10KB
+
+### Phase 18: Server-Side Data + Pagination
+**목표**: 서버에서 데이터를 가져오는 대규모 데이터 시나리오 지원
+
+**작업 항목**:
+1. `DataSourceOptions` 타입 정의 (`local` / `remote`)
+2. `RemoteDataSource` 인터페이스 (`fetch`, `pageSize`, `totalCount`)
+3. `FetchParams` 구조 (page, sort, filter 전달)
+4. Pagination UI 컴포넌트 (Footer 하단 페이지 네비게이션)
+5. 서버 정렬/필터 시 클라이언트 로직 우회
+6. Loading 상태 자동 관리
+7. Infinite Scroll 모드 (선택적)
+8. 데모 페이지 (Mock API 서버)
+
+**선행 조건**: Phase 16
+**예상 작업량**: 4~5일
+**번들 영향**: +5~8KB
 
 ---
 
@@ -1048,17 +1180,20 @@ interface GridOptions {
 
 ### 기능 개발
 ```
-D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 [Phase 14] 시작해줘
+VeloxGrid 프로젝트를 진행할거야.
+아래 문서를 확인하고 준비되면 알려줘.
+* 작업 명세서: .claude 폴더 하위 PROGRESS.md, RULES.md 파일 참조
+* 프로젝트 경로: D:\Dev\git\velox-grid
+```
+
+### 특정 Phase 시작
+```
+Phase 16 (단위 테스트 도입) 시작해줘
 ```
 
 ### 버그 수정
 ```
-D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 [버그] 수정해줘
-```
-
-### Fixed Left 옵션 구현
-```
-D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 Fixed Left 옵션 구현해줘
+[버그 설명] 수정해줘
 ```
 
 ---
@@ -1068,10 +1203,10 @@ D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 Fixed Left 옵션 구현해줘
 이 문서는 다음과 같이 구성되어 있습니다:
 
 1. **📊 프로젝트 현황**: 최신 상태 요약 (버전, 크기, 구조)
-2. **🎯 현재 상태**: 완료/계획된 기능 목록
+2. **🎯 현재 상태**: 완료/계획된 기능 목록 + 신규 로드맵
 3. **📋 최근 작업 이력**: 시간 역순 상세 내역
 4. **🧹 코드 최적화 이력**: 리팩토링 작업 기록
-5. **🔮 다음 작업 계획**: 우선순위별 작업 목록
+5. **🔮 다음 작업 계획**: Phase별 상세 작업 항목
 6. **📝 다음 대화 시작 방법**: 컨텍스트 로딩 가이드
 
 ### 작업 분류
@@ -1079,6 +1214,6 @@ D:\Dev\git\velox-grid\.claude\PROGRESS.md 읽고 Fixed Left 옵션 구현해줘
 - **✨ 기능 개발**: 새로운 Phase 구현
 - **🔧 버그 수정 & UI 개선**: 기존 기능 개선
 - **🧹 코드 최적화**: 리팩토링, 정리
-- **📦 인프라**: 빌드, 배포, 도구
+- **📦 인프라**: 빌드, 배포, 테스트, 도구
 
 이 구조를 통해 AI가 현재 상황을 정확히 파악하고 적절한 작업을 제안할 수 있습니다.

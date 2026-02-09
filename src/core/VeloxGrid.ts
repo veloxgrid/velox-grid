@@ -30,8 +30,6 @@ import type {
   CellIndex,
   Selection,
   CheckBarOptions,
-  RowNumbersOptions,
-  RowDragOptions,
   ExportOptions,
   UndoAction,
   CellEditUndoData,

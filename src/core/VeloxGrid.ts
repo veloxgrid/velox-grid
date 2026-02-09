@@ -924,7 +924,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         this.cancelEdit();
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        this.endEditAndMove('down');
+        this.endEditAndMove(e.shiftKey ? 'up' : 'down');  // ✅ Shift+Enter = up
       } else if (e.key === 'Tab') {
         e.preventDefault();
         this.endEditAndMove(e.shiftKey ? 'left' : 'right');
@@ -1019,6 +1019,27 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         break;
       case 'ArrowRight':
         if (newColIndex < columns.length - 1) { newColIndex++; handled = true; }
+        break;
+      case 'Tab':
+        // Tab: Move right, Shift+Tab: Move left
+        if (e.shiftKey) {
+          if (newColIndex > 0) { 
+            newColIndex--; 
+          } else if (newRowIndex > 0) {
+            // Wrap to end of previous row
+            newRowIndex--;
+            newColIndex = columns.length - 1;
+          }
+        } else {
+          if (newColIndex < columns.length - 1) { 
+            newColIndex++; 
+          } else if (newRowIndex < this.state.displayData.length - 1) {
+            // Wrap to start of next row
+            newRowIndex++;
+            newColIndex = 0;
+          }
+        }
+        handled = true;
         break;
       case 'Home':
         if (e.ctrlKey) { newRowIndex = 0; newColIndex = 0; }
@@ -1674,11 +1695,24 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       });
 
       input.addEventListener('keydown', (e) => {
+        console.log('⌨️ Input keydown:', e.key, { shiftKey: e.shiftKey });
+        
         if (e.key === 'Enter') {
           e.preventDefault();
-          this.endEdit(true);
+          e.stopPropagation();
+          console.log('✅ Enter detected - calling endEditAndMove');
+          // endEditAndMove가 내부적으로 endEdit(true)를 호출함
+          this.endEditAndMove(e.shiftKey ? 'up' : 'down');
+        } else if (e.key === 'Tab') {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('✅ Tab detected - calling endEditAndMove');
+          // endEditAndMove가 내부적으로 endEdit(true)를 호출함
+          this.endEditAndMove(e.shiftKey ? 'left' : 'right');
         } else if (e.key === 'Escape') {
           e.preventDefault();
+          e.stopPropagation();
+          console.log('✅ Escape detected - calling cancelEdit');
           this.cancelEdit();
         }
       });
@@ -1846,6 +1880,9 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       this.state.selection.selectedCells.add(`${newRowIndex}:${newField}`);
       this.scrollToCell(newRowIndex, newField);
       this.render();
+      
+      // 편집 종료 후 grid에 focus 복원 (Phase 15.1: keyboard navigation)
+      this.rootElement.focus();
     }
   }
 

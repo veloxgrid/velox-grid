@@ -5,6 +5,23 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
+## [0.9.1] - 2025-02-09
+
+### Added
+- **Quick Edit**: 셀 선택 후 바로 타이핑으로 편집 시작 (Excel 스타일)
+- **Enter/Shift+Enter**: 저장 + 아래/위로 이동
+- **Tab/Shift+Tab**: 저장 + 오른쪽/왼쪽으로 이동
+
+### Changed
+- 모든 Custom Editor에서 키보드 동작 통일
+- Editor 내부 키 이벤트에 `stopPropagation` 추가
+
+### Fixed
+- Custom Editor에서 Enter/Tab 키가 Grid로 전파되지 않던 문제 해결
+
+### Demo
+- `examples/phase15-1-keyboard-demo.html` 추가
+
 ## [0.8.0] - 2025-02-05
 
 ### 추가 - Phase 14: Fixed Columns

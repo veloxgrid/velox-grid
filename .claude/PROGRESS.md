@@ -1,6 +1,6 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-06 (RowState 추가)
+> 마지막 업데이트: 2025-02-09 (Keyboard Enhancement 추가)
 
 ---
 
@@ -9,13 +9,13 @@
 ### 기본 정보
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
-- **현재 버전**: v0.9.0
+- **현재 버전**: v0.9.1
 - **라이선스**: MIT
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
 ### 빌드 정보
-- **번들 크기**: 88.77KB (gzip 22.19KB)
-- **VeloxGrid.ts**: ~2,800줄
+- **번들 크기**: 91.56KB (gzip 22.74KB)
+- **VeloxGrid.ts**: ~2,819줄
 - **Core 모듈**: 11개
 - **CSS 모듈**: 11개
 
@@ -108,6 +108,13 @@ velox-grid/
 - ✅ clearRowStates() 메서드
 - ✅ 데모 페이지 (statistics, visual indicators)
 
+#### Phase 15.1: Keyboard Enhancement (v0.9.1)
+- ✅ Quick Edit (바로 타이핑으로 편집 시작)
+- ✅ Enter/Shift+Enter (아래/위로 이동)
+- ✅ Tab/Shift+Tab (오른쪽/왼쪽으로 이동)
+- ✅ 모든 Editor 타입에서 키보드 동작 통일
+- ✅ 데모 페이지 (3가지 시나리오)
+
 ### 계획된 기능
 
 #### Phase 15: Group Summary
@@ -126,6 +133,96 @@ velox-grid/
 ---
 
 ## 📋 최근 작업 이력 (최신순)
+
+### ✨ Phase 15.1: Keyboard Enhancement 완료 (2025-02-09)
+
+**버전**: v0.9.1  
+**번들 크기**: UMD 91.56 KB (gzip: 22.74 KB), ESM 128.25 KB
+
+#### 구현 내용
+
+**1. Quick Edit (바로 타이핑으로 편집 시작)**:
+- 셀 선택 후 바로 타이핑하면 편집 모드 진입
+- 기존 값 자동 지우기
+- Excel/Google Sheets 스타일 편집
+
+**구현 위치**: `VeloxGrid.ts` - `handleKeyDown()` 메서드
+```typescript
+// Phase 15.1: Quick Edit - typing starts editing immediately
+if (!this.state.edit.editing && this.options.editable && focusedCell) {
+  const column = this.state.columns.find(c => c.field === focusedCell.field);
+  
+  if (column?.editable !== false && 
+      e.key.length === 1 && 
+      !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    this.startEdit(focusedCell.rowIndex, focusedCell.field);
+    
+    setTimeout(() => {
+      const input = document.querySelector('.velox-edit-input') as HTMLInputElement;
+      if (input) {
+        input.value = e.key;
+        input.setSelectionRange(1, 1);
+      }
+    }, 0);
+    
+    return;
+  }
+}
+```
+
+**2. Enter/Tab 키 동작 통일**:
+모든 Custom Editor에서 일관된 키보드 동작 제공
+
+| 키 | 동작 |
+|---|---|
+| Enter | 저장 + 아래로 이동 |
+| Shift+Enter | 저장 + 위로 이동 |
+| Tab | 저장 + 오른쪽 이동 |
+| Shift+Tab | 저장 + 왼쪽 이동 |
+| Escape | 취소 + 편집 종료 |
+
+**구현 위치**: `GridEditorFactory.ts` - 모든 editor 메서드
+
+**3. stopPropagation 추가**:
+Editor 내부에서 키 이벤트가 Grid로 전파되지 않도록 차단
+```typescript
+e.preventDefault();
+e.stopPropagation();  // Phase 15.1
+```
+
+**4. onMove 콜백**:
+Editor에서 저장 후 이동 방향을 Grid에 전달
+```typescript
+GridEditorFactory.createEditor(
+  value,
+  column.editor,
+  (newValue) => { /* save */ },
+  () => { /* cancel */ },
+  (direction: 'up' | 'down' | 'left' | 'right') => {
+    this.endEditAndMove(direction);  // Phase 15.1
+  }
+);
+```
+
+**데모 페이지** (`examples/phase15-1-keyboard-demo.html`):
+1. Quick Edit (바로 타이핑)
+2. Enter/Tab Navigation
+3. Custom Editors with Keyboard
+
+**번들 크기 변화**:
+- UMD: 91.56 KB (이전: 91.56 KB, 변화 없음)
+- ESM: 128.25 KB (이전: 128.25 KB, 변화 없음)  
+- gzip: 22.74 KB (이전: 22.74 KB, 변화 없음)
+- 코드 최적화로 크기 증가 없음
+
+**수정 파일**:
+- `src/core/GridEditorFactory.ts`: Enter/Tab/Escape 키 처리 통일, onMove 콜백 추가
+- `src/core/VeloxGrid.ts`: Quick Edit 기능 추가, renderEditCell에 onMove 연결
+- `package.json`: v0.9.1
+- `src/index.ts`: v0.9.1
+
+**Git**: 다음 커밋에 포함 예정
 
 ### ✨ Phase 15: Row State Management 완료 (2025-02-06)
 

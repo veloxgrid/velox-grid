@@ -971,6 +971,32 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     }
     
     const focusedCell = this.state.selection.focusedCell;
+    // Phase 15.1: Quick Edit - typing starts editing immediately
+    if (!this.state.edit.editing && this.options.editable && focusedCell) {
+      const column = this.state.columns.find(c => c.field === focusedCell.field);
+      
+      // Printable character (alphanumeric, punctuation, space) triggers quick edit
+      if (column?.editable !== false && 
+          e.key.length === 1 && 
+          !e.ctrlKey && !e.metaKey && !e.altKey) {
+        
+        e.preventDefault();
+        
+        // Start edit mode
+        this.startEdit(focusedCell.rowIndex, focusedCell.field);
+        
+        // Set the typed character in the editor
+        setTimeout(() => {
+          const input = document.querySelector('.velox-edit-input') as HTMLInputElement;
+          if (input) {
+            input.value = e.key;  // Replace existing value with new character
+            input.setSelectionRange(1, 1);  // Move cursor to end
+          }
+        }, 0);
+        
+        return;
+      }
+    }
     this.events.onKeyDown?.(e, focusedCell);
     
     if (!focusedCell) return;
@@ -1607,6 +1633,10 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         () => {
           // Cancel callback
           this.cancelEdit();
+        },
+        (direction: 'up' | 'down' | 'left' | 'right') => {
+          // Move callback for Enter/Tab keys (Phase 15.1)
+          this.endEditAndMove(direction);
         }
       );
 

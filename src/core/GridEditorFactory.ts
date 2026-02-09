@@ -14,24 +14,25 @@ export class GridEditorFactory {
     value: CellValue,
     options: EditorOptions,
     onSave: (value: CellValue) => void,
-    onCancel: () => void
+    onCancel: () => void,
+    onMove?: (direction: 'up' | 'down' | 'left' | 'right') => void
   ): HTMLElement {
     const { type } = options;
 
     switch (type) {
       case 'text':
       case 'number':
-        return this.createTextEditor(value, options, onSave, onCancel);
+        return this.createTextEditor(value, options, onSave, onCancel, onMove);
       case 'select':
-        return this.createSelectEditor(value, options, onSave, onCancel);
+        return this.createSelectEditor(value, options, onSave, onCancel, onMove);
       case 'date':
-        return this.createDateEditor(value, options, onSave, onCancel);
+        return this.createDateEditor(value, options, onSave, onCancel, onMove);
       case 'checkbox':
-        return this.createCheckboxEditor(value, options, onSave, onCancel);
+        return this.createCheckboxEditor(value, options, onSave, onCancel, onMove);
       case 'custom':
-        return this.createCustomEditor(value, options, onSave, onCancel);
+        return this.createCustomEditor(value, options, onSave, onCancel, onMove);
       default:
-        return this.createTextEditor(value, options, onSave, onCancel);
+        return this.createTextEditor(value, options, onSave, onCancel, onMove);
     }
   }
 
@@ -42,7 +43,8 @@ export class GridEditorFactory {
     value: CellValue,
     options: EditorOptions,
     onSave: (value: CellValue) => void,
-    onCancel: () => void
+    onCancel: () => void,
+    onMove?: (direction: 'up' | 'down' | 'left' | 'right') => void
   ): HTMLInputElement {
     const input = document.createElement('input');
     input.className = 'velox-edit-input';
@@ -68,10 +70,19 @@ export class GridEditorFactory {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        e.stopPropagation();
         const newValue = options.type === 'number' ? parseFloat(input.value) : input.value;
         onSave(newValue);
+        if (onMove) onMove(e.shiftKey ? 'up' : 'down');
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+        const newValue = options.type === 'number' ? parseFloat(input.value) : input.value;
+        onSave(newValue);
+        if (onMove) onMove(e.shiftKey ? 'left' : 'right');
       } else if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         onCancel();
       }
     });
@@ -86,7 +97,8 @@ export class GridEditorFactory {
     value: CellValue,
     options: EditorOptions,
     onSave: (value: CellValue) => void,
-    onCancel: () => void
+    onCancel: () => void,
+    onMove?: (direction: 'up' | 'down' | 'left' | 'right') => void
   ): HTMLSelectElement {
     const select = document.createElement('select');
     select.className = 'velox-edit-select';
@@ -115,9 +127,17 @@ export class GridEditorFactory {
     select.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        e.stopPropagation();
         onSave(select.value);
+        if (onMove) onMove(e.shiftKey ? 'up' : 'down');
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+        onSave(select.value);
+        if (onMove) onMove(e.shiftKey ? 'left' : 'right');
       } else if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         onCancel();
       }
     });
@@ -132,7 +152,8 @@ export class GridEditorFactory {
     value: CellValue,
     _options: EditorOptions,
     onSave: (value: CellValue) => void,
-    onCancel: () => void
+    onCancel: () => void,
+    onMove?: (direction: 'up' | 'down' | 'left' | 'right') => void
   ): HTMLInputElement {
     const input = document.createElement('input');
     input.className = 'velox-edit-input velox-edit-date';
@@ -156,9 +177,17 @@ export class GridEditorFactory {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        e.stopPropagation();
         onSave(input.value ? new Date(input.value) : null);
+        if (onMove) onMove(e.shiftKey ? 'up' : 'down');
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+        onSave(input.value ? new Date(input.value) : null);
+        if (onMove) onMove(e.shiftKey ? 'left' : 'right');
       } else if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         onCancel();
       }
     });
@@ -173,7 +202,8 @@ export class GridEditorFactory {
     value: CellValue,
     _options: EditorOptions,
     onSave: (value: CellValue) => void,
-    onCancel: () => void
+    onCancel: () => void,
+    onMove?: (direction: 'up' | 'down' | 'left' | 'right') => void
   ): HTMLElement {
     const container = document.createElement('div');
     container.className = 'velox-edit-checkbox-container';
@@ -196,10 +226,18 @@ export class GridEditorFactory {
     checkbox.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        e.stopPropagation();
         checkbox.checked = !checkbox.checked;
         onSave(checkbox.checked);
+        if (e.key === 'Enter' && onMove) onMove(e.shiftKey ? 'up' : 'down');
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+        onSave(checkbox.checked);
+        if (onMove) onMove(e.shiftKey ? 'left' : 'right');
       } else if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         onCancel();
       }
     });
@@ -214,7 +252,8 @@ export class GridEditorFactory {
     value: CellValue,
     options: EditorOptions,
     onSave: (value: CellValue) => void,
-    onCancel: () => void
+    onCancel: () => void,
+    onMove?: (direction: 'up' | 'down' | 'left' | 'right') => void
   ): HTMLElement {
     const container = document.createElement('div');
     container.className = 'velox-edit-custom';
@@ -223,7 +262,7 @@ export class GridEditorFactory {
       options.renderer(container, value, onSave, onCancel);
     } else {
       // Fallback to text editor
-      return this.createTextEditor(value, { type: 'text' }, onSave, onCancel);
+      return this.createTextEditor(value, { type: 'text' }, onSave, onCancel, onMove);
     }
 
     return container;

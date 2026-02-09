@@ -222,7 +222,119 @@ GridEditorFactory.createEditor(
 - `package.json`: v0.9.1
 - `src/index.ts`: v0.9.1
 
-**Git**: 다음 커밋에 포함 예정
+**Git**: ✅ 커밋 완료 (commit: 89fca2b)
+
+### 🔧 Phase 15.1 후속: 키보드 네비게이션 버그 수정 (2025-02-09)
+
+**버전**: v0.9.1 (유지)  
+**이슈**: Enter 키 편집 종료 미동작, Tab 키 Read 모드 미지원, Focus 손실
+
+#### 수정 내용
+
+**1. Enter 키 편집 종료 문제 해결**:
+
+**문제**: Cell 모드에서 Enter 키를 눌러도 편집이 종료되지 않음
+
+**원인**: 기본 input editor에서 `endEdit(true)` 호출 후 `endEditAndMove()` 호출
+```typescript
+// ❌ 잘못된 순서
+this.endEdit(true);              // state.edit = null
+this.endEditAndMove('down');     // state.edit.rowIndex는 이미 null!
+```
+
+**해결**: `endEditAndMove`만 호출 (내부적으로 endEdit 호출)
+```typescript
+// ✅ 올바른 순서
+this.endEditAndMove(e.shiftKey ? 'up' : 'down');  // 내부에서 endEdit 호출
+```
+
+**2. Tab 키 Read 모드 지원 추가**:
+
+**문제**: 편집 모드가 아닐 때 Tab 키가 동작하지 않음
+
+**원인**: `handleKeyDown`의 read 모드 키보드 네비게이션에 Tab 케이스 누락
+
+**해결**: Tab/Shift+Tab 케이스 추가 (행 래핑 지원)
+```typescript
+case 'Tab':
+  if (e.shiftKey) {
+    // 왼쪽 이동 (이전 행 끝으로 래핑)
+    if (newColIndex > 0) { newColIndex--; }
+    else if (newRowIndex > 0) { newRowIndex--; newColIndex = columns.length - 1; }
+  } else {
+    // 오른쪽 이동 (다음 행 시작으로 래핑)
+    if (newColIndex < columns.length - 1) { newColIndex++; }
+    else if (newRowIndex < this.state.displayData.length - 1) { newRowIndex++; newColIndex = 0; }
+  }
+  handled = true;
+  break;
+```
+
+**3. Focus 복원 문제 해결**:
+
+**문제**: Enter로 편집 종료 후 focus가 사라져서 방향키가 동작하지 않음
+
+**원인**: `endEditAndMove` 후 grid에 focus 복원하지 않음
+
+**해결**: `rootElement.focus()` 추가
+```typescript
+private endEditAndMove(direction: 'up' | 'down' | 'left' | 'right'): void {
+  // ... 이동 로직
+  this.render();
+  this.rootElement.focus();  // ✅ Focus 복원
+}
+```
+
+**4. Shift+Enter 지원 추가**:
+
+**문제**: Edit 모드에서 Shift+Enter가 위로 이동하지 않음
+
+**원인**: `handleKeyDown`에서 Shift 키 체크 누락
+
+**해결**: Shift 키 체크 추가
+```typescript
+// Edit 모드
+else if (e.key === 'Enter') {
+  e.preventDefault();
+  this.endEditAndMove(e.shiftKey ? 'up' : 'down');  // ✅ Shift 지원
+}
+```
+
+#### 키보드 네비게이션 일관성
+
+**Edit 모드** (편집 중):
+- ✅ Enter: 저장 + 아래로 이동
+- ✅ Shift+Enter: 저장 + 위로 이동
+- ✅ Tab: 저장 + 오른쪽 이동
+- ✅ Shift+Tab: 저장 + 왼쪽 이동
+- ✅ Escape: 편집 취소
+
+**Read 모드** (읽기 전용):
+- ✅ ArrowUp/Down/Left/Right: 셀 이동
+- ✅ Tab: 오른쪽 이동 (행 래핑)
+- ✅ Shift+Tab: 왼쪽 이동 (행 래핑)
+- ✅ Enter/F2: 편집 시작
+- ✅ Space: 체크박스 토글 (checkBar 활성화 시)
+
+**Custom Editors**:
+- ✅ 모든 에디터: Enter/Tab with Shift 지원 (onMove 콜백)
+- ✅ Checkbox 에디터: 토글 후 편집 모드 유지
+
+**테스트 파일**:
+- `examples/test-enter-key.html`: Enter 키 동작 검증
+- `examples/test-cell-mode.html`: Cell 모드 키보드 네비게이션
+- `examples/test-debug.html`: IIFE 빌드 디버깅
+
+**수정 파일**:
+- `src/core/VeloxGrid.ts`: 
+  - renderEditCell input keydown 핸들러 수정
+  - handleKeyDown Edit 모드 Shift+Enter 지원
+  - handleKeyDown Read 모드 Tab 케이스 추가
+  - endEditAndMove focus 복원 추가
+
+**번들 크기**: 변화 없음 (UMD: 91.56 KB, gzip: 22.74 KB)
+
+**Git**: 다음 커밋 예정
 
 ### ✨ Phase 15: Row State Management 완료 (2025-02-06)
 

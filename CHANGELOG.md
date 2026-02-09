@@ -7,20 +7,49 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 
 ## [0.9.1] - 2025-02-09
 
-### Added
+### Added - Phase 15.1: Enhanced Keyboard Navigation
 - **Quick Edit**: 셀 선택 후 바로 타이핑으로 편집 시작 (Excel 스타일)
 - **Enter/Shift+Enter**: 저장 + 아래/위로 이동
-- **Tab/Shift+Tab**: 저장 + 오른쪽/왼쪽으로 이동
+- **Tab/Shift+Tab**: 저장 + 오른쪽/왼쪽으로 이동 (Edit 모드 & Read 모드)
+- **onMove 콜백**: Custom Editor에서 이동 방향을 Grid에 전달
 
 ### Changed
 - 모든 Custom Editor에서 키보드 동작 통일
 - Editor 내부 키 이벤트에 `stopPropagation` 추가
+- Read 모드 Tab 키 네비게이션 지원 (행 래핑 포함)
 
-### Fixed
-- Custom Editor에서 Enter/Tab 키가 Grid로 전파되지 않던 문제 해결
+### Fixed - Phase 15.1 Follow-up
+- **Enter 키 편집 종료**: Cell 모드에서 Enter 키가 편집을 종료하지 않던 문제 해결
+  - 원인: `endEdit()` 후 `endEditAndMove()` 호출 시 state가 이미 초기화됨
+  - 해결: `endEditAndMove()`만 호출 (내부적으로 endEdit 호출)
+- **Tab 키 Read 모드**: 편집하지 않을 때 Tab 키가 동작하지 않던 문제 해결
+  - handleKeyDown에 Tab/Shift+Tab 케이스 추가
+  - 행 끝에서 다음/이전 행으로 래핑 지원
+- **Focus 복원**: 편집 종료 후 focus가 사라져 방향키가 동작하지 않던 문제 해결
+  - `endEditAndMove()` 후 `this.rootElement.focus()` 추가
+- **Shift+Enter**: Edit 모드에서 Shift+Enter가 위로 이동하지 않던 문제 해결
+  - handleKeyDown에 Shift 키 체크 추가
 
 ### Demo
-- `examples/phase15-1-keyboard-demo.html` 추가
+- `examples/phase15-1-keyboard-demo.html`: 키보드 네비게이션 데모
+- `examples/test-enter-key.html`: Enter 키 동작 검증
+- `examples/test-cell-mode.html`: Cell 모드 테스트
+- `examples/test-debug.html`: IIFE 빌드 디버깅
+
+### Keyboard Navigation Summary
+**Edit 모드** (편집 중):
+- Enter: 저장 + 아래로 이동
+- Shift+Enter: 저장 + 위로 이동
+- Tab: 저장 + 오른쪽 이동
+- Shift+Tab: 저장 + 왼쪽 이동
+- Escape: 편집 취소
+
+**Read 모드** (읽기 전용):
+- ArrowUp/Down/Left/Right: 셀 이동
+- Tab: 오른쪽 이동 (행 래핑)
+- Shift+Tab: 왼쪽 이동 (행 래핑)
+- Enter/F2: 편집 시작
+- Space: 체크박스 토글
 
 ## [0.8.0] - 2025-02-05
 

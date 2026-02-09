@@ -1567,17 +1567,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
           // Save callback
           console.log('💾 Editor save callback', { newValue, editing: this.state.edit.editing });
           
-          // 데이터 업데이트
-          const row = this.state.displayData[rowIndex];
-          if (row) {
-            const dataIndex = this.state.data.indexOf(row);
-            if (dataIndex >= 0) {
-              this.state.data[dataIndex][field] = newValue;
-            }
-          }
-          
-          // Invalidate summary cache when checkbox value changes
-          this.summary.invalidateCache();
+          // Phase 15: Use setCellValue to update row state
+          this.setCellValue(rowIndex, field, newValue);
           
           // Checkbox editor는 edit 모드를 유지 (즉시 종료하지 않음)
           if (column.editor?.type === 'checkbox') {
@@ -1586,12 +1577,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
             // originalValue를 새 값으로 업데이트 (다음 렌더링에서 사용)
             this.state.edit.originalValue = newValue;
             
-            // Edit 상태 유지하면서 데이터만 업데이트
-            this.applyDataTransformations();
-            
             // Edit 상태 보존
             const editState = { ...this.state.edit };
-            this.render();
             
             // Edit 모드 복원 (새 값으로 렌더링)
             if (editState.editing) {
@@ -1762,13 +1749,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
           ? parseFloat(newValue)
           : newValue;
         
-        const dataIndex = this.state.data.indexOf(displayRow);
-        if (dataIndex >= 0) {
-          this.state.data[dataIndex][field] = parsedValue;
-        }
-        
-        // Invalidate summary cache when cell value changes
-        this.summary.invalidateCache();
+        // Phase 15: Use setCellValue to update row state
+        this.setCellValue(rowIndex, field, parsedValue);
         
         this.events.onCellEditEnd?.({
           rowIndex,

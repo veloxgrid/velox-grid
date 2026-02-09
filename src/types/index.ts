@@ -388,6 +388,12 @@ export interface PaginationState {
 export interface PaginationOptions {
   /** 페이지네이션 활성화 */
   enabled: boolean;
+  /** 
+   * 페이지네이션 모드
+   * - 'page': 일반 페이지 네비게이션 (기본값)
+   * - 'infinite': 스크롤 끝에 도달하면 다음 페이지 자동 로드
+   */
+  mode?: 'page' | 'infinite';
   /** 페이지당 행 수 (default: 20) */
   pageSize?: number;
   /** 페이지 크기 변경 옵션 목록 */
@@ -398,6 +404,8 @@ export interface PaginationOptions {
   showInfo?: boolean;
   /** 페이지 크기 셀렉터 표시 (default: false) */
   showSizeChanger?: boolean;
+  /** Infinite scroll: 다음 페이지 로드를 트리거하는 스크롤 바닥 여유 (px, default: 100) */
+  infiniteScrollThreshold?: number;
 }
 
 /**

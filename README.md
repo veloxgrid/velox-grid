@@ -27,7 +27,7 @@
 - 📦 **Zero Dependencies** - 외부 의존성 없음 (Excel 기능의 경우 SheetJS 선택적 사용)
 - 🎨 **커스터마이징 가능** - CSS Variables를 통한 쉬운 테마 커스터마이징
 - 📝 **TypeScript** - 완벽한 타입 지원
-- ⚡ **경량화** - ~97KB minified (~24KB gzipped)
+- ⚡ **경량화** - ~100KB minified (~25KB gzipped)
 
 ### 핵심 기능
 
@@ -48,6 +48,7 @@
 - ⌨️ **Enhanced Keyboard** - Enter/Tab/Shift 조합 완벽 지원 (v0.9.1)
 - 📄 **Pagination** - Local/Remote 페이지네이션, 페이지 크기 변경 (v0.10.0)
 - 🌐 **Server-Side Data** - 서버 측 정렬/필터/페이징 연동 (v0.10.0)
+- ♾️ **Infinite Scroll** - 스크롤 끝 도달 시 다음 데이터 자동 로드 (v0.10.0)
 
 ### 코드 구조 최적화 (v0.7.0+)
 
@@ -340,6 +341,18 @@ grid.goToPage(3);                  // 페이지 이동
 grid.setPageSize(50);              // 페이지 크기 변경
 grid.getPaginationState();         // { currentPage, pageSize, totalCount, totalPages }
 await grid.fetchData();            // 서버 데이터 수동 새로고침
+
+// Infinite Scroll mode
+const grid = new VeloxGrid('#grid', {
+  columns: [...],
+  data: localData,
+  pagination: {
+    enabled: true,
+    mode: 'infinite',               // 스크롤 끝 도달 시 자동 로드
+    pageSize: 50,
+    infiniteScrollThreshold: 100,   // 바닥 여유 px
+  },
+});
 ```
 
 ### 메서드
@@ -564,7 +577,7 @@ velox-grid/
 
 | 버전 | UMD | Gzipped |
 |---------|-----|---------|
-| v0.10.0 | 97.39 KB | 24.23 KB |
+| v0.10.0 | 100.20 KB | 24.69 KB |
 | v0.7.0 | 71.35 KB | 18.23 KB |
 | v0.6.0 | 58.94 KB | 14.92 KB |
 

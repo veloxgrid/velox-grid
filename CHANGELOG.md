@@ -17,13 +17,15 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 - **Remote Pagination**: 서버 측 정렬/필터/페이징 자동 연동
 - **API 메서드**: `goToPage()`, `setPageSize()`, `fetchData()`, `getPaginationState()`
 - **이벤트**: `onPageChange`, `onPageSizeChange`
+- **Infinite Scroll**: `mode: 'infinite'` - 스크롤 끝에 도달 시 다음 페이지 자동 로드
+- **Infinite Scroll 옵션**: `infiniteScrollThreshold` (바닥 여유 px 설정)
 - **CSS 모듈**: `_pagination.css` 추가
 
 ### Bundle Size
-- UMD: 92.19 KB → 97.39 KB (+5.20 KB)
-- ESM: 132.98 KB → 136.00 KB (+3.02 KB)
-- CSS: 19.52 KB → 21.43 KB (+1.91 KB)
-- gzip: 22.86 KB → 24.23 KB (+1.37 KB)
+- UMD: 92.19 KB → 100.20 KB (+8.01 KB)
+- ESM: 132.98 KB → 139.67 KB (+6.69 KB)
+- CSS: 19.52 KB → 21.61 KB (+2.09 KB)
+- gzip: 22.86 KB → 24.69 KB (+1.83 KB)
 
 ## [0.9.1] - 2025-02-09
 

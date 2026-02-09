@@ -132,6 +132,9 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   public fixedRightFooter: HTMLElement | null = null;
   // Phase 18: Pagination DOM
   public paginationContainer: HTMLElement | null = null;
+  // Phase 18: Infinite scroll state
+  private infiniteScrollLoading = false;
+  private infiniteScrollAllLoaded = false;
 
   // Internal state
   private blockSelecting: { startRow: number; startField: string } | null = null;
@@ -275,7 +278,11 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         // Local: pagination 적용 후 렌더
         this.state.pagination.totalCount = this.state.data.length;
         this.updateTotalPages();
-        this.applyLocalPagination();
+        if (this.options.pagination.mode === 'infinite') {
+          this.applyLocalInfiniteScroll();
+        } else {
+          this.applyLocalPagination();
+        }
         this.render();
       }
     } else {
@@ -744,6 +751,11 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       if (this.options.virtualScroll) this.renderBody();
       this.events.onScroll?.(this.state.scroll.top, this.state.scroll.left);
       
+      // Phase 18: Infinite Scroll - 스크롤 바닥 감지
+      if (source === 'body' || source === 'fixedRight') {
+        this.checkInfiniteScroll();
+      }
+      
       isSyncing = false;
     };
     
@@ -1165,14 +1177,26 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   applyDataTransformations(): void {
     // Phase 18: Pagination이 활성화된 경우 별도 로직
     if (this.options.pagination?.enabled) {
+      // Infinite scroll 상태 리셋
+      this.infiniteScrollLoading = false;
+      this.infiniteScrollAllLoaded = false;
+      this.state.pagination.currentPage = 1;
+      
       if (this.isRemoteDataSource()) {
-        // Remote: 페이지 1로 리셋 후 서버 요청
-        this.state.pagination.currentPage = 1;
+        if (this.options.pagination.mode === 'infinite') {
+          // Remote infinite: 데이터 초기화 후 첫 페이지 로드
+          this.state.data = [];
+          this.state.displayData = [];
+        }
         this.fetchData();
         return;
       } else {
-        // Local pagination: sort/filter + 페이지 슬라이싱
-        this.applyLocalPagination();
+        // Local pagination/infinite: sort/filter + 페이지 슬라이싱
+        if (this.options.pagination.mode === 'infinite') {
+          this.applyLocalInfiniteScroll();
+        } else {
+          this.applyLocalPagination();
+        }
         return;
       }
     }
@@ -3038,10 +3062,131 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   }
 
   /**
+   * Infinite Scroll: 스크롤 바닥 감지 (Phase 18)
+   */
+  private checkInfiniteScroll(): void {
+    const opts = this.options.pagination;
+    if (!opts?.enabled || opts.mode !== 'infinite') return;
+    if (this.infiniteScrollLoading || this.infiniteScrollAllLoaded) return;
+    
+    const threshold = opts.infiniteScrollThreshold || 100;
+    const { scrollTop, scrollHeight, clientHeight } = this.bodyElement;
+    
+    if (scrollHeight - scrollTop - clientHeight <= threshold) {
+      this.loadNextPage();
+    }
+  }
+
+  /**
+   * Infinite Scroll: 다음 페이지 로드 (Phase 18)
+   */
+  private async loadNextPage(): Promise<void> {
+    const { currentPage, totalPages } = this.state.pagination;
+    if (currentPage >= totalPages) {
+      this.infiniteScrollAllLoaded = true;
+      this.renderInfiniteScrollStatus();
+      return;
+    }
+    
+    this.infiniteScrollLoading = true;
+    this.state.pagination.currentPage++;
+    this.renderInfiniteScrollStatus();
+    
+    if (this.isRemoteDataSource()) {
+      const dataSource = this.options.dataSource;
+      if (!dataSource?.fetch) return;
+      
+      const params: DataRequestParams = {
+        page: this.state.pagination.currentPage,
+        pageSize: this.state.pagination.pageSize,
+        sort: this.state.sort.length > 0 ? this.state.sort : undefined,
+        filter: this.state.filter,
+      };
+      
+      try {
+        const result = await dataSource.fetch(params);
+        
+        // 기존 데이터에 추가 (append)
+        const newRows = result.data.map(row => ({ ...row }));
+        this.state.data.push(...newRows);
+        this.state.displayData = [...this.state.data];
+        this.state.pagination.totalCount = result.totalCount;
+        this.updateTotalPages();
+        
+        newRows.forEach(row => this.state.rowStates.set(row, 'none'));
+        this.rebuildDataIndexMap();
+        this.summary.invalidateCache();
+        
+        if (this.state.pagination.currentPage >= this.state.pagination.totalPages) {
+          this.infiniteScrollAllLoaded = true;
+        }
+      } catch (error) {
+        console.error('VeloxGrid: infinite scroll fetch error', error);
+        this.state.pagination.currentPage--;
+      }
+    } else {
+      // Local infinite scroll
+      this.applyLocalInfiniteScroll();
+    }
+    
+    this.infiniteScrollLoading = false;
+    this.render();
+  }
+
+  /**
+   * Local Infinite Scroll: 다음 페이지 데이터 추가 (Phase 18)
+   */
+  private applyLocalInfiniteScroll(): void {
+    let data = [...this.state.data];
+    if (this.state.filter) data = filterData(data, this.state.filter);
+    if (this.state.sort.length > 0) {
+      const columnTypes: Record<string, ValueType> = {};
+      this.state.columns.forEach(col => { columnTypes[col.field] = col.type || 'text'; });
+      data = sortData(data, this.state.sort, columnTypes);
+    }
+    
+    const { currentPage, pageSize } = this.state.pagination;
+    const endIndex = currentPage * pageSize;
+    this.state.displayData = data.slice(0, endIndex);
+    
+    if (endIndex >= data.length) {
+      this.infiniteScrollAllLoaded = true;
+    }
+    
+    this.initCheckableRows();
+  }
+
+  /**
+   * Infinite Scroll 상태 표시 렌더링 (Phase 18)
+   */
+  private renderInfiniteScrollStatus(): void {
+    if (!this.paginationContainer) return;
+    
+    this.paginationContainer.innerHTML = '';
+    
+    if (this.infiniteScrollLoading) {
+      const loading = createElement('div', 'velox-infinite-status');
+      loading.textContent = 'Loading...';
+      this.paginationContainer.appendChild(loading);
+    } else if (this.infiniteScrollAllLoaded) {
+      const done = createElement('div', 'velox-infinite-status velox-infinite-status--done');
+      const { totalCount } = this.state.pagination;
+      done.textContent = `All ${totalCount.toLocaleString()} items loaded`;
+      this.paginationContainer.appendChild(done);
+    }
+  }
+
+  /**
    * Pagination UI 렌더링 (Phase 18)
    */
   private renderPagination(): void {
     if (!this.paginationContainer) return;
+    
+    // Infinite scroll 모드일 때는 상태 표시만
+    if (this.options.pagination?.mode === 'infinite') {
+      this.renderInfiniteScrollStatus();
+      return;
+    }
     
     const { currentPage, totalPages, totalCount, pageSize } = this.state.pagination;
     const opts = this.options.pagination;

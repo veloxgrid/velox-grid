@@ -14,7 +14,7 @@
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
 ### 빌드 정보
-- **번들 크기**: 97.39KB (gzip 24.23KB)
+- **번들 크기**: 100.20KB (gzip 24.69KB)
 - **VeloxGrid.ts**: ~3,148줄
 - **Core 모듈**: 11개
 - **CSS 모듈**: 12개
@@ -123,6 +123,7 @@ velox-grid/
 - ✅ Local Pagination (클라이언트 데이터 페이지 분할)
 - ✅ API: goToPage(), setPageSize(), fetchData(), getPaginationState()
 - ✅ 이벤트: onPageChange, onPageSizeChange
+- ✅ Infinite Scroll 모드 (local/remote, 자동 다음 페이지 로드)
 - ✅ CSS 모듈: _pagination.css
 - ✅ 데모 페이지 (3가지 시나리오: Local, Remote, PageSizeChanger)
 
@@ -153,7 +154,7 @@ velox-grid/
 - [x] DataSource 인터페이스 (`local` / `remote`)
 - [x] Remote fetch (정렬/필터/페이징 파라미터)
 - [x] Pagination UI (Footer 페이지 네비게이션)
-- [x] Infinite Scroll 모드 (선택적) → 향후 확장 예정
+- [x] Infinite Scroll 모드 (선택적) → ✅ 구현 완료
 - [x] Loading State 통합
 
 **Phase 19: Column Group (다단계 헤더)**
@@ -269,7 +270,7 @@ velox-grid/
 ### ✨ Phase 18: Server-Side Data & Pagination 완료 (2025-02-09)
 
 **버전**: v0.10.0  
-**번들 크기**: UMD 97.39 KB (gzip: 24.23 KB), ESM 136.00 KB, CSS 21.43 KB
+**번들 크기**: UMD 100.20 KB (gzip: 24.69 KB), ESM 139.67 KB, CSS 21.61 KB
 
 #### 구현 내용
 
@@ -305,6 +306,15 @@ velox-grid/
 - `paginationContainer` DOM 요소 (wrapper 아래에 위치)
 - `render()` 호출 시 자동으로 pagination UI 갱신
 
+**5. Infinite Scroll** (`src/core/VeloxGrid.ts`):
+- `PaginationOptions.mode`: `'page'` (기본) / `'infinite'` 모드
+- `checkInfiniteScroll()`: 스크롤 바닥 감지 (threshold 기반)
+- `loadNextPage()`: 다음 페이지 데이터 로드 (remote: fetch append, local: slice 확장)
+- `applyLocalInfiniteScroll()`: 로컬 데이터 누적 슬라이싱
+- `renderInfiniteScrollStatus()`: "Loading..." / "All N items loaded" 상태 표시
+- `infiniteScrollThreshold` 옵션 (바닥 여유 px, 기본 100)
+- sort/filter 변경 시 infinite scroll 상태 자동 리셋
+
 **4. CSS** (`src/styles/_pagination.css`):
 - `.velox-pagination`: flexbox 레이아웃, 좌/중/우 정렬
 - `.velox-pagination-btn`: 호버/active/disabled 스타일
@@ -315,12 +325,14 @@ velox-grid/
 1. Local Pagination: 500건 클라이언트 데이터, Add/Remove Row
 2. Remote Pagination: 1000건 Mock API, 서버 측 sort/filter, 페이지 크기 변경
 3. Page Size Changer: 다양한 크기 옵션 (5/10/25/50/100)
+4. Infinite Scroll Local: 500건, 50건씩 자동 로드
+5. Infinite Scroll Remote: 1000건 Mock API, 30건씩 자동 로드
 
 **번들 크기 변화**:
-- UMD: 92.19 KB → 97.39 KB (+5.20 KB)
-- ESM: 132.98 KB → 136.00 KB (+3.02 KB)
-- CSS: 19.52 KB → 21.43 KB (+1.91 KB)
-- gzip: 22.86 KB → 24.23 KB (+1.37 KB)
+- UMD: 92.19 KB → 100.20 KB (+8.01 KB)
+- ESM: 132.98 KB → 139.67 KB (+6.69 KB)
+- CSS: 19.52 KB → 21.61 KB (+2.09 KB)
+- gzip: 22.86 KB → 24.69 KB (+1.83 KB)
 
 **수정 파일**:
 - `src/types/index.ts`: Phase 18 타입 정의 추가

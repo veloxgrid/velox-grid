@@ -71,6 +71,24 @@
     <div id="grid-sizer" class="grid-container"></div>
   </div>
 
+  <!-- Demo 4: Infinite Scroll (Local) -->
+  <div class="demo-section">
+    <h2>4. Infinite Scroll - Local</h2>
+    <p>스크롤 끝에 도달하면 다음 데이터를 자동으로 로드합니다. (500건, 50건씩)</p>
+    <div id="grid-infinite-local" class="grid-container"></div>
+  </div>
+
+  <!-- Demo 5: Infinite Scroll (Remote) -->
+  <div class="demo-section">
+    <h2>5. Infinite Scroll - Remote</h2>
+    <p>서버에서 스크롤 시 다음 페이지를 자동으로 가져옵니다. (1000건, 30건씩)</p>
+    <div class="controls">
+      <button onclick="showInfiniteRemoteState()">📊 Show State</button>
+    </div>
+    <div id="grid-infinite-remote" class="grid-container"></div>
+    <div id="info-infinite-remote" class="info-panel"></div>
+  </div>
+
   <script src="../dist/velox-grid.js"></script>
   <script>
     // ============================================
@@ -268,6 +286,68 @@
         maxPageButtons: 7,
       },
     });
+
+    // ============================================
+    // Demo 4: Infinite Scroll (Local)
+    // ============================================
+    const gridInfiniteLocal = new VeloxGrid.VeloxGrid('#grid-infinite-local', {
+      columns: columns,
+      data: generateData(500),
+      height: 400,
+      sortable: true,
+      filterable: true,
+      showRowNumbers: true,
+      selectionStyle: 'cell',
+      pagination: {
+        enabled: true,
+        mode: 'infinite',
+        pageSize: 50,
+      },
+    });
+
+    // ============================================
+    // Demo 5: Infinite Scroll (Remote)
+    // ============================================
+    const allInfiniteData = generateData(1000);
+
+    const gridInfiniteRemote = new VeloxGrid.VeloxGrid('#grid-infinite-remote', {
+      columns: columns,
+      height: 400,
+      sortable: true,
+      filterable: true,
+      showRowNumbers: true,
+      selectionStyle: 'cell',
+      dataSource: {
+        type: 'remote',
+        fetch: async (params) => {
+          await new Promise(r => setTimeout(r, 400 + Math.random() * 300));
+          let data = [...allInfiniteData];
+          if (params.sort && params.sort.length > 0) {
+            const s = params.sort[0];
+            data.sort((a, b) => {
+              const va = a[s.field], vb = b[s.field];
+              const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+              return s.direction === 'desc' ? -cmp : cmp;
+            });
+          }
+          const totalCount = data.length;
+          const start = (params.page - 1) * params.pageSize;
+          return { data: data.slice(start, start + params.pageSize), totalCount };
+        },
+      },
+      pagination: {
+        enabled: true,
+        mode: 'infinite',
+        pageSize: 30,
+        infiniteScrollThreshold: 150,
+      },
+    });
+
+    function showInfiniteRemoteState() {
+      const s = gridInfiniteRemote.getPaginationState();
+      document.getElementById('info-infinite-remote').textContent =
+        `Page: ${s.currentPage}/${s.totalPages}, Loaded: ${gridInfiniteRemote.getData().length}, Total: ${s.totalCount}`;
+    }
   </script>
 </body>
 </html>

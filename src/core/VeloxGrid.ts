@@ -829,6 +829,9 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     
     if (selectionStyle === 'cell' || selectionStyle === 'block') {
       this.handleCellSelection(rowIndex, field, e);
+    } else if (selectionStyle === 'row') {
+      // Row 모드에서도 focusedCell 설정 (Quick Edit 지원)
+      this.state.selection.focusedCell = { rowIndex, field };
     }
     
     this.events.onCellClick?.(rowIndex, field, value);

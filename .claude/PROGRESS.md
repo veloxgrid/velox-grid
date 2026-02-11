@@ -1,6 +1,6 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-09 (Phase 18 완료)
+> 마지막 업데이트: 2025-02-11 (Phase 16 완료)
 
 ---
 
@@ -31,6 +31,7 @@ velox-grid/
 ├── dist/               # 빌드 출력
 ├── docs/               # GitHub Pages 배포용
 ├── examples/           # 데모 페이지
+├── tests/              # 단위 테스트 (Vitest)
 └── src/
     ├── core/          # 핵심 모듈 (11개)
     ├── styles/        # CSS 모듈 (11개)
@@ -133,12 +134,14 @@ velox-grid/
 
 #### 🔴 v1.0 이전 필수 (높은 우선순위)
 
-**Phase 16: 단위 테스트 도입**
-- [ ] Vitest 환경 설정
-- [ ] 핵심 로직 테스트 (Row State, Virtual Scroll, Sort/Filter)
-- [ ] Undo/Redo 스택 테스트
-- [ ] Fixed Column 파티셔닝 테스트
-- [ ] CI 연동 (GitHub Actions)
+**Phase 16: 단위 테스트 도입** ✅ 완료
+- [x] Vitest 환경 설정 (vitest.config.ts, jsdom, setup.ts)
+- [x] 데이터 유틸리티 테스트 (sortData, filterData, matchesFilter, compareValues, formatValue, parseValue, deepClone)
+- [x] GridHistory 테스트 (Undo/Redo 스택, maxSize, enabled, 헬퍼 메서드)
+- [x] GridValidator 테스트 (required, min/max, minLength/maxLength, pattern, custom, validateRow, validateAll)
+- [x] GridSummary 테스트 (sum/avg/count/min/max, 캐시, 빈 데이터, null 처리, 커스텀 함수)
+- [x] VeloxGrid 통합 테스트 (CRUD, Row State 전이, Sort/Filter, Selection, CheckBar, Pagination, Fixed Columns, Column 관리)
+- [ ] CI 연동 (GitHub Actions) - 추후 진행
 
 **Phase 17: Framework Wrappers (React + Vue)**
 - [ ] 공통 래퍼 인터페이스 설계 (Props, Events, Ref 패턴)
@@ -266,6 +269,46 @@ velox-grid/
 ---
 
 ## 📋 최근 작업 이력 (최신순)
+
+### 📦 Phase 16: 단위 테스트 도입 (Vitest) 완료 (2025-02-11)
+
+**테스트 프레임워크**: Vitest 1.6.1 + jsdom + @vitest/coverage-v8
+**테스트 결과**: 155/155 통과 (2.4초)
+
+#### 구현 내용
+
+**1. 환경 구성**:
+- `vitest.config.ts`: jsdom 환경, path alias, coverage 설정 (v8 provider)
+- `tests/setup.ts`: CSS.supports, requestAnimationFrame, ResizeObserver polyfill
+- `tsconfig.json`: tests 폴더 exclude 추가
+
+**2. 테스트 스위트 (5개 파일)**:
+- `tests/data-utils.test.ts` (44 tests) - deepClone, generateId, formatValue, parseValue, compareValues, sortData, matchesFilter, filterData
+- `tests/grid-history.test.ts` (17 tests) - push/pop, maxSize, enabled, 헬퍼 메서드, clear, 연속 undo/redo
+- `tests/grid-validator.test.ts` (24 tests) - required, min/max, minLength/maxLength, pattern, custom, 다중 규칙, validateRow, validateAll
+- `tests/grid-summary.test.ts` (17 tests) - sum/avg/count/min/max, 빈 데이터, null, 캐시, 커스텀 함수
+- `tests/velox-grid.test.ts` (53 tests) - CRUD, Row State 전이, Sort/Filter, Fixed Columns, Column 관리, Selection, CheckBar, Pagination, Lifecycle
+
+**3. 커버리지 영역**:
+- 데이터 유틸리티 (12개 함수)
+- GridHistory (Undo/Redo 스택, maxSize, enabled)
+- GridValidator (6종 규칙 + 행/전체 검증)
+- GridSummary (5종 집계 + 캐시 + 엣지 케이스)
+- VeloxGrid 통합 API (Row State FSM, CRUD, Sort, Filter, Selection, CheckBar, Pagination, Fixed Columns)
+
+**수정 파일**:
+- `vitest.config.ts` (신규)
+- `tests/setup.ts` (신규)
+- `tests/data-utils.test.ts` (신규)
+- `tests/grid-history.test.ts` (신규)
+- `tests/grid-validator.test.ts` (신규)
+- `tests/grid-summary.test.ts` (신규)
+- `tests/velox-grid.test.ts` (신규)
+- `tsconfig.json`: tests exclude 추가
+
+**Git**: 커밋 예정
+
+---
 
 ### ✨ Phase 18: Server-Side Data & Pagination 완료 (2025-02-09)
 
@@ -1204,27 +1247,7 @@ src/core/
 ## 🔮 다음 작업 계획
 
 ### 즉시 처리 (미커밋 작업)
-- [ ] Phase 18 Server-Side Data & Pagination Git 커밋 및 푸시
-
-### Phase 16: 단위 테스트 도입
-**목표**: 핵심 로직의 테스트 커버리지 확보로 이후 모든 Phase의 안정성 기반 마련
-
-**작업 항목**:
-1. Vitest 설치 및 환경 설정 (`vitest.config.ts`)
-2. 테스트 디렉토리 구조 생성 (`tests/`)
-3. 핵심 모듈 테스트 작성:
-   - Row State 전이 로직 (`none → created → updated → deleted`)
-   - 가상 스크롤 인덱스 계산
-   - 정렬/필터 로직
-   - Undo/Redo 스택 동작
-   - Fixed Column 파티셔닝 (`getFixedLeftColumns`, `getScrollableColumns`)
-   - Summary 캐시 무효화
-4. GitHub Actions CI 연동 (PR 시 자동 테스트)
-5. `npm run test` 스크립트 정비
-
-**선행 조건**: 없음
-**예상 작업량**: 2~3일
-**번들 영향**: 없음 (devDependency)
+- [ ] Phase 18 + Phase 16 Git 커밋 및 푸시
 
 ### Phase 17: Framework Wrappers (React + Vue)
 **목표**: React/Vue 생태계에서 VeloxGrid를 쉽게 사용할 수 있도록 래퍼 제공

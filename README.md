@@ -27,6 +27,7 @@
 - 📦 **Zero Dependencies** - 외부 의존성 없음 (Excel 기능의 경우 SheetJS 선택적 사용)
 - 🎨 **커스터마이징 가능** - CSS Variables를 통한 쉬운 테마 커스터마이징
 - 📝 **TypeScript** - 완벽한 타입 지원
+- ⚛️ **React/Vue 래퍼** - 공식 React 컴포넌트 & Vue 3 컴포넌트 제공 (v0.11.0)
 - ⚡ **경량화** - ~100KB minified (~25KB gzipped)
 
 ### 핵심 기능
@@ -49,6 +50,8 @@
 - 📄 **Pagination** - Local/Remote 페이지네이션, 페이지 크기 변경 (v0.10.0)
 - 🌐 **Server-Side Data** - 서버 측 정렬/필터/페이징 연동 (v0.10.0)
 - ♾️ **Infinite Scroll** - 스크롤 끝 도달 시 다음 데이터 자동 로드 (v0.10.0)
+- ⚛️ **React 래퍼** - VeloxGridReact 컴포넌트 + useVeloxGrid Hook (v0.11.0)
+- 💚 **Vue 3 래퍼** - VeloxGridVue 컴포넌트 + useVeloxGrid Composable (v0.11.0)
 
 ### 코드 구조 최적화 (v0.7.0+)
 
@@ -67,8 +70,8 @@ npm install velox-grid
 ### CDN (브라우저)
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/velox-grid@0.7.0/dist/velox-grid.css">
-<script src="https://unpkg.com/velox-grid@0.7.0/dist/velox-grid.iife.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/velox-grid@0.11.0/dist/velox-grid.css">
+<script src="https://unpkg.com/velox-grid@0.11.0/dist/velox-grid.iife.js"></script>
 
 <div id="grid"></div>
 
@@ -128,6 +131,104 @@ const grid = new VeloxGrid('#grid', {
   ],
   data: [...],
 });
+```
+
+### React (v0.11.0)
+
+```tsx
+import { useRef } from 'react';
+import { VeloxGridReact } from 'velox-grid/react';
+import type { VeloxGridReactRef } from 'velox-grid/react';
+import 'velox-grid/css';
+
+function App() {
+  const gridRef = useRef<VeloxGridReactRef>(null);
+
+  return (
+    <div>
+      <button onClick={() => gridRef.current?.addRow({ name: 'New', age: 0 })}>
+        행 추가
+      </button>
+      <VeloxGridReact
+        ref={gridRef}
+        columns={[
+          { field: 'name', header: '이름', width: 150 },
+          { field: 'age', header: '나이', type: 'number', width: 80 },
+        ]}
+        data={data}
+        height={400}
+        editable={true}
+        onCellEditEnd={(e) => console.log('Edit:', e)}
+      />
+    </div>
+  );
+}
+```
+
+**useVeloxGrid Hook:**
+
+```tsx
+import { useVeloxGrid } from 'velox-grid/react';
+
+function App() {
+  const { containerRef, grid, isReady } = useVeloxGrid({
+    columns, data, height: 400, editable: true,
+    onCellEditEnd: (e) => console.log(e),
+  });
+
+  return (
+    <div>
+      <button onClick={() => grid?.addRow({ name: 'New' })}>행 추가</button>
+      <div ref={containerRef} />
+    </div>
+  );
+}
+```
+
+### Vue 3 (v0.11.0)
+
+```vue
+<template>
+  <button @click="gridRef?.addRow({ name: 'New' })">행 추가</button>
+  <VeloxGridVue
+    ref="gridRef"
+    :columns="columns"
+    :data="data"
+    :height="400"
+    :editable="true"
+    @cell-edit-end="onCellEditEnd"
+  />
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { VeloxGridVue } from 'velox-grid/vue';
+import 'velox-grid/css';
+
+const gridRef = ref<InstanceType<typeof VeloxGridVue>>();
+
+function onCellEditEnd(e) {
+  console.log('Edit:', e);
+}
+</script>
+```
+
+**useVeloxGrid Composable:**
+
+```vue
+<template>
+  <button @click="grid?.addRow({ name: 'New' })">행 추가</button>
+  <div ref="containerRef" />
+</template>
+
+<script setup lang="ts">
+import { useVeloxGrid } from 'velox-grid/vue';
+
+const { containerRef, grid, isReady } = useVeloxGrid({
+  columns, data, height: 400, editable: true,
+  onCellEditEnd: (e) => console.log(e),
+});
+</script>
 ```
 
 ## 📚 핵심 API

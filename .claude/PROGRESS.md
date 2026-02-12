@@ -1,6 +1,6 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-11 (Phase 16 완료)
+> 마지막 업데이트: 2025-02-12 (Phase 17 완료)
 
 ---
 
@@ -9,7 +9,7 @@
 ### 기본 정보
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
-- **현재 버전**: v0.10.0
+- **현재 버전**: v0.11.0
 - **라이선스**: MIT
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
@@ -29,12 +29,16 @@ velox-grid/
 │   ├── PROGRESS.md     # 이 문서 - 개발 진행 상황
 │   └── RULES.md        # 개발 규칙 및 작업 가이드
 ├── dist/               # 빌드 출력
+│   ├── react/         # React 래퍼 빌드
+│   └── vue/           # Vue 래퍼 빌드
 ├── docs/               # GitHub Pages 배포용
 ├── examples/           # 데모 페이지
 ├── tests/              # 단위 테스트 (Vitest)
 └── src/
     ├── core/          # 핵심 모듈 (11개)
-    ├── styles/        # CSS 모듈 (11개)
+    ├── react/         # React 래퍼 (Phase 17)
+    ├── vue/           # Vue 3 래퍼 (Phase 17)
+    ├── styles/        # CSS 모듈 (12개)
     ├── types/         # TypeScript 타입
     └── utils/         # 유틸리티
 ```
@@ -128,6 +132,17 @@ velox-grid/
 - ✅ CSS 모듈: _pagination.css
 - ✅ 데모 페이지 (3가지 시나리오: Local, Remote, PageSizeChanger)
 
+#### Phase 17: Framework Wrappers (v0.11.0)
+- ✅ React: VeloxGridReact 컴포넌트 (forwardRef, useImperativeHandle)
+- ✅ React: useVeloxGrid Hook (containerRef + grid + isReady)
+- ✅ Vue 3: VeloxGridVue SFC (script setup, defineExpose)
+- ✅ Vue 3: useVeloxGrid Composable (containerRef + grid ref)
+- ✅ Pass-through 패턴 (코어 확장 시 래퍼 수정 불필요)
+- ✅ 이벤트 프록시 (항상 최신 콜백 참조)
+- ✅ 별도 빌드 설정 (vite.config.react.ts, vite.config.vue.ts)
+- ✅ package.json exports (velox-grid/react, velox-grid/vue, velox-grid/css)
+- ✅ 데모 페이지
+
 ### 계획된 기능 (Phase 16~25)
 
 > 아래 Phase 번호는 기존 완료된 Phase 15.1 이후로 순차 배정
@@ -143,15 +158,17 @@ velox-grid/
 - [x] VeloxGrid 통합 테스트 (CRUD, Row State 전이, Sort/Filter, Selection, CheckBar, Pagination, Fixed Columns, Column 관리)
 - [ ] CI 연동 (GitHub Actions) - 추후 진행
 
-**Phase 17: Framework Wrappers (React + Vue)**
-- [ ] 공통 래퍼 인터페이스 설계 (Props, Events, Ref 패턴)
-- [ ] 빌드 구조 분리 (`velox-grid/react`, `velox-grid/vue`)
-- [ ] React Component (`<VeloxGridReact />`)
-- [ ] React Hook (`useVeloxGrid`)
-- [ ] Vue 3 Component (`<VeloxGrid />`, Composition API)
-- [ ] Vue 3 Composable (`useVeloxGrid`)
-- [ ] TypeScript 타입 지원 (React/Vue 공통)
-- [ ] 데모 페이지 (React + Vue)
+**Phase 17: Framework Wrappers (React + Vue)** ✅ 완료 (v0.11.0)
+- [x] 공통 래퍼 인터페이스 설계 (Props, Events, Ref 패턴)
+- [x] 빌드 구조 분리 (`velox-grid/react`, `velox-grid/vue`)
+- [x] React Component (`<VeloxGridReact />`) - forwardRef + useImperativeHandle
+- [x] React Hook (`useVeloxGrid`) - containerRef + grid + isReady
+- [x] Vue 3 Component (`<VeloxGridVue />`) - script setup + defineExpose
+- [x] Vue 3 Composable (`useVeloxGrid`) - containerRef + grid ref + isReady
+- [x] TypeScript 타입 지원 (VeloxGridReactRef, VeloxGridVueEmits 등)
+- [x] 데모 페이지 (React + Vue 코드 예시 + 시뮬레이션)
+- [x] package.json exports (velox-grid/react, velox-grid/vue, velox-grid/css)
+- [x] peerDependencies (react >=16.8, vue >=3.0, optional)
 
 **Phase 18: Server-Side Data + Pagination** ✅ 완료 (v0.10.0)
 - [x] DataSource 인터페이스 (`local` / `remote`)

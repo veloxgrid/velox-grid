@@ -5,6 +5,49 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
+## [0.11.0] - 2025-02-12
+
+### Added - Phase 17: Framework Wrappers (React + Vue)
+
+#### React 래퍼
+- **VeloxGridReact 컴포넌트**: `forwardRef` + `useImperativeHandle`로 전체 API를 ref로 노출
+- **useVeloxGrid Hook**: `containerRef` + `grid` 인스턴스 + `isReady` 상태 반환
+- **Props 매핑**: `GridOptions`의 모든 옵션을 Props로 전달, `GridEvents`를 콜백 Props로 바인딩
+- **이벤트 프록시**: 리렌더 시에도 항상 최신 콜백 참조 (eventsRef 패턴)
+- **TypeScript 타입**: `VeloxGridReactProps`, `VeloxGridReactRef` 타입 제공
+
+#### Vue 3 래퍼
+- **VeloxGridVue SFC**: `script setup` + `defineExpose`로 전체 API를 template ref로 노출
+- **useVeloxGrid Composable**: `containerRef` + `grid` ref + `isReady` ref 반환
+- **이벤트 emit**: `GridEvents`를 kebab-case로 변환하여 emit (예: `onCellClick` → `@cell-click`)
+- **TypeScript 타입**: `VeloxGridVueProps`, `VeloxGridVueEmits` 타입 제공
+
+#### 빌드 구조
+- **별도 빌드 설정**: `vite.config.react.ts`, `vite.config.vue.ts`
+- **package.json exports**: `velox-grid/react`, `velox-grid/vue`, `velox-grid/css`
+- **peerDependencies**: `react >=16.8`, `vue >=3.0` (모두 optional)
+- **빌드 스크립트**: `build:react`, `build:vue`, `build:all`
+
+#### 설계 원칙
+- **Pass-through 패턴**: GridOptions 확장 시 래퍼 수정 불필요
+- **코어 무수정**: `src/core/` 소스 변경 없음
+- **data/columns/loading** prop 변경 시 자동 반영
+
+### Fixed
+- `VeloxGridInstance`에 Pagination 메서드 누락 수정 (`goToPage`, `setPageSize`, `getPaginationState`, `fetchData`)
+
+### Bundle Size (Core - 변경 없음)
+- UMD: 100.20 KB (gzip: 24.69 KB)
+- ESM: 139.67 KB (gzip: 31.51 KB)
+
+### React Wrapper
+- ESM: 151.13 KB (gzip: 32.94 KB)
+- CJS: 106.71 KB (gzip: 25.59 KB)
+
+### Vue Wrapper
+- ESM: 150.41 KB (gzip: 33.59 KB)
+- CJS: 107.16 KB (gzip: 26.32 KB)
+
 ## [0.10.0] - 2025-02-09
 
 ### Added - Phase 18: Server-Side Data & Pagination
@@ -423,14 +466,9 @@ fixedOptions: {
 
 ## 향후 릴리즈
 
-### [0.8.0] - 계획됨
-- 푸터 요약 (합계, 평균, 개수)
-- 그룹 요약 (그룹별 소계)
-
-### [0.9.0] - 계획됨
-- React 래퍼 컴포넌트
-- React 훅 (useVeloxGrid)
-- 향상된 TypeScript 타입
+### [0.12.0] - 계획됨
+- Column Group (다단계 헤더)
+- Cell Merge (셀 병합)
 
 ### [1.0.0] - 계획됨
 - 안정적인 API
@@ -441,10 +479,5 @@ fixedOptions: {
 
 ---
 
-[0.7.0]: https://github.com/bart-idea/velox-grid/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/bart-idea/velox-grid/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/bart-idea/velox-grid/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/bart-idea/velox-grid/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/bart-idea/velox-grid/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/bart-idea/velox-grid/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/bart-idea/velox-grid/releases/tag/v0.1.0
+[0.11.0]: https://github.com/bart-idea/velox-grid/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/bart-idea/velox-grid/compare/v0.9.1...v0.10.0

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VeloxGrid Phase 17 - Framework Wrappers Demo</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 24px; color: #333; }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    .subtitle { color: #666; margin-bottom: 24px; font-size: 14px; }
+    .demo-section { background: #fff; border-radius: 8px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .demo-section h2 { font-size: 18px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
+    .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-left: 8px; font-weight: 500; }
+    .badge-react { background: #61dafb22; color: #087ea4; border: 1px solid #61dafb55; }
+    .badge-vue { background: #42b88322; color: #34495e; border: 1px solid #42b88355; }
+    .desc { color: #666; font-size: 13px; margin-bottom: 16px; }
+    .btn-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .btn { padding: 6px 14px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; font-size: 13px; }
+    .btn:hover { background: #f0f0f0; }
+    .btn-primary { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+    .btn-primary:hover { background: #3a7bc8; }
+    .btn-danger { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+    .btn-danger:hover { background: #c0392b; }
+    .code-block { background: #1e1e1e; color: #d4d4d4; border-radius: 6px; padding: 16px; font-family: 'Consolas', monospace; font-size: 13px; line-height: 1.5; overflow-x: auto; margin-bottom: 16px; white-space: pre; }
+    .log-area { background: #f8f8f8; border: 1px solid #ddd; border-radius: 4px; padding: 8px 12px; font-family: monospace; font-size: 12px; max-height: 120px; overflow-y: auto; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Phase 17: Framework Wrappers (React + Vue)</h1>
+  <p class="subtitle">VeloxGrid React/Vue Wrapper - Component, Hook, Composable</p>
+
+  <!-- Demo 1: React Component -->
+  <div class="demo-section">
+    <h2>1. React Component <span class="badge badge-react">React</span></h2>
+    <p class="desc">&lt;VeloxGridReact /&gt; + useRef + onEvent Props</p>
+    <div class="code-block">import { useRef } from 'react';
+import { VeloxGridReact } from 'velox-grid/react';
+import type { VeloxGridReactRef } from 'velox-grid/react';
+import 'velox-grid/css';
+
+function App() {
+  const gridRef = useRef&lt;VeloxGridReactRef&gt;(null);
+  return (
+    &lt;VeloxGridReact
+      ref={gridRef}
+      columns={columns} data={data} height={400} editable={true}
+      onCellEditEnd={(e) =&gt; console.log('Edit:', e)}
+    /&gt;
+  );
+  // gridRef.current?.addRow({ name: 'New' });
+}</div>
+    <div class="btn-bar">
+      <button class="btn btn-primary" onclick="demo1AddRow()">Add Row</button>
+      <button class="btn" onclick="demo1GetData()">Get Data</button>
+      <button class="btn btn-danger" onclick="demo1Remove()">Remove Selected</button>
+    </div>
+    <div id="grid1"></div>
+    <div id="log1" class="log-area">Event log</div>
+  </div>
+
+  <!-- Demo 2: useVeloxGrid Hook -->
+  <div class="demo-section">
+    <h2>2. useVeloxGrid Hook <span class="badge badge-react">React Hook</span></h2>
+    <p class="desc">Hook: containerRef + grid instance</p>
+    <div class="code-block">import { useVeloxGrid } from 'velox-grid/react';
+
+const { containerRef, grid, isReady } = useVeloxGrid({
+  columns, data, height: 300, editable: true,
+  onCellEditEnd: (e) =&gt; console.log(e),
+});
+// &lt;div ref={containerRef} /&gt;
+// grid?.addRow({ name: 'New', score: 0 });</div>
+    <div class="btn-bar">
+      <button class="btn btn-primary" onclick="demo2AddRow()">Add Row</button>
+      <button class="btn" onclick="demo2Sort()">Sort Score</button>
+      <button class="btn" onclick="demo2Changes()">Get Changes</button>
+    </div>
+    <div id="grid2"></div>
+    <div id="log2" class="log-area">Event log</div>
+  </div>
+
+  <!-- Demo 3: Vue Component -->
+  <div class="demo-section">
+    <h2>3. Vue 3 Component <span class="badge badge-vue">Vue</span></h2>
+    <p class="desc">&lt;VeloxGridVue /&gt; + template ref + @event emit (kebab-case)</p>
+    <div class="code-block">&lt;VeloxGridVue ref="gridRef" :columns="columns" :data="data"
+  :height="300" :editable="true" :check-bar="{ visible: true }"
+  @cell-edit-end="onEdit" @check-change="onCheck" /&gt;
+
+// gridRef.value?.addRow({ name: 'New' });</div>
+    <div class="btn-bar">
+      <button class="btn btn-primary" onclick="demo3Add()">Add Row</button>
+      <button class="btn" onclick="demo3ChkAll()">Check All</button>
+      <button class="btn" onclick="demo3UnchkAll()">Uncheck All</button>
+      <button class="btn" onclick="demo3GetChk()">Get Checked</button>
+    </div>
+    <div id="grid3"></div>
+    <div id="log3" class="log-area">Event log</div>
+  </div>
+
+  <!-- Demo 4: useVeloxGrid Composable -->
+  <div class="demo-section">
+    <h2>4. useVeloxGrid Composable <span class="badge badge-vue">Vue Composable</span></h2>
+    <p class="desc">Composition API: containerRef + grid + isReady</p>
+    <div class="code-block">import { useVeloxGrid } from 'velox-grid/vue';
+
+const { containerRef, grid, isReady } = useVeloxGrid({
+  columns: [...], data: [...], height: 300,
+  onCellEditEnd: (e) =&gt; console.log(e),
+});
+// &lt;div ref="containerRef" /&gt;
+// grid.value?.addRow({ item: 'New' });</div>
+    <div class="btn-bar">
+      <button class="btn btn-primary" onclick="demo4Add()">Add Row</button>
+      <button class="btn" onclick="demo4Csv()">Export CSV</button>
+    </div>
+    <div id="grid4"></div>
+    <div id="log4" class="log-area">Event log</div>
+  </div>
+
+  <script src="../dist/velox-grid.iife.js"></script>
+  <script>
+    var VG = window.VeloxGrid || {};
+    var VeloxGrid = VG.VeloxGrid;
+    function log(id, msg) {
+      var el = document.getElementById(id); if (!el) return;
+      var d = document.createElement('div');
+      d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+      el.insertBefore(d, el.firstChild);
+      if (el.children.length > 50) el.removeChild(el.lastChild);
+    }
+
+    var g1 = new VeloxGrid(document.getElementById('grid1'), {
+      columns: [
+        { field: 'name', header: 'Name', width: 150, editable: true },
+        { field: 'age', header: 'Age', type: 'number', width: 80, editable: true },
+        { field: 'email', header: 'Email', width: 250, editable: true },
+        { field: 'dept', header: 'Dept', width: 120, editable: true },
+      ],
+      data: [
+        { name: 'Alice', age: 32, email: 'alice@demo.com', dept: 'Dev' },
+        { name: 'Bob', age: 28, email: 'bob@demo.com', dept: 'Design' },
+        { name: 'Charlie', age: 35, email: 'charlie@demo.com', dept: 'PM' },
+        { name: 'Diana', age: 26, email: 'diana@demo.com', dept: 'Dev' },
+        { name: 'Edward', age: 41, email: 'edward@demo.com', dept: 'QA' },
+      ],
+      height: 250, editable: true, selectable: true,
+      onCellEditEnd: function(e) { log('log1', 'Edit: ' + e.field + ' ' + e.oldValue + ' -> ' + e.newValue); },
+      onRowClick: function(i, r) { log('log1', 'Click: [' + i + '] ' + r.name); },
+    });
+    function demo1AddRow() { var n = g1.getRowCount()+1; g1.addRow({name:'New'+n,age:20,email:'new'+n+'@demo.com',dept:'N/A'}); log('log1','Added (total: '+g1.getRowCount()+')'); }
+    function demo1GetData() { log('log1', 'Data: ' + g1.getData().length + ' rows'); }
+    function demo1Remove() { var s=g1.getSelectedRows(); if(!s.length){log('log1','No selection');return;} s.slice().sort(function(a,b){return b-a;}).forEach(function(i){g1.removeRow(i);}); log('log1', s.length+' removed'); }
+
+    var g2 = new VeloxGrid(document.getElementById('grid2'), {
+      columns: [
+        { field: 'name', header: 'Student', width: 150, editable: true },
+        { field: 'score', header: 'Score', type: 'number', width: 100, editable: true, summary: { function: 'avg', format: '0.0', label: 'Avg' } },
+        { field: 'grade', header: 'Grade', width: 80, editable: true },
+      ],
+      data: [
+        { name: 'Student1', score: 85, grade: 'B' },
+        { name: 'Student2', score: 92, grade: 'A' },
+        { name: 'Student3', score: 78, grade: 'C' },
+        { name: 'Student4', score: 95, grade: 'A' },
+        { name: 'Student5', score: 67, grade: 'D' },
+      ],
+      height: 250, editable: true, sortable: true, footerSummary: { visible: true },
+      onCellEditEnd: function(e) { log('log2', 'Edit: ' + e.field + ' = ' + e.newValue); },
+    });
+    var sd2 = null;
+    function demo2AddRow() { g2.addRow({name:'Student'+(g2.getRowCount()+1), score:Math.floor(Math.random()*40+60), grade:'-'}); log('log2','Added'); }
+    function demo2Sort() { sd2 = sd2==='asc'?'desc':'asc'; g2.sort('score',sd2); log('log2','Sort: '+sd2); }
+    function demo2Changes() { var c=g2.getChanges(); log('log2','Created:'+c.created.length+' Updated:'+c.updated.length+' Deleted:'+c.deleted.length); }
+
+    var g3 = new VeloxGrid(document.getElementById('grid3'), {
+      columns: [
+        { field: 'name', header: 'Name', width: 150, editable: true },
+        { field: 'dept', header: 'Dept', width: 120, editable: true, editor: {type:'select',options:[{value:'Dev',label:'Dev'},{value:'Design',label:'Design'},{value:'PM',label:'PM'}]} },
+        { field: 'active', header: 'Active', width: 80, type: 'boolean', editor: { type: 'checkbox' } },
+      ],
+      data: [
+        { name: 'Hong', dept: 'Dev', active: true },
+        { name: 'Kim', dept: 'Design', active: true },
+        { name: 'Lee', dept: 'PM', active: false },
+        { name: 'Park', dept: 'PM', active: false },
+      ],
+      height: 250, editable: true, checkBar: { visible: true, showAll: true },
+      onCheckChange: function(i,c) { log('log3','Check: ['+i+'] '+c); },
+    });
+    function demo3Add() { g3.addRow({name:'New',dept:'Dev',active:true}); log('log3','Added'); }
+    function demo3ChkAll() { g3.checkAll(true); log('log3','Check all'); }
+    function demo3UnchkAll() { g3.uncheckAll(); log('log3','Uncheck all'); }
+    function demo3GetChk() { var d=g3.getCheckedData(); log('log3','Checked: '+d.length+' - '+d.map(function(r){return r.name;}).join(', ')); }
+
+    var g4 = new VeloxGrid(document.getElementById('grid4'), {
+      columns: [
+        { field: 'item', header: 'Item', width: 200, editable: true },
+        { field: 'qty', header: 'Qty', type: 'number', width: 80, editable: true, summary: { function: 'sum', label: 'Total' } },
+        { field: 'price', header: 'Price', type: 'number', width: 120, editable: true, formatter: function(v) { return v ? '$' + Number(v).toLocaleString() : ''; } },
+      ],
+      data: [
+        { item: 'Laptop', qty: 5, price: 1500 },
+        { item: 'Monitor', qty: 10, price: 350 },
+        { item: 'Keyboard', qty: 20, price: 85 },
+        { item: 'Mouse', qty: 20, price: 45 },
+      ],
+      height: 250, editable: true, showRowNumbers: true, footerSummary: { visible: true },
+      onCellEditEnd: function(e) { log('log4', 'Edit: ' + e.field + ' = ' + e.newValue); },
+    });
+    function demo4Add() { g4.addRow({item:'New Item',qty:1,price:0}); log('log4','Added'); }
+    function demo4Csv() { var c=g4.exportToCSV({includeHeader:true}); log('log4','CSV: '+c.length+' chars'); console.log(c); }
+  </script>
+</body>
+</html>

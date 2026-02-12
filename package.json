@@ -1,10 +1,28 @@
 {
   "name": "velox-grid",
-  "version": "0.10.0",
-  "description": "A fast, lightweight, and framework-agnostic data grid library with fixed columns and custom editors",
+  "version": "0.11.0",
+  "description": "A fast, lightweight, and framework-agnostic data grid library with fixed columns, custom editors, and React/Vue support",
   "main": "dist/velox-grid.js",
   "module": "dist/velox-grid.esm.js",
   "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/velox-grid.esm.js",
+      "require": "./dist/velox-grid.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./react": {
+      "import": "./dist/react/index.esm.js",
+      "require": "./dist/react/index.js",
+      "types": "./dist/react/index.d.ts"
+    },
+    "./vue": {
+      "import": "./dist/vue/index.esm.js",
+      "require": "./dist/vue/index.js",
+      "types": "./dist/vue/index.d.ts"
+    },
+    "./css": "./dist/velox-grid.css"
+  },
   "files": [
     "dist",
     "README.md",
@@ -14,13 +32,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && npm run build:types",
+    "build:react": "vite build --config vite.config.react.ts",
+    "build:vue": "vite build --config vite.config.vue.ts",
+    "build:all": "npm run build && npm run build:react && npm run build:vue",
     "build:types": "tsc --emitDeclarationOnly --outDir dist/types",
     "build:pages": "node scripts/build-pages.js",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build:all"
   },
   "keywords": [
     "grid",
@@ -31,6 +52,8 @@
     "vanilla",
     "typescript",
     "framework-agnostic",
+    "react",
+    "vue",
     "virtual-scroll",
     "cell-selection",
     "validation",
@@ -48,18 +71,40 @@
     "email": "ki89.choi@samsung.com"
   },
   "license": "MIT",
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0",
+    "vue": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/node": "^20.19.30",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
+    "@vitejs/plugin-vue": "^5.0.0",
     "@vitest/coverage-v8": "^1.6.1",
     "eslint": "^8.57.1",
     "jsdom": "^28.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "terser": "^5.46.0",
     "typescript": "^5.9.3",
     "vite": "^5.4.21",
     "vite-plugin-dts": "^3.9.1",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "vue": "^3.4.0"
   },
   "repository": {
     "type": "git",

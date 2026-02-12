@@ -884,6 +884,12 @@ export interface VeloxGridInstance {
   // Options
   setOptions(options: Partial<GridOptions>): void;
   getOptions(): GridOptions;
+
+  // Pagination methods (Phase 18)
+  goToPage(page: number): void;
+  setPageSize(pageSize: number): void;
+  getPaginationState(): PaginationState;
+  fetchData(): Promise<void>;
 }
 
 // ============================================

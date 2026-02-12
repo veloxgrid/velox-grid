@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, toRefs } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { VeloxGrid } from '../core';
 import type {
   GridOptions,

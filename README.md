@@ -61,9 +61,43 @@
 
 ## 📦 설치
 
+### Vanilla JS / 공통
 ```bash
 npm install velox-grid
 ```
+
+### React 프로젝트
+```bash
+npm install velox-grid react react-dom
+```
+
+```json
+// package.json
+{
+  "dependencies": {
+    "velox-grid": "^0.11.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
+```
+
+### Vue 3 프로젝트
+```bash
+npm install velox-grid vue
+```
+
+```json
+// package.json
+{
+  "dependencies": {
+    "velox-grid": "^0.11.0",
+    "vue": "^3.4.0"
+  }
+}
+```
+
+> **참고**: `react`, `vue`는 peerDependencies(optional)로 설정되어 있어, 해당 프레임워크를 사용하지 않으면 설치할 필요 없습니다.
 
 ## 🚀 빠른 시작
 

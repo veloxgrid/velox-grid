@@ -531,12 +531,13 @@ export class GridColumnLayout {
       const targetIdx = items.findIndex(item => getItemField(item) === targetField);
 
       if (sourceIdx !== -1 && targetIdx !== -1) {
-        // 같은 레벨에서 발견 — 위치 교환
+        // 같은 레벨에서 발견 — 위치 이동
+        // state.columns의 reorder splice 패턴과 동일하게 처리:
+        // 1) source 제거, 2) 원본 targetIdx에 삽입
+        // splice(sourceIdx,1) 후 배열이 하나 줄어들지만 원본 targetIdx를 사용하면
+        // 오른쪽 이동 시 target 뒤, 왼쪽 이동 시 target 앞에 자연스럽게 배치됨
         const [removed] = items.splice(sourceIdx, 1);
-        items.splice(targetIdx > sourceIdx ? targetIdx - 1 : targetIdx, 0, removed);
-
-        // splice 후 targetIdx 보정 불필요: splice(sourceIdx,1) 제거 후 targetIdx에 삽입
-        // targetIdx가 sourceIdx보다 큰 경우 하나 줄어들므로 보정
+        items.splice(targetIdx, 0, removed);
         return true;
       }
 

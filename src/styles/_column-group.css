@@ -50,6 +50,7 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
+  cursor: grab;
 }
 
 /* 그룹 내 컬럼 헤더의 내용 영역 */

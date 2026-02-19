@@ -15,6 +15,14 @@ import type { VeloxGrid } from './VeloxGrid';
 // VeloxGrid는 GridContext를 구현하므로, 타입 안전성을 위해 GridContext 사용
 type GridInstance = VeloxGrid & GridContext;
 
+/** 드래그 시작 전 대기 상태 (임계값 판별용) */
+interface ColumnDragPending {
+  field: string;
+  column: ColumnDefinition;
+  startX: number;
+  startY: number;
+}
+
 interface ColumnDragState {
   field: string;
   startX: number;
@@ -34,10 +42,15 @@ interface ResizeState {
 }
 
 export class GridDragManager {
+  private static readonly DRAG_THRESHOLD = 5; // px — 이 거리 이상 이동해야 드래그 시작
+
+  private columnDragPending: ColumnDragPending | null = null;
   private columnDragging: ColumnDragState | null = null;
   private rowDragging: RowDragState | null = null;
   private resizing: ResizeState | null = null;
 
+  private boundHandleColumnDragPendingMove: (e: MouseEvent) => void;
+  private boundHandleColumnDragPendingEnd: (e: MouseEvent) => void;
   private boundHandleColumnDragMove: (e: MouseEvent) => void;
   private boundHandleColumnDragEnd: (e: MouseEvent) => void;
   private boundHandleRowDragMove: (e: MouseEvent) => void;
@@ -46,6 +59,8 @@ export class GridDragManager {
   private boundHandleResizeEnd: (e: MouseEvent) => void;
 
   constructor(private ctx: GridInstance) {
+    this.boundHandleColumnDragPendingMove = this.handleColumnDragPendingMove.bind(this);
+    this.boundHandleColumnDragPendingEnd = this.handleColumnDragPendingEnd.bind(this);
     this.boundHandleColumnDragMove = this.handleColumnDragMove.bind(this);
     this.boundHandleColumnDragEnd = this.handleColumnDragEnd.bind(this);
     this.boundHandleRowDragMove = this.handleRowDragMove.bind(this);
@@ -59,12 +74,62 @@ export class GridDragManager {
   // ============================================
 
   /**
-   * Column 드래그 시작
+   * Column 드래그 시작 (pending 상태 — 임계값 초과 시 실제 드래그 시작)
    */
   startColumnDrag(e: MouseEvent, column: ColumnDefinition): void {
+    // 버튼 클릭과 구분하기 위해 즉시 드래그를 시작하지 않음
     e.preventDefault();
-    e.stopPropagation();
     
+    this.columnDragPending = {
+      field: column.field,
+      column,
+      startX: e.clientX,
+      startY: e.clientY,
+    };
+
+    document.addEventListener('mousemove', this.boundHandleColumnDragPendingMove);
+    document.addEventListener('mouseup', this.boundHandleColumnDragPendingEnd);
+  }
+
+  /**
+   * Pending 상태에서 마우스 이동 — 임계값 초과 시 실제 드래그 시작
+   */
+  private handleColumnDragPendingMove(e: MouseEvent): void {
+    if (!this.columnDragPending) return;
+
+    const dx = e.clientX - this.columnDragPending.startX;
+    const dy = e.clientY - this.columnDragPending.startY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance >= GridDragManager.DRAG_THRESHOLD) {
+      // 임계값 초과 — 실제 드래그 시작
+      const pending = this.columnDragPending;
+      this.cleanupPendingListeners();
+      this.columnDragPending = null;
+      this.beginColumnDrag(e, pending.column);
+    }
+  }
+
+  /**
+   * Pending 상태에서 마우스 업 — 드래그 취소 (클릭으로 처리)
+   */
+  private handleColumnDragPendingEnd(_e: MouseEvent): void {
+    this.cleanupPendingListeners();
+    this.columnDragPending = null;
+  }
+
+  /**
+   * Pending 리스너 정리
+   */
+  private cleanupPendingListeners(): void {
+    document.removeEventListener('mousemove', this.boundHandleColumnDragPendingMove);
+    document.removeEventListener('mouseup', this.boundHandleColumnDragPendingEnd);
+  }
+
+  /**
+   * 실제 Column 드래그 시작 (임계값 통과 후)
+   */
+  private beginColumnDrag(e: MouseEvent, column: ColumnDefinition): void {
     this.columnDragging = {
       field: column.field,
       startX: e.clientX,
@@ -74,8 +139,8 @@ export class GridDragManager {
     const indicator = createElement('div', 'velox-column-drag-indicator');
     indicator.textContent = column.header;
     indicator.style.position = 'fixed';
-    indicator.style.left = `${e.clientX}px`;
-    indicator.style.top = `${e.clientY}px`;
+    indicator.style.left = `${e.clientX + 10}px`;
+    indicator.style.top = `${e.clientY + 10}px`;
     document.body.appendChild(indicator);
     this.columnDragging.element = indicator;
 
@@ -330,6 +395,12 @@ export class GridDragManager {
    * 모든 드래그 상태 초기화
    */
   cleanup(): void {
+    // Column drag pending cleanup
+    if (this.columnDragPending) {
+      this.cleanupPendingListeners();
+      this.columnDragPending = null;
+    }
+
     // Column drag cleanup
     if (this.columnDragging) {
       if (this.columnDragging.element) {

@@ -3,27 +3,6 @@
  * Phase 8: CSS Modularization (Phase 10)
  */
 
-/* Column drag handle */
-.velox-column-drag-handle {
-  cursor: grab;
-  color: var(--velox-text-secondary);
-  font-size: 12px;
-  padding: 0 4px;
-  opacity: 0;
-  transition: opacity 0.2s;
-  user-select: none;
-}
-.velox-header-cell:hover .velox-column-drag-handle {
-  opacity: 0.6;
-}
-.velox-column-drag-handle:hover {
-  opacity: 1 !important;
-  color: var(--velox-primary-color);
-}
-.velox-column-drag-handle:active {
-  cursor: grabbing;
-}
-
 /* Column menu button */
 .velox-column-menu-btn {
   padding: 2px 6px;

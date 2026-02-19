@@ -18,9 +18,16 @@
 }
 
 /* Column drop target */
-.velox-header-cell--drop-target {
+.velox-header-cell--drop-target,
+.velox-header-cell--grouped.velox-header-cell--drop-target {
   background: var(--velox-primary-light) !important;
   border-left: 3px solid var(--velox-primary-color) !important;
+}
+
+/* 드래그 중 커서 변경 (body에 velox-no-select 클래스 적용 시) */
+.velox-no-select .velox-header-cell,
+.velox-no-select .velox-header-cell--grouped {
+  cursor: grabbing;
 }
 
 /* Row drag handle */

@@ -40,6 +40,7 @@
   overflow: hidden;
   white-space: nowrap;
   gap: 4px;
+  cursor: grab;
 }
 
 .velox-header-cell:last-child { border-right: none; }

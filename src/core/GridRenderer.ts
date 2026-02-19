@@ -279,19 +279,19 @@ export class GridRenderer {
     // 컨텐츠 래퍼
     const contentWrapper = createElement('div', 'velox-header-content');
 
-    // 컬럼 드래그 핸들
-    const dragHandle = createElement('span', 'velox-column-drag-handle');
-    dragHandle.innerHTML = '⋮⋮';
-    dragHandle.title = '드래그하여 컬럼 순서 변경';
-    dragHandle.addEventListener('mousedown', (e) => ctx.startColumnDrag(e, column));
-    contentWrapper.appendChild(dragHandle);
-
     // 헤더 텍스트
     const text = createElement('span', 'velox-header-text');
     text.textContent = column.header;
     contentWrapper.appendChild(text);
 
     el.appendChild(contentWrapper);
+
+    // 헤더 셀 자체를 드래그하여 컬럼 이동 (임계값 기반 — 클릭과 자동 구분)
+    el.addEventListener('mousedown', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('.velox-resize-handle')) return;
+      ctx.startColumnDrag(e, column);
+    });
 
     // Sort 버튼
     if (options.sortable && column.sortable !== false) {
@@ -414,18 +414,19 @@ export class GridRenderer {
 
     const contentWrapper = createElement('div', 'velox-header-content');
     
-    // Column drag handle
-    const dragHandle = createElement('span', 'velox-column-drag-handle');
-    dragHandle.innerHTML = '⋮⋮';
-    dragHandle.title = '드래그하여 컬럼 순서 변경';
-    dragHandle.addEventListener('mousedown', (e) => ctx.startColumnDrag(e, column));
-    contentWrapper.appendChild(dragHandle);
-    
     const text = createElement('span', 'velox-header-text');
     text.textContent = column.header;
     contentWrapper.appendChild(text);
 
     cell.appendChild(contentWrapper);
+
+    // 헤더 셀 자체를 드래그하여 컬럼 이동 (임계값 기반 — 클릭과 자동 구분)
+    cell.addEventListener('mousedown', (e) => {
+      // 버튼이나 리사이즈 핸들 위에서의 mousedown은 무시
+      const target = e.target as HTMLElement;
+      if (target.closest('button') || target.closest('.velox-resize-handle')) return;
+      ctx.startColumnDrag(e, column);
+    });
 
     // Sort button (우측 정렬)
     if (options.sortable && column.sortable !== false) {

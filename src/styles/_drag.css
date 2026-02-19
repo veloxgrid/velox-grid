@@ -19,7 +19,8 @@
 
 /* Column drop target */
 .velox-header-cell--drop-target,
-.velox-header-cell--grouped.velox-header-cell--drop-target {
+.velox-header-cell--grouped.velox-header-cell--drop-target,
+.velox-header-cell--group.velox-header-cell--drop-target {
   background: var(--velox-primary-light) !important;
   border-left: 3px solid var(--velox-primary-color) !important;
 }

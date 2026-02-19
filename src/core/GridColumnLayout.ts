@@ -563,4 +563,67 @@ export class GridColumnLayout {
     }
     return result;
   }
+
+  /**
+   * 특정 그룹이 최상위 레벨 그룹인지 확인
+   */
+  isTopLevelGroup(groupName: string): boolean {
+    if (!this.normalizedNodes) return false;
+    return this.normalizedNodes.some(
+      node => node.type === 'group' && node.name === groupName
+    );
+  }
+
+  /**
+   * 그룹의 leaf 컬럼 목록 반환
+   */
+  getGroupLeafColumns(groupName: string): string[] | null {
+    if (!this.normalizedNodes) return null;
+
+    function findGroup(nodes: NormalizedLayoutNode[]): NormalizedLayoutNode | null {
+      for (const node of nodes) {
+        if (node.type === 'group' && node.name === groupName) return node;
+        if (node.children) {
+          const found = findGroup(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    const group = findGroup(this.normalizedNodes);
+    return group?.leafColumns || null;
+  }
+
+  /**
+   * 최상위 레벨 아이템(그룹/컬럼)의 순서를 변경한다.
+   * sourceName: 그룹명 또는 컬럼 field
+   * targetName: 그룹명 또는 컬럼 field
+   */
+  reorderTopLevel(sourceName: string, targetName: string): boolean {
+    if (!this.layout) return false;
+
+    // 최상위 레벨에서 source와 target의 인덱스를 찾는다
+    const sourceIdx = this.layout.findIndex(item => {
+      if (typeof item === 'string') return item === sourceName;
+      const config = item as ColumnLayoutItemConfig;
+      return config.name === sourceName || config.column === sourceName;
+    });
+    const targetIdx = this.layout.findIndex(item => {
+      if (typeof item === 'string') return item === targetName;
+      const config = item as ColumnLayoutItemConfig;
+      return config.name === targetName || config.column === targetName;
+    });
+
+    if (sourceIdx === -1 || targetIdx === -1 || sourceIdx === targetIdx) return false;
+
+    const [removed] = this.layout.splice(sourceIdx, 1);
+    this.layout.splice(targetIdx, 0, removed);
+
+    this.dirty = true;
+    this.normalizedNodes = null;
+    this.headerMatrix = null;
+    this.columnOrder = null;
+    return true;
+  }
 }

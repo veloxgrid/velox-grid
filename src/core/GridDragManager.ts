@@ -21,12 +21,14 @@ interface ColumnDragPending {
   column: ColumnDefinition;
   startX: number;
   startY: number;
+  groupName?: string; // 그룹 헤더 드래그 시 그룹명
 }
 
 interface ColumnDragState {
   field: string;
   startX: number;
   element: HTMLElement | null;
+  groupName?: string; // 그룹 헤더 드래그 시 그룹명
 }
 
 interface RowDragState {
@@ -75,8 +77,9 @@ export class GridDragManager {
 
   /**
    * Column 드래그 시작 (pending 상태 — 임계값 초과 시 실제 드래그 시작)
+   * groupName이 지정되면 그룹 헤더 드래그 (최상위 레벨 이동)
    */
-  startColumnDrag(e: MouseEvent, column: ColumnDefinition): void {
+  startColumnDrag(e: MouseEvent, column: ColumnDefinition, groupName?: string): void {
     // 버튼 클릭과 구분하기 위해 즉시 드래그를 시작하지 않음
     e.preventDefault();
     
@@ -85,6 +88,7 @@ export class GridDragManager {
       column,
       startX: e.clientX,
       startY: e.clientY,
+      groupName,
     };
 
     document.addEventListener('mousemove', this.boundHandleColumnDragPendingMove);
@@ -106,7 +110,7 @@ export class GridDragManager {
       const pending = this.columnDragPending;
       this.cleanupPendingListeners();
       this.columnDragPending = null;
-      this.beginColumnDrag(e, pending.column);
+      this.beginColumnDrag(e, pending.column, pending.groupName);
     }
   }
 
@@ -129,15 +133,16 @@ export class GridDragManager {
   /**
    * 실제 Column 드래그 시작 (임계값 통과 후)
    */
-  private beginColumnDrag(e: MouseEvent, column: ColumnDefinition): void {
+  private beginColumnDrag(e: MouseEvent, column: ColumnDefinition, groupName?: string): void {
     this.columnDragging = {
       field: column.field,
       startX: e.clientX,
       element: null,
+      groupName,
     };
     
     const indicator = createElement('div', 'velox-column-drag-indicator');
-    indicator.textContent = column.header;
+    indicator.textContent = groupName || column.header;
     indicator.style.position = 'fixed';
     indicator.style.left = `${e.clientX + 10}px`;
     indicator.style.top = `${e.clientY + 10}px`;
@@ -161,19 +166,53 @@ export class GridDragManager {
     this.columnDragging.element.style.top = `${e.clientY + 10}px`;
     
     const target = document.elementFromPoint(e.clientX, e.clientY);
-    // Phase 19: grouped 헤더 셀도 드롭 타겟으로 인식
-    const headerCell = target?.closest('.velox-header-cell, .velox-header-cell--grouped') as HTMLElement;
+    // 모든 종류의 헤더 셀을 드롭 타겟으로 인식
+    const headerCell = target?.closest('.velox-header-cell, .velox-header-cell--grouped, .velox-header-cell--group') as HTMLElement;
     
+    // 이전 드롭 타겟 표시 제거
     ctx.headerElement.querySelectorAll('.velox-header-cell--drop-target').forEach((el: Element) => {
       removeClass(el as HTMLElement, 'velox-header-cell--drop-target');
     });
     
-    if (headerCell && headerCell.dataset.field && headerCell.dataset.field !== this.columnDragging.field) {
-      // Phase 19: 같은 그룹 내에서만 드롭 타겟 표시
-      const sourceGroup = ctx.getGroupNameFor(this.columnDragging.field);
-      const targetGroup = ctx.getGroupNameFor(headerCell.dataset.field);
-      if (sourceGroup === targetGroup) {
+    if (!headerCell) return;
+
+    const isGroupDrag = !!this.columnDragging.groupName;
+
+    if (isGroupDrag) {
+      // 그룹 드래그: 최상위 레벨 아이템(그룹 헤더 또는 독립 컬럼)만 드롭 타겟
+      const targetGroupName = headerCell.dataset.groupName;
+      const targetField = headerCell.dataset.field;
+      const sourceGroupName = this.columnDragging.groupName;
+      
+      if (targetGroupName && targetGroupName !== sourceGroupName) {
+        // 다른 그룹 헤더 위
         addClass(headerCell, 'velox-header-cell--drop-target');
+      } else if (targetField && !ctx.getGroupNameFor(targetField)) {
+        // 최상위 독립 컬럼 위
+        addClass(headerCell, 'velox-header-cell--drop-target');
+      }
+    } else {
+      // 일반 컬럼 드래그
+      const targetField = headerCell.dataset.field;
+      const targetGroupName = headerCell.dataset.groupName;
+      const sourceGroup = ctx.getGroupNameFor(this.columnDragging.field);
+
+      if (sourceGroup === null && ctx.hasColumnLayout()) {
+        // 최상위 독립 컬럼 드래그 — 최상위 레벨 이동 허용
+        if (targetGroupName) {
+          // 독립 컬럼 → 그룹 헤더 위: 최상위 레벨 이동
+          addClass(headerCell, 'velox-header-cell--drop-target');
+        } else if (targetField && ctx.getGroupNameFor(targetField) === null
+                   && targetField !== this.columnDragging.field) {
+          // 독립 컬럼 → 독립 컬럼: 최상위 레벨 이동
+          addClass(headerCell, 'velox-header-cell--drop-target');
+        }
+      } else if (targetField && targetField !== this.columnDragging.field) {
+        // 그룹 내 컬럼 드래그: 같은 그룹 내에서만
+        const targetGroup = ctx.getGroupNameFor(targetField);
+        if (sourceGroup === targetGroup) {
+          addClass(headerCell, 'velox-header-cell--drop-target');
+        }
       }
     }
   }
@@ -186,11 +225,13 @@ export class GridDragManager {
 
     if (!this.columnDragging) return;
     
+    const isGroupDrag = !!this.columnDragging.groupName;
+    const sourceGroupName = this.columnDragging.groupName;
     const sourceField = this.columnDragging.field;
     
     const target = document.elementFromPoint(e.clientX, e.clientY);
-    const headerCell = target?.closest('.velox-header-cell, .velox-header-cell--grouped') as HTMLElement;
-    const targetField = headerCell?.dataset.field;
+    // 그룹 헤더 셀도 드롭 타겟으로 인식
+    const headerCell = target?.closest('.velox-header-cell, .velox-header-cell--grouped, .velox-header-cell--group') as HTMLElement;
     
     if (this.columnDragging.element) {
       this.columnDragging.element.remove();
@@ -203,8 +244,38 @@ export class GridDragManager {
     document.removeEventListener('mouseup', this.boundHandleColumnDragEnd);
     removeClass(document.body, 'velox-no-select');
     
-    if (targetField && targetField !== sourceField) {
-      ctx.reorderColumn(sourceField, targetField);
+    if (headerCell) {
+      if (isGroupDrag) {
+        // 그룹 드래그: 최상위 레벨 아이템끼리 이동
+        const targetGroupName = headerCell.dataset.groupName;
+        const targetField = headerCell.dataset.field;
+        
+        if (targetGroupName && targetGroupName !== sourceGroupName) {
+          // 그룹 → 그룹 이동
+          ctx.reorderTopLevelLayout(sourceGroupName!, targetGroupName);
+        } else if (targetField && !ctx.getGroupNameFor(targetField)) {
+          // 그룹 → 독립 컬럼 위치로 이동
+          ctx.reorderTopLevelLayout(sourceGroupName!, targetField);
+        }
+      } else {
+        // 일반 컬럼 드래그
+        const targetField = headerCell.dataset.field;
+        const targetGroupName = headerCell.dataset.groupName;
+        const sourceGroup = ctx.getGroupNameFor(sourceField);
+
+        if (sourceGroup === null && ctx.hasColumnLayout()) {
+          // 최상위 독립 컬럼 → 최상위 레벨 이동
+          if (targetGroupName) {
+            ctx.reorderTopLevelLayout(sourceField, targetGroupName);
+          } else if (targetField && ctx.getGroupNameFor(targetField) === null
+                     && targetField !== sourceField) {
+            ctx.reorderTopLevelLayout(sourceField, targetField);
+          }
+        } else if (targetField && targetField !== sourceField) {
+          // 그룹 내 컬럼 이동 (기존 로직)
+          ctx.reorderColumn(sourceField, targetField);
+        }
+      }
     }
     
     this.columnDragging = null;

@@ -211,6 +211,11 @@ export class GridRenderer {
     const options = ctx.getOptions();
     const el = createElement('div', 'velox-header-cell--group');
     
+    // 그룹명을 data 속성에 저장 (드래그 드롭 타겟 식별용)
+    if (cell.groupName) {
+      el.dataset.groupName = cell.groupName;
+    }
+
     // CSS Grid 위치
     if (cell.gridColumn !== undefined) {
       el.style.gridColumn = `${cell.gridColumn} / span ${cell.colSpan}`;
@@ -240,6 +245,23 @@ export class GridRenderer {
         ctx.startGroupResize(e, cell.groupName!);
       });
       el.appendChild(handle);
+    }
+
+    // 최상위 그룹 헤더 드래그 — 그룹 전체를 최상위 레벨에서 이동
+    if (cell.groupName && ctx.isTopLevelGroup(cell.groupName)) {
+      el.style.cursor = 'grab';
+      el.addEventListener('mousedown', (e) => {
+        const t = e.target as HTMLElement;
+        if (t.closest('.velox-resize-handle')) return;
+        // 그룹의 첫 번째 leaf 컬럼을 source field로 사용
+        const leafColumns = ctx.getGroupLeafColumns(cell.groupName!);
+        if (leafColumns && leafColumns.length > 0) {
+          const firstCol = ctx.getState().columns.find(c => c.field === leafColumns[0]);
+          if (firstCol) {
+            ctx.startColumnDrag(e, firstCol, cell.groupName);
+          }
+        }
+      });
     }
 
     return el;

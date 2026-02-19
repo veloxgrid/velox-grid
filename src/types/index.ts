@@ -1221,8 +1221,8 @@ export interface GridContext {
   showFilterPopup(column: ColumnDefinition, anchor: HTMLElement): void;
   /** Column 메뉴 표시 */
   showColumnMenu(column: ColumnDefinition, anchor: HTMLElement): void;
-  /** Column 드래그 시작 */
-  startColumnDrag(e: MouseEvent, column: ColumnDefinition): void;
+  /** Column 드래그 시작 (groupName 지정 시 그룹 드래그) */
+  startColumnDrag(e: MouseEvent, column: ColumnDefinition, groupName?: string): void;
   /** Row 드래그 시작 */
   startRowDrag(e: MouseEvent, rowIndex: number, rowElement: HTMLElement): void;
   /** Resize 시작 */
@@ -1233,6 +1233,14 @@ export interface GridContext {
   getGroupColumnsFor(field: string): string[] | null;
   /** Phase 19: 컬럼이 속한 직접 부모 그룹 이름 반환 */
   getGroupNameFor(field: string): string | null;
+  /** Phase 19: 최상위 레벨 그룹인지 확인 */
+  isTopLevelGroup(groupName: string): boolean;
+  /** Phase 19: 그룹의 leaf 컬럼 목록 반환 */
+  getGroupLeafColumns(groupName: string): string[] | null;
+  /** Phase 19: 최상위 레벨 아이템(그룹/컬럼) 순서 변경 */
+  reorderTopLevelLayout(sourceName: string, targetName: string): void;
+  /** Phase 19: 컬럼 레이아웃 설정 유무 확인 */
+  hasColumnLayout(): boolean;
   /** Block selection 시작 */
   startBlockSelection(rowIndex: number, field: string): void;
   /** Block selection 업데이트 */

@@ -1248,6 +1248,69 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     return this.columnLayout.getGroupNameFor(field);
   }
 
+  /**
+   * Phase 19: 최상위 레벨 그룹인지 확인
+   */
+  isTopLevelGroup(groupName: string): boolean {
+    return this.columnLayout.isTopLevelGroup(groupName);
+  }
+
+  /**
+   * Phase 19: 컬럼 레이아웃 설정 유무 확인
+   */
+  hasColumnLayout(): boolean {
+    return this.columnLayout.hasLayout();
+  }
+
+  /**
+   * Phase 19: 그룹의 leaf 컬럼 목록 반환
+   */
+  getGroupLeafColumns(groupName: string): string[] | null {
+    return this.columnLayout.getGroupLeafColumns(groupName);
+  }
+
+  /**
+   * Phase 19: 최상위 레벨 아이템(그룹/컬럼) 순서 변경
+   * 레이아웃 순서를 변경하고 state.columns 순서도 동기화한다.
+   */
+  reorderTopLevelLayout(sourceName: string, targetName: string): void {
+    if (!this.columnLayout.hasLayout()) return;
+
+    // 레이아웃 순서 변경
+    const result = this.columnLayout.reorderTopLevel(sourceName, targetName);
+    if (!result) return;
+
+    // 레이아웃 재빌드하여 새 컬럼 순서 얻기
+    this.columnLayout.build(this.state.columns);
+    const newOrder = this.columnLayout.getColumnOrder();
+    if (!newOrder) return;
+
+    // state.columns를 새 순서에 맞게 재정렬
+    const columnMap = new Map(this.state.columns.map(c => [c.field, c]));
+    const reordered: typeof this.state.columns = [];
+    // 먼저 특수 컬럼(__checkbox, __rownum, __drag)을 유지
+    for (const col of this.state.columns) {
+      if (col.field.startsWith('__')) {
+        reordered.push(col);
+      }
+    }
+    // 레이아웃 순서대로 일반 컬럼 추가
+    for (const field of newOrder) {
+      const col = columnMap.get(field);
+      if (col) reordered.push(col);
+    }
+    // 레이아웃에 없는 나머지 컬럼 (있으면) 추가
+    for (const col of this.state.columns) {
+      if (!col.field.startsWith('__') && !newOrder.includes(col.field)) {
+        reordered.push(col);
+      }
+    }
+
+    this.state.columns = reordered;
+    this.invalidateColumnCache();
+    this.render();
+  }
+
   // GridContext: Data transformation (public for module access)
   applyDataTransformations(): void {
     // Phase 18: Pagination이 활성화된 경우 별도 로직
@@ -2686,8 +2749,8 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   }
 
   // GridContext: Column drag methods - delegated to GridDragManager
-  startColumnDrag(e: MouseEvent, column: ColumnDefinition): void {
-    this.dragManager.startColumnDrag(e, column);
+  startColumnDrag(e: MouseEvent, column: ColumnDefinition, groupName?: string): void {
+    this.dragManager.startColumnDrag(e, column, groupName);
   }
 
   // ============================================

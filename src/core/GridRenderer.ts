@@ -7,7 +7,7 @@
  * - Row 생성 및 업데이트
  */
 
-import type { ColumnDefinition, RowData, GridContext } from '../types';
+import type { ColumnDefinition, RowData, GridContext, HeaderCell } from '../types';
 import { createElement, addClass } from '../utils/dom';
 import { formatValue } from '../utils/data';
 
@@ -28,10 +28,17 @@ export class GridRenderer {
   }
 
   /**
-   * 헤더 렌더링 (Phase 14: Fixed Right 지원)
+   * 헤더 렌더링 (Phase 14: Fixed Right 지원, Phase 19: Column Group 지원)
    */
   renderHeader(): void {
     const ctx = this.ctx;
+    
+    // Phase 19: 레이아웃이 있으면 다단계 헤더 렌더링
+    const headerMatrix = ctx.getHeaderMatrix();
+    if (headerMatrix) {
+      this.renderGroupedHeader(headerMatrix);
+      return;
+    }
 
     // 1. Fixed left header (only when colCount > 0)
     if (ctx.fixedLeftHeader) {
@@ -102,6 +109,243 @@ export class GridRenderer {
       // Calculate and set explicit width for Fixed Right container
       this.updateFixedRightWidth();
     }
+  }
+
+  /**
+   * Phase 19: 다단계 헤더 렌더링 (CSS Grid 기반)
+   */
+  private renderGroupedHeader(headerMatrix: HeaderCell[][]): void {
+    const ctx = this.ctx;
+    const columnOrder = ctx.getLayoutColumnOrder();
+    if (!columnOrder) return;
+    
+    const options = ctx.getOptions();
+    const state = ctx.getState();
+    const maxDepth = headerMatrix.length;
+    const headerHeight = options.headerHeight || 44;
+    const rowHeight = Math.floor(headerHeight / maxDepth);
+
+    // 스크롤 영역 컬럼 너비 배열 생성
+    const colWidths = columnOrder.map(field => {
+      const col = state.columns.find(c => c.field === field);
+      return col?.width || 120;
+    });
+
+    // CSS Grid template 문자열
+    const gridTemplateCols = colWidths.map(w => `${w}px`).join(' ');
+    const gridTemplateRows = Array(maxDepth).fill(`${rowHeight}px`).join(' ');
+
+    // === 1. Fixed Left 헤더 (높이를 scrollable 영역과 맞춤) ===
+    if (ctx.fixedLeftHeader) {
+      ctx.fixedLeftHeader.innerHTML = '';
+      ctx.fixedLeftHeader.style.minHeight = `${headerHeight}px`;
+      ctx.fixedLeftHeader.style.height = `${headerHeight}px`;
+      const headerRow = createElement('div', 'velox-header-row');
+      headerRow.style.height = `${headerHeight}px`;
+      ctx.getFixedLeftColumns().forEach((col: ColumnDefinition) => {
+        if (col.field === '__drag') {
+          const p = createElement('div', 'velox-row-drag-handle');
+          p.style.visibility = 'hidden';
+          headerRow.appendChild(p);
+        } else if (col.field === '__checkbox') {
+          headerRow.appendChild(this.createHeaderCheckbarCell());
+        } else if (col.field === '__rownum') {
+          const c = createElement('div', 'velox-header-cell velox-rownumber-cell');
+          c.textContent = '#';
+          headerRow.appendChild(c);
+        } else {
+          headerRow.appendChild(this.createHeaderCell(col));
+        }
+      });
+      ctx.fixedLeftHeader.appendChild(headerRow);
+    }
+
+    // === 2. Scrollable 헤더 (CSS Grid 다단계) ===
+    ctx.headerElement.innerHTML = '';
+    ctx.headerElement.style.minHeight = `${headerHeight}px`;
+    ctx.headerElement.style.height = `${headerHeight}px`;
+    const gridContainer = createElement('div', 'velox-header--grouped');
+    gridContainer.style.gridTemplateColumns = gridTemplateCols;
+    gridContainer.style.gridTemplateRows = gridTemplateRows;
+    gridContainer.style.height = `${headerHeight}px`;
+
+    // 매트릭스의 각 셀을 CSS Grid 아이템으로 배치
+    for (let rowIdx = 0; rowIdx < headerMatrix.length; rowIdx++) {
+      for (const cell of headerMatrix[rowIdx]) {
+        if (cell.type === 'group') {
+          const el = this.createGroupHeaderCell(cell);
+          gridContainer.appendChild(el);
+        } else {
+          // 개별 컬럼 헤더
+          const col = cell.column;
+          if (col) {
+            const el = this.createGroupedColumnHeaderCell(col, cell);
+            gridContainer.appendChild(el);
+          }
+        }
+      }
+    }
+
+    ctx.headerElement.appendChild(gridContainer);
+
+    // === 3. Fixed Right 헤더 (높이를 scrollable 영역과 맞춤) ===
+    if (ctx.fixedRightHeader) {
+      ctx.fixedRightHeader.innerHTML = '';
+      ctx.fixedRightHeader.style.minHeight = `${headerHeight}px`;
+      ctx.fixedRightHeader.style.height = `${headerHeight}px`;
+      const fixedRightRow = createElement('div', 'velox-header-row');
+      fixedRightRow.style.height = `${headerHeight}px`;
+      ctx.getFixedRightColumns().forEach((col: ColumnDefinition) =>
+        fixedRightRow.appendChild(this.createHeaderCell(col))
+      );
+      ctx.fixedRightHeader.appendChild(fixedRightRow);
+      this.updateFixedRightWidth();
+    }
+  }
+
+  /**
+   * Phase 19: 그룹 헤더 셀 생성
+   */
+  private createGroupHeaderCell(cell: HeaderCell): HTMLElement {
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    const el = createElement('div', 'velox-header-cell--group');
+    
+    // CSS Grid 위치
+    if (cell.gridColumn !== undefined) {
+      el.style.gridColumn = `${cell.gridColumn} / span ${cell.colSpan}`;
+    }
+    if (cell.gridRow !== undefined) {
+      el.style.gridRow = `${cell.gridRow} / span ${cell.rowSpan}`;
+    }
+
+    // 정렬
+    const align = cell.align || 'center';
+    addClass(el, `velox-header-cell--group-${align}`);
+
+    // 커스텀 클래스
+    if (cell.className) addClass(el, cell.className);
+
+    // 텍스트
+    const textSpan = createElement('span', 'velox-header-group-text');
+    textSpan.textContent = cell.text;
+    el.appendChild(textSpan);
+
+    // Phase 19: 그룹 헤더 리사이즈 핸들 (그룹 내 마지막 컬럼 너비 조절)
+    if (options.resizable !== false && cell.groupName) {
+      el.style.position = 'relative';
+      const handle = createElement('div', 'velox-resize-handle');
+      handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        ctx.startGroupResize(e, cell.groupName!);
+      });
+      el.appendChild(handle);
+    }
+
+    return el;
+  }
+
+  /**
+   * Phase 19: CSS Grid 기반 개별 컬럼 헤더 셀 생성
+   */
+  private createGroupedColumnHeaderCell(column: ColumnDefinition, cell: HeaderCell): HTMLElement {
+    const ctx = this.ctx;
+    const options = ctx.getOptions();
+    const state = ctx.getState();
+
+    const el = createElement('div', 'velox-header-cell--grouped');
+    el.dataset.field = column.field;
+
+    // CSS Grid 위치
+    if (cell.gridColumn !== undefined) {
+      el.style.gridColumn = `${cell.gridColumn} / span ${cell.colSpan}`;
+    }
+    if (cell.gridRow !== undefined) {
+      el.style.gridRow = `${cell.gridRow} / span ${cell.rowSpan}`;
+    }
+
+    // 정렬
+    const align = column.headerAlign || column.align || 'left';
+    addClass(el, `velox-header-cell--align-${align}`);
+    if (column.headerClass) addClass(el, column.headerClass);
+
+    // 정렬 가능 클래스
+    if (options.sortable && column.sortable !== false) {
+      addClass(el, 'velox-header-cell--sortable');
+      const sortState = state.sort.find((s: any) => s.field === column.field);
+      if (sortState?.direction) addClass(el, 'velox-header-cell--sorted');
+    }
+
+    // 컨텐츠 래퍼
+    const contentWrapper = createElement('div', 'velox-header-content');
+
+    // 컬럼 드래그 핸들
+    const dragHandle = createElement('span', 'velox-column-drag-handle');
+    dragHandle.innerHTML = '⋮⋮';
+    dragHandle.title = '드래그하여 컬럼 순서 변경';
+    dragHandle.addEventListener('mousedown', (e) => ctx.startColumnDrag(e, column));
+    contentWrapper.appendChild(dragHandle);
+
+    // 헤더 텍스트
+    const text = createElement('span', 'velox-header-text');
+    text.textContent = column.header;
+    contentWrapper.appendChild(text);
+
+    el.appendChild(contentWrapper);
+
+    // Sort 버튼
+    if (options.sortable && column.sortable !== false) {
+      const sortBtn = createElement('button', 'velox-sort-btn');
+      const sortState = state.sort.find((s: any) => s.field === column.field);
+      if (sortState?.direction === 'asc') {
+        addClass(sortBtn, 'velox-sort-btn--asc');
+        sortBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" /></svg>`;
+      } else if (sortState?.direction === 'desc') {
+        addClass(sortBtn, 'velox-sort-btn--desc');
+        sortBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
+      } else {
+        sortBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h9.75m4.5-4.5v12m0 0-3.75-3.75M17.25 21 21 17.25" /></svg>`;
+      }
+      if (sortState?.direction) addClass(sortBtn, 'velox-sort-btn--active');
+      sortBtn.title = '정렬';
+      sortBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        ctx.handleSort(column.field);
+      });
+      el.appendChild(sortBtn);
+    }
+
+    // Filter 버튼
+    if (options.filterable && column.filterable !== false) {
+      const filterBtn = createElement('button', 'velox-filter-btn');
+      filterBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>`;
+      const hasFilter = state.filter?.conditions.some((c: any) => c.field === column.field);
+      if (hasFilter) addClass(filterBtn, 'velox-filter-btn--active');
+      filterBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        ctx.showFilterPopup(column, filterBtn);
+      });
+      el.appendChild(filterBtn);
+    }
+
+    // 컬럼 메뉴 버튼
+    const menuBtn = createElement('button', 'velox-column-menu-btn');
+    menuBtn.innerHTML = '⋯';
+    menuBtn.title = '컬럼 메뉴';
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      ctx.showColumnMenu(column, menuBtn);
+    });
+    el.appendChild(menuBtn);
+
+    // 리사이즈 핸들
+    if (options.resizable && column.resizable !== false) {
+      const handle = createElement('div', 'velox-resize-handle');
+      handle.addEventListener('mousedown', (e) => ctx.startResize(e, column));
+      el.appendChild(handle);
+    }
+
+    return el;
   }
 
   /**

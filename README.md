@@ -28,7 +28,7 @@
 - 🎨 **커스터마이징 가능** - CSS Variables를 통한 쉬운 테마 커스터마이징
 - 📝 **TypeScript** - 완벽한 타입 지원
 - ⚛️ **React/Vue 래퍼** - 공식 React 컴포넌트 & Vue 3 컴포넌트 제공 (v0.11.0)
-- ⚡ **경량화** - ~100KB minified (~25KB gzipped)
+- ⚡ **경량화** - ~113KB minified (~27KB gzipped)
 
 ### 핵심 기능
 
@@ -52,6 +52,7 @@
 - ♾️ **Infinite Scroll** - 스크롤 끝 도달 시 다음 데이터 자동 로드 (v0.10.0)
 - ⚛️ **React 래퍼** - VeloxGridReact 컴포넌트 + useVeloxGrid Hook (v0.11.0)
 - 💚 **Vue 3 래퍼** - VeloxGridVue 컴포넌트 + useVeloxGrid Composable (v0.11.0)
+- 📊 **Column Group** - 다단계 헤더 (2단, 3단 중첩 그룹) + Fixed Columns 통합 (v0.12.0)
 
 ### 코드 구조 최적화 (v0.7.0+)
 
@@ -490,6 +491,50 @@ const grid = new VeloxGrid('#grid', {
 });
 ```
 
+### Column Group — 다단계 헤더 (v0.12.0)
+
+```typescript
+const grid = new VeloxGrid('#grid', {
+  columns: [
+    { field: 'name', header: '이름', width: 120 },
+    { field: 'email', header: '이메일', width: 200 },
+    { field: 'phone', header: '전화번호', width: 150 },
+    { field: 'department', header: '부서', width: 120 },
+    { field: 'salary', header: '급여', width: 100 },
+  ],
+  // 2단 그룹 헤더
+  columnLayout: [
+    {
+      name: 'personalInfo',
+      header: '인적정보',
+      items: ['name', 'email', 'phone'],
+    },
+    {
+      name: 'workInfo',
+      header: '업무정보',
+      items: ['department', 'salary'],
+    },
+  ],
+});
+
+// 3단 중첩 그룹
+ grid.setColumnLayout([
+  {
+    name: 'personalInfo',
+    header: '인적정보',
+    items: [
+      'name',
+      { name: 'contact', header: '연락처', items: ['email', 'phone'] },
+    ],
+  },
+  'department',
+  'salary',
+]);
+
+// 레이아웃 해제 (1단 헤더로 복원)
+grid.clearColumnLayout();
+```
+
 ### 메서드
 
 ```typescript
@@ -559,6 +604,11 @@ goToPage(page: number): void
 setPageSize(pageSize: number): void
 getPaginationState(): PaginationState
 fetchData(): Promise<void>
+
+// Column Group (v0.12.0)
+setColumnLayout(layout: ColumnLayoutItem[] | null): void
+getColumnLayout(): ColumnLayoutItem[] | null
+clearColumnLayout(): void
 
 // 유틸리티
 refresh(): void

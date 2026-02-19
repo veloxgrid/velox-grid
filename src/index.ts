@@ -19,6 +19,9 @@ export type {
   
   // Column
   ColumnDefinition,
+  ColumnLayoutItem,
+  ColumnLayoutItemConfig,
+  ColumnGroupHeader,
   
   // Options
   GridOptions,

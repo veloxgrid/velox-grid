@@ -96,14 +96,20 @@ export class GridDragManager {
     this.columnDragging.element.style.top = `${e.clientY + 10}px`;
     
     const target = document.elementFromPoint(e.clientX, e.clientY);
-    const headerCell = target?.closest('.velox-header-cell') as HTMLElement;
+    // Phase 19: grouped 헤더 셀도 드롭 타겟으로 인식
+    const headerCell = target?.closest('.velox-header-cell, .velox-header-cell--grouped') as HTMLElement;
     
     ctx.headerElement.querySelectorAll('.velox-header-cell--drop-target').forEach((el: Element) => {
       removeClass(el as HTMLElement, 'velox-header-cell--drop-target');
     });
     
-    if (headerCell && headerCell.dataset.field !== this.columnDragging.field) {
-      addClass(headerCell, 'velox-header-cell--drop-target');
+    if (headerCell && headerCell.dataset.field && headerCell.dataset.field !== this.columnDragging.field) {
+      // Phase 19: 같은 그룹 내에서만 드롭 타겟 표시
+      const sourceGroup = ctx.getGroupNameFor(this.columnDragging.field);
+      const targetGroup = ctx.getGroupNameFor(headerCell.dataset.field);
+      if (sourceGroup === targetGroup) {
+        addClass(headerCell, 'velox-header-cell--drop-target');
+      }
     }
   }
 
@@ -118,7 +124,7 @@ export class GridDragManager {
     const sourceField = this.columnDragging.field;
     
     const target = document.elementFromPoint(e.clientX, e.clientY);
-    const headerCell = target?.closest('.velox-header-cell') as HTMLElement;
+    const headerCell = target?.closest('.velox-header-cell, .velox-header-cell--grouped') as HTMLElement;
     const targetField = headerCell?.dataset.field;
     
     if (this.columnDragging.element) {

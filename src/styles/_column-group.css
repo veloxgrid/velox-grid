@@ -1,0 +1,101 @@
+/* ============================================
+ * Column Group (다단계 헤더) - Phase 19
+ * ============================================ */
+
+/* 그룹 헤더가 적용된 헤더 영역 — CSS Grid 기반 */
+.velox-header--grouped {
+  display: grid !important;
+  /* grid-template-columns, grid-template-rows는 JS에서 인라인 설정 */
+}
+
+/* 그룹 헤더 셀 (부모 그룹) */
+.velox-header-cell--group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--velox-group-header-bg, #e8ecf0);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  border-right: 1px solid var(--velox-border-color, #e0e0e0);
+  border-bottom: 1px solid var(--velox-border-color, #e0e0e0);
+  padding: 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+/* 그룹 헤더 정렬 */
+.velox-header-cell--group-left {
+  justify-content: flex-start;
+}
+.velox-header-cell--group-center {
+  justify-content: center;
+}
+.velox-header-cell--group-right {
+  justify-content: flex-end;
+}
+
+/* 일반 컬럼 헤더 (그룹 내, CSS Grid 모드) */
+.velox-header-cell--grouped {
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--velox-border-color, #e0e0e0);
+  border-bottom: 1px solid var(--velox-border-color, #e0e0e0);
+  padding: 0 4px;
+  background: var(--velox-header-bg, #f5f5f5);
+  box-sizing: border-box;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 그룹 내 컬럼 헤더의 내용 영역 */
+.velox-header-cell--grouped .velox-header-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+/* 그룹 내 정렬/필터/메뉴 버튼 영역 */
+.velox-header-cell--grouped .velox-sort-btn,
+.velox-header-cell--grouped .velox-filter-btn,
+.velox-header-cell--grouped .velox-column-menu-btn {
+  flex-shrink: 0;
+}
+
+/* 그룹 내 리사이즈 핸들 */
+.velox-header-cell--grouped .velox-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+}
+
+/* 그룹 헤더 호버 */
+.velox-header-cell--group:hover {
+  background: var(--velox-group-header-hover-bg, #dde3e9);
+}
+
+/* Dark 테마 */
+.velox-grid--dark .velox-header-cell--group {
+  background: var(--velox-group-header-bg, #2a3040);
+  border-color: var(--velox-border-color, #3a4050);
+  color: var(--velox-header-text-color, #e0e0e0);
+}
+
+.velox-grid--dark .velox-header-cell--group:hover {
+  background: var(--velox-group-header-hover-bg, #343a4a);
+}
+
+.velox-grid--dark .velox-header-cell--grouped {
+  background: var(--velox-header-bg, #1e2430);
+  border-color: var(--velox-border-color, #3a4050);
+}

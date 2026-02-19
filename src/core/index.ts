@@ -15,6 +15,7 @@ export { GridFilterPopup } from './GridFilterPopup';
 export { GridColumnMenu } from './GridColumnMenu';
 export { GridDragManager } from './GridDragManager';
 export { GridSummary } from './GridSummary';
+export { GridColumnLayout } from './GridColumnLayout';
 
 // Re-export types
 export type { HistoryOptions } from './GridHistory';

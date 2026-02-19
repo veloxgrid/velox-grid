@@ -65,6 +65,11 @@ import { GridFilterPopup } from './GridFilterPopup';
 import { GridColumnMenu } from './GridColumnMenu';
 import { GridDragManager } from './GridDragManager';
 import { GridSummary } from './GridSummary';
+import { GridColumnLayout } from './GridColumnLayout';
+import type {
+  ColumnLayoutItem,
+  HeaderMatrix,
+} from '../types';
 
 const DEFAULT_OPTIONS: Partial<GridOptions> = {
   rowHeight: 40,
@@ -178,6 +183,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   private columnMenuManager: GridColumnMenu;
   private dragManager: GridDragManager;
   private summary: GridSummary;
+  private columnLayout: GridColumnLayout;
 
   constructor(
     container: HTMLElement | string,
@@ -219,6 +225,12 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     this.columnMenuManager = new GridColumnMenu(this);
     this.dragManager = new GridDragManager(this);
     this.summary = new GridSummary(this);
+    this.columnLayout = new GridColumnLayout();
+
+    // Phase 19: 초기 레이아웃 설정
+    if (this.options.columnLayout) {
+      this.columnLayout.setLayout(this.options.columnLayout);
+    }
 
     this.state = {
       data: [],
@@ -440,13 +452,31 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       const dataColumns = this.getDataColumns();
       const totalCount = dataColumns.length;
       
+      // Phase 19: 레이아웃이 있으면 레이아웃 순서로 정렬
+      const layoutOrder = this.columnLayout.hasLayout() ? this.columnLayout.getColumnOrder() : null;
+      
       if (colCount === 0) {
         // Generate special columns with displayOrder
         const specialColumns = this.getSpecialColumnsWithOrder();
         
         // Scrollable = special columns + data columns (except fixed right)
         const endIndex = totalCount - rightCount;
-        const scrollableDataColumns = endIndex > 0 ? dataColumns.slice(0, endIndex) : [];
+        let scrollableDataColumns = endIndex > 0 ? dataColumns.slice(0, endIndex) : [];
+        
+        // Phase 19: 레이아웃 순서 적용
+        if (layoutOrder) {
+          const colMap = new Map(scrollableDataColumns.map(c => [c.field, c]));
+          const ordered: ColumnDefinition[] = [];
+          layoutOrder.forEach(field => {
+            const col = colMap.get(field);
+            if (col) ordered.push(col);
+          });
+          // 레이아웃에 없는 컬럼은 끝에 추가
+          scrollableDataColumns.forEach(col => {
+            if (!layoutOrder.includes(col.field)) ordered.push(col);
+          });
+          scrollableDataColumns = ordered;
+        }
         
         this.columnCache.scrollable = [...specialColumns, ...scrollableDataColumns];
       } else {
@@ -454,9 +484,25 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
         const startIndex = colCount;
         const endIndex = totalCount - rightCount;
         
-        this.columnCache.scrollable = startIndex < endIndex 
+        let scrollable = startIndex < endIndex 
           ? dataColumns.slice(startIndex, endIndex)
           : [];
+        
+        // Phase 19: 레이아웃 순서 적용
+        if (layoutOrder && scrollable.length > 0) {
+          const colMap = new Map(scrollable.map(c => [c.field, c]));
+          const ordered: ColumnDefinition[] = [];
+          layoutOrder.forEach(field => {
+            const col = colMap.get(field);
+            if (col) ordered.push(col);
+          });
+          scrollable.forEach(col => {
+            if (!layoutOrder.includes(col.field)) ordered.push(col);
+          });
+          scrollable = ordered;
+        }
+        
+        this.columnCache.scrollable = scrollable;
       }
       
       this.columnCache.dirty = false; // Mark as clean after all queries
@@ -645,6 +691,10 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   // GridContext: Rendering methods - delegated to GridRenderer
   render(): void {
     console.log('🔄 render() called', { editing: this.state.edit.editing, rowIndex: this.state.edit.rowIndex, field: this.state.edit.field });
+    // Phase 19: 렌더링 전 레이아웃 빌드 (필요 시)
+    if (this.columnLayout.hasLayout() && this.columnLayout.isDirty()) {
+      this.columnLayout.build(this.state.columns);
+    }
     this.renderer.render();
     // Phase 18: Pagination UI
     if (this.paginationContainer) {
@@ -1171,6 +1221,31 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
   // GridContext: Resize methods - delegated to GridDragManager
   startResize(e: MouseEvent, column: ColumnDefinition): void {
     this.dragManager.startResize(e, column);
+  }
+
+  /**
+   * Phase 19: 그룹 헤더 리사이즈 시작 — 그룹 내 마지막 컬럼을 리사이즈
+   */
+  startGroupResize(e: MouseEvent, groupName: string): void {
+    const lastField = this.columnLayout.getLastLeafColumnOfGroup(groupName);
+    if (!lastField) return;
+    const col = this.state.columns.find(c => c.field === lastField);
+    if (!col) return;
+    this.dragManager.startResize(e, col);
+  }
+
+  /**
+   * Phase 19: 특정 컬럼이 속한 그룹의 leaf 컬럼 목록 반환
+   */
+  getGroupColumnsFor(field: string): string[] | null {
+    return this.columnLayout.getGroupColumnsFor(field);
+  }
+
+  /**
+   * Phase 19: 특정 컬럼이 속한 직접 부모 그룹 이름 반환
+   */
+  getGroupNameFor(field: string): string | null {
+    return this.columnLayout.getGroupNameFor(field);
   }
 
   // GridContext: Data transformation (public for module access)
@@ -2581,6 +2656,16 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     const targetIndex = this.state.columns.findIndex(c => c.field === targetField);
     
     if (sourceIndex === -1 || targetIndex === -1) return;
+
+    // Phase 19: 레이아웃이 있으면 같은 그룹 내에서만 이동 허용 + 레이아웃 순서도 변경
+    if (this.columnLayout.hasLayout()) {
+      const sourceGroup = this.columnLayout.getGroupNameFor(sourceField);
+      const targetGroup = this.columnLayout.getGroupNameFor(targetField);
+      if (sourceGroup !== targetGroup) return;
+
+      // 레이아웃 내 순서 변경 (헤더/바디 렌더링에 반영)
+      this.columnLayout.reorderInLayout(sourceField, targetField);
+    }
     
     const [removed] = this.state.columns.splice(sourceIndex, 1);
     this.state.columns.splice(targetIndex, 0, removed);
@@ -3284,6 +3369,62 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
       btn.addEventListener('click', () => this.goToPage(page));
     }
     return btn;
+  }
+
+  // ============================================
+  // Phase 19: Column Layout API
+  // ============================================
+
+  /**
+   * 컬럼 레이아웃 설정 (다단계 헤더)
+   * @param layout 레이아웃 배열. null이면 레이아웃 해제
+   */
+  setColumnLayout(layout: ColumnLayoutItem[] | null): void {
+    this.columnLayout.setLayout(layout);
+    this.options.columnLayout = layout || undefined;
+    if (layout) {
+      this.columnLayout.build(this.state.columns);
+    }
+    this.invalidateColumnCache();
+    this.render();
+  }
+
+  /**
+   * 현재 컬럼 레이아웃 반환
+   */
+  getColumnLayout(): ColumnLayoutItem[] | null {
+    return this.columnLayout.getLayout();
+  }
+
+  /**
+   * 컬럼 레이아웃 해제 (1단 헤더로 복원)
+   */
+  clearColumnLayout(): void {
+    this.setColumnLayout(null);
+  }
+
+  /**
+   * 헤더 매트릭스 반환 (레이아웃 적용 시)
+   * GridContext 인터페이스 구현
+   */
+  getHeaderMatrix(): HeaderMatrix | null {
+    if (!this.columnLayout.hasLayout()) return null;
+    if (this.columnLayout.isDirty()) {
+      this.columnLayout.build(this.state.columns);
+    }
+    return this.columnLayout.getHeaderMatrix();
+  }
+
+  /**
+   * 레이아웃 기반 컬럼 순서 반환
+   * GridContext 인터페이스 구현
+   */
+  getLayoutColumnOrder(): string[] | null {
+    if (!this.columnLayout.hasLayout()) return null;
+    if (this.columnLayout.isDirty()) {
+      this.columnLayout.build(this.state.columns);
+    }
+    return this.columnLayout.getColumnOrder();
   }
 
   destroy(): void {

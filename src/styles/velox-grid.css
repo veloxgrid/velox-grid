@@ -43,3 +43,6 @@
 
 /* Pagination (Phase 18) */
 @import './_pagination.css';
+
+/* Column Group (Phase 19) */
+@import './_column-group.css';

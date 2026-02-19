@@ -431,6 +431,102 @@ export interface DataSourceOptions {
 }
 
 // ============================================
+// Column Layout Types (Phase 19)
+// ============================================
+
+/**
+ * 컬럼 레이아웃 아이템 — 단일 컬럼(field명 문자열) 또는 그룹 설정 객체
+ * Phase 19: Column Group (다단계 헤더)
+ */
+export type ColumnLayoutItem = string | ColumnLayoutItemConfig;
+
+/**
+ * 컬럼 레이아웃 아이템 설정 객체
+ */
+export interface ColumnLayoutItemConfig {
+  /** 단일 컬럼 참조 (field명) — column 또는 name+items 중 하나 사용 */
+  column?: string;
+  /** 그룹 이름 (고유) — 그룹일 때 필수 */
+  name?: string;
+  /** 그룹 헤더 텍스트 또는 헤더 설정 객체 */
+  header?: string | ColumnGroupHeader;
+  /** 자식 아이템 (컬럼명 또는 하위 그룹) — 그룹일 때 필수 */
+  items?: ColumnLayoutItem[];
+  /** 자식 컬럼 헤더 숨김 (기본: false) */
+  hideChildHeaders?: boolean;
+  /** 너비 오버라이드 (단일 컬럼일 때) */
+  width?: number;
+  /** 표시 여부 (기본: true) */
+  visible?: boolean;
+}
+
+/**
+ * 컬럼 그룹 헤더 설정
+ */
+export interface ColumnGroupHeader {
+  /** 헤더 텍스트 */
+  text: string;
+  /** 헤더 표시 여부 (기본: true) */
+  visible?: boolean;
+  /** 헤더 정렬 */
+  align?: 'left' | 'center' | 'right';
+  /** CSS 클래스 */
+  className?: string;
+}
+
+/**
+ * 내부용 — 정규화된 레이아웃 노드
+ */
+export interface NormalizedLayoutNode {
+  type: 'column' | 'group';
+  /** type === 'column'일 때 컬럼 field명 */
+  field?: string;
+  /** type === 'column'일 때 너비 오버라이드 */
+  widthOverride?: number;
+  /** type === 'group'일 때 그룹 이름 */
+  name?: string;
+  /** type === 'group'일 때 그룹 헤더 정보 */
+  header?: ColumnGroupHeader;
+  /** type === 'group'일 때 자식 노드 */
+  children?: NormalizedLayoutNode[];
+  /** type === 'group'일 때 자식 헤더 숨김 여부 */
+  hideChildHeaders?: boolean;
+  /** 표시 여부 */
+  visible: boolean;
+  /** 렌더링 시 계산: 이 노드의 깊이 (0부터) */
+  depth?: number;
+  /** 렌더링 시 계산: 이 노드가 차지하는 leaf 컬럼 수 */
+  colSpan?: number;
+  /** 렌더링 시 계산: 이 노드가 차지하는 헤더 행 수 */
+  rowSpan?: number;
+  /** 렌더링 시 계산: 이 노드 하위의 모든 leaf 컬럼 field명 */
+  leafColumns?: string[];
+}
+
+/**
+ * 헤더 렌더링용 셀 정보
+ */
+export interface HeaderCell {
+  type: 'group' | 'column';
+  text: string;
+  field?: string;
+  colSpan: number;
+  rowSpan: number;
+  align?: 'left' | 'center' | 'right';
+  className?: string;
+  column?: ColumnDefinition;
+  /** CSS Grid 위치: grid-column 시작 (1-based) */
+  gridColumn?: number;
+  /** CSS Grid 위치: grid-row 시작 (1-based) */
+  gridRow?: number;
+  /** Phase 19: 그룹 이름 (리사이즈용) */
+  groupName?: string;
+}
+
+/** 헤더 매트릭스 — headerRows[rowIndex][cellIndex] = HeaderCell */
+export type HeaderMatrix = HeaderCell[][];
+
+// ============================================
 // Grid Options
 // ============================================
 
@@ -501,6 +597,8 @@ export interface GridOptions {
   dataSource?: DataSourceOptions;
   /** Pagination options (Phase 18) */
   pagination?: PaginationOptions;
+  /** Column layout for grouped headers (Phase 19) */
+  columnLayout?: ColumnLayoutItem[];
 }
 
 // ============================================
@@ -881,6 +979,11 @@ export interface VeloxGridInstance {
   clearRowStates(): void;
   commit(): void;
 
+  // Column Layout (Phase 19)
+  setColumnLayout(layout: ColumnLayoutItem[] | null): void;
+  getColumnLayout(): ColumnLayoutItem[] | null;
+  clearColumnLayout(): void;
+
   // Options
   setOptions(options: Partial<GridOptions>): void;
   getOptions(): GridOptions;
@@ -1124,6 +1227,12 @@ export interface GridContext {
   startRowDrag(e: MouseEvent, rowIndex: number, rowElement: HTMLElement): void;
   /** Resize 시작 */
   startResize(e: MouseEvent, column: ColumnDefinition): void;
+  /** Phase 19: 그룹 헤더 리사이즈 시작 (그룹 내 마지막 컬럼) */
+  startGroupResize(e: MouseEvent, groupName: string): void;
+  /** Phase 19: 컬럼이 속한 그룹의 leaf 컬럼 목록 반환 */
+  getGroupColumnsFor(field: string): string[] | null;
+  /** Phase 19: 컬럼이 속한 직접 부모 그룹 이름 반환 */
+  getGroupNameFor(field: string): string | null;
   /** Block selection 시작 */
   startBlockSelection(rowIndex: number, field: string): void;
   /** Block selection 업데이트 */
@@ -1174,4 +1283,18 @@ export interface GridContext {
   getPaginationState(): PaginationState;
   /** 서버 데이터 수동 새로고침 */
   fetchData(): Promise<void>;
+
+  // ============================================
+  // Column Layout (Phase 19)
+  // ============================================
+  /** 컬럼 레이아웃 설정 */
+  setColumnLayout(layout: ColumnLayoutItem[] | null): void;
+  /** 현재 컬럼 레이아웃 반환 */
+  getColumnLayout(): ColumnLayoutItem[] | null;
+  /** 컬럼 레이아웃 해제 */
+  clearColumnLayout(): void;
+  /** 헤더 매트릭스 반환 (레이아웃 적용 시) */
+  getHeaderMatrix(): HeaderMatrix | null;
+  /** 레이아웃 기반 컬럼 순서 반환 */
+  getLayoutColumnOrder(): string[] | null;
 }

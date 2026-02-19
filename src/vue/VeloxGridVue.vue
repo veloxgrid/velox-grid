@@ -365,6 +365,11 @@ function getPaginationState(): PaginationState {
 }
 function fetchData() { return gridInstance?.fetchData() ?? Promise.resolve(); }
 
+// Column Layout (Phase 19)
+function setColumnLayout(layout: any) { gridInstance?.setColumnLayout(layout); }
+function getColumnLayout() { return gridInstance?.getColumnLayout() ?? null; }
+function clearColumnLayout() { gridInstance?.clearColumnLayout(); }
+
 defineExpose({
   getGridInstance,
   destroy, refresh,
@@ -386,6 +391,7 @@ defineExpose({
   getRowCount, getVisibleRowCount, getCellValue, setCellValue,
   getSummaryValue, getSummaryValues, refreshSummary,
   getRowState, getRowStateByData, setRowState, getChanges, getCreatedRows, getUpdatedRows, getDeletedRows, clearRowStates, commit,
+  setColumnLayout, getColumnLayout, clearColumnLayout,
   setOptions, getOptions,
   goToPage, setPageSize, getPaginationState, fetchData,
 });

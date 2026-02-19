@@ -315,6 +315,11 @@ export const VeloxGridReact = forwardRef<VeloxGridReactRef, VeloxGridReactProps>
       clearRowStates: () => gridRef.current?.clearRowStates(),
       commit: () => gridRef.current?.commit(),
 
+      // Column Layout (Phase 19)
+      setColumnLayout: (layout) => gridRef.current?.setColumnLayout(layout),
+      getColumnLayout: () => gridRef.current?.getColumnLayout() ?? null,
+      clearColumnLayout: () => gridRef.current?.clearColumnLayout(),
+
       // Options
       setOptions: (opts) => gridRef.current?.setOptions(opts),
       getOptions: () => gridRef.current?.getOptions() ?? ({} as GridOptions),

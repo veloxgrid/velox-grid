@@ -5,6 +5,37 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 이 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 기반으로 하며,
 이 프로젝트는 [Semantic Versioning](https://semver.org/lang/ko/)을 따릅니다.
 
+## [0.12.0] - 2025-02-19
+
+### Added - Phase 19: Column Group (다단계 헤더)
+
+#### 핵심 기능
+- **GridColumnLayout 모듈 신규**: 레이아웃 파싱, 정규화, 헤더 매트릭스 생성 (565줄)
+- **CSS Grid 기반 다단계 헤더**: 2단, 3단 이상 중첩 그룹 지원
+- **hideChildHeaders**: 자식 컬럼 헤더 숨김 옵션
+- **setColumnLayout / getColumnLayout / clearColumnLayout API**: 동적 레이아웃 변경
+- **하위 호환**: 레이아웃 미설정 시 기존 flexbox 헤더 유지
+
+#### 기존 기능 통합
+- **Fixed Columns 통합**: 스크롤 영역에만 그룹 헤더 적용, 헤더 높이 동기화
+- **그룹 헤더 리사이즈**: 그룹 헤더 오른쪽 드래그 시 그룹 내 마지막 leaf 컬럼 너비 조절
+- **컬럼 이동 제한**: 같은 그룹 내에서만 이동 허용 + 레이아웃 순서 동기화
+- **정렬/필터/컬럼 메뉴**: leaf 컬럼 헤더에서 기존과 동일하게 동작
+- **React/Vue 래퍼**: 새 API 3개 노출 (setColumnLayout, getColumnLayout, clearColumnLayout)
+
+#### 데모
+- `examples/phase19-column-group-demo.html`: 5개 시나리오
+  1. 기본 2단 헤더
+  2. 3단 중첩
+  3. hideChildHeaders
+  4. 동적 레이아웃 전환
+  5. Fixed Columns + Column Group
+
+### Bundle Size
+- UMD: 112.82 KB (gzip: 27.49 KB) — +12.62 KB
+- ESM: 158.01 KB (gzip: 35.62 KB) — +18.34 KB
+- CSS: 23.47 KB (gzip: 4.12 KB) — +1.86 KB
+
 ## [0.11.0] - 2025-02-12
 
 ### Added - Phase 17: Framework Wrappers (React + Vue)
@@ -466,8 +497,7 @@ fixedOptions: {
 
 ## 향후 릴리즈
 
-### [0.12.0] - 계획됨
-- Column Group (다단계 헤더)
+### [0.13.0] - 계획됨
 - Cell Merge (셀 병합)
 
 ### [1.0.0] - 계획됨
@@ -479,5 +509,6 @@ fixedOptions: {
 
 ---
 
+[0.12.0]: https://github.com/bart-idea/velox-grid/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/bart-idea/velox-grid/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/bart-idea/velox-grid/compare/v0.9.1...v0.10.0

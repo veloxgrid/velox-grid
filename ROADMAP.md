@@ -228,8 +228,8 @@ interface RowDetailOptions {
 ## 📞 피드백
 
 로드맵에 대한 의견이나 제안이 있으시면:
-- [GitHub Issues](https://github.com/bart-idea/velox-grid/issues)
-- [GitHub Discussions](https://github.com/bart-idea/velox-grid/discussions)
+- [GitHub Issues](https://github.com/veloxgrid/velox-grid/issues)
+- [GitHub Discussions](https://github.com/veloxgrid/velox-grid/discussions)
 
 ---
 

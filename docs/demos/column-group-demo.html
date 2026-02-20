@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid - Phase 19: Column Group (다단계 헤더) Demo</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #1976d2;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .demo-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .demo-section h2 {
+      margin-top: 0;
+      color: #333;
+      border-bottom: 2px solid #1976d2;
+      padding-bottom: 10px;
+    }
+    .demo-section p {
+      color: #666;
+      margin-bottom: 15px;
+    }
+    .grid-container {
+      height: 400px;
+      margin-top: 20px;
+    }
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #1976d2;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .info-box h3 {
+      margin-top: 0;
+      color: #1976d2;
+    }
+    .info-box ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .info-box li {
+      margin: 5px 0;
+      color: #555;
+    }
+    .controls {
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      padding: 8px 16px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .controls button:hover {
+      background: #1565c0;
+    }
+    .controls button.active {
+      background: #0d47a1;
+      box-shadow: 0 0 0 2px #42a5f5;
+    }
+    .controls button.danger {
+      background: #d32f2f;
+    }
+    .controls button.danger:hover {
+      background: #c62828;
+    }
+    code {
+      /* background: #f5f5f5; */
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+    pre {
+      background: #263238;
+      color: #eeffff;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    pre .comment { color: #546e7a; }
+    pre .keyword { color: #c792ea; }
+    pre .string { color: #c3e88d; }
+    pre .prop { color: #82aaff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Phase 19: Column Group (다단계 헤더)</h1>
+    <p class="subtitle">RealGrid 스타일의 <code>setColumnLayout()</code> API로 컬럼을 그룹화하여 다단계 헤더를 표현합니다.</p>
+
+    <!-- Demo 1: 기본 2단 헤더 -->
+    <div class="demo-section">
+      <h2>1. 기본 2단 헤더</h2>
+      <p>컬럼을 그룹으로 묶어 2단계 헤더를 생성합니다.</p>
+      <div class="info-box">
+        <h3>레이아웃 구조</h3>
+        <ul>
+          <li><strong>인적정보</strong>: 이름, 이메일, 전화번호</li>
+          <li><strong>업무정보</strong>: 부서, 직급, 급여</li>
+        </ul>
+      </div>
+      <pre><code>grid.setColumnLayout([
+  { <span class="prop">name</span>: <span class="string">'personal'</span>, <span class="prop">header</span>: <span class="string">'인적정보'</span>, <span class="prop">items</span>: [<span class="string">'name'</span>, <span class="string">'email'</span>, <span class="string">'phone'</span>] },
+  { <span class="prop">name</span>: <span class="string">'work'</span>, <span class="prop">header</span>: <span class="string">'업무정보'</span>, <span class="prop">items</span>: [<span class="string">'department'</span>, <span class="string">'position'</span>, <span class="string">'salary'</span>] },
+]);</code></pre>
+      <div id="grid1" class="grid-container"></div>
+    </div>
+
+    <!-- Demo 2: 3단 중첩 그룹 -->
+    <div class="demo-section">
+      <h2>2. 3단 중첩 그룹</h2>
+      <p>그룹 안에 그룹을 중첩하여 3단계 이상의 헤더를 만들 수 있습니다.</p>
+      <div class="info-box">
+        <h3>레이아웃 구조</h3>
+        <ul>
+          <li><strong>인적정보</strong>
+            <ul>
+              <li>이름 (단독)</li>
+              <li><strong>연락처</strong>: 이메일, 전화번호</li>
+            </ul>
+          </li>
+          <li>부서, 직급, 급여 (그룹 없이 단독)</li>
+        </ul>
+      </div>
+      <div id="grid2" class="grid-container"></div>
+    </div>
+
+    <!-- Demo 3: hideChildHeaders -->
+    <div class="demo-section">
+      <h2>3. hideChildHeaders (자식 헤더 숨김)</h2>
+      <p><code>hideChildHeaders: true</code>로 설정하면 그룹 헤더만 표시하고 자식 컬럼 헤더를 숨깁니다.</p>
+      <div id="grid3" class="grid-container"></div>
+    </div>
+
+    <!-- Demo 4: 동적 레이아웃 전환 -->
+    <div class="demo-section">
+      <h2>4. 동적 레이아웃 전환</h2>
+      <p>버튼을 클릭하여 레이아웃을 동적으로 변경합니다. <code>setColumnLayout()</code>과 <code>clearColumnLayout()</code> API를 사용합니다.</p>
+      <div class="controls">
+        <button onclick="setLayout1()" id="btn-layout1" class="active">2단 그룹</button>
+        <button onclick="setLayout2()" id="btn-layout2">3단 중첩</button>
+        <button onclick="setLayout3()" id="btn-layout3">hideChildHeaders</button>
+        <button onclick="clearLayout()" class="danger">레이아웃 해제 (1단)</button>
+      </div>
+      <div id="grid4" class="grid-container"></div>
+    </div>
+
+    <!-- Demo 5: Fixed Columns + Column Group -->
+    <div class="demo-section">
+      <h2>5. Fixed Columns + Column Group</h2>
+      <p>틀고정(<code>fixedOptions</code>)과 Column Group을 함께 사용합니다. Fixed 영역은 기존 방식, 스크롤 영역에만 그룹 헤더가 적용됩니다.</p>
+      <div id="grid5" class="grid-container"></div>
+    </div>
+
+  </div>
+
+  <script src="../dist/velox-grid.iife.js"></script>
+  <script>
+    // ============================================
+    // 샘플 데이터 생성
+    // ============================================
+    const departments = ['개발팀', '기획팀', '디자인팀', '마케팅팀', '영업팀', '인사팀'];
+    const positions = ['사원', '대리', '과장', '차장', '부장'];
+    const names = ['홍길동', '김철수', '이영희', '박민수', '정소연', '강지훈', '윤서연', '조현우', '한미영', '임동건',
+                   '최유리', '신태양', '오승민', '장하늘', '배은지', '노진우', '권미선', '황준혁', '송다은', '류재현'];
+
+    function generateData(count) {
+      const data = [];
+      for (let i = 0; i < count; i++) {
+        data.push({
+          name: names[i % names.length],
+          email: `user${i + 1}@company.com`,
+          phone: `010-${String(1000 + i).slice(-4)}-${String(5000 + i).slice(-4)}`,
+          department: departments[i % departments.length],
+          position: positions[i % positions.length],
+          salary: Math.floor(3000 + Math.random() * 5000) * 10000,
+          hireDate: `202${Math.floor(Math.random() * 5)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+          age: 25 + Math.floor(Math.random() * 20),
+        });
+      }
+      return data;
+    }
+
+    const columns = [
+      { field: 'name', header: '이름', width: 100 },
+      { field: 'email', header: '이메일', width: 200 },
+      { field: 'phone', header: '전화번호', width: 140 },
+      { field: 'department', header: '부서', width: 100 },
+      { field: 'position', header: '직급', width: 80 },
+      { field: 'salary', header: '급여', width: 120, align: 'right',
+        formatter: (v) => v ? Number(v).toLocaleString() + '원' : '' },
+      { field: 'hireDate', header: '입사일', width: 120 },
+      { field: 'age', header: '나이', width: 70, align: 'center' },
+    ];
+
+    const data = generateData(30);
+
+    // ============================================
+    // Demo 1: 기본 2단 헤더
+    // ============================================
+    const grid1 = new VeloxGrid.VeloxGrid(
+      document.getElementById('grid1'),
+      {
+        columns: columns,
+        data: data,
+        height: 400,
+        headerHeight: 70,
+        sortable: true,
+        filterable: true,
+        columnLayout: [
+          {
+            name: 'personal',
+            header: '인적정보',
+            items: ['name', 'email', 'phone'],
+          },
+          {
+            name: 'work',
+            header: '업무정보',
+            items: ['department', 'position', 'salary'],
+          },
+          'hireDate',
+          'age',
+        ],
+      }
+    );
+
+    // ============================================
+    // Demo 2: 3단 중첩 그룹
+    // ============================================
+    const grid2 = new VeloxGrid.VeloxGrid(
+      document.getElementById('grid2'),
+      {
+        columns: columns,
+        data: data,
+        height: 400,
+        headerHeight: 90,
+        sortable: true,
+        columnLayout: [
+          {
+            name: 'personal',
+            header: '인적정보',
+            items: [
+              'name',
+              {
+                name: 'contact',
+                header: '연락처',
+                items: ['email', 'phone'],
+              },
+            ],
+          },
+          {
+            name: 'work',
+            header: '업무정보',
+            items: [
+              'department',
+              {
+                name: 'career',
+                header: '경력',
+                items: ['position', 'hireDate'],
+              },
+            ],
+          },
+          'salary',
+          'age',
+        ],
+      }
+    );
+
+    // ============================================
+    // Demo 3: hideChildHeaders
+    // ============================================
+    const grid3 = new VeloxGrid.VeloxGrid(
+      document.getElementById('grid3'),
+      {
+        columns: columns,
+        data: data,
+        height: 400,
+        headerHeight: 50,
+        sortable: true,
+        columnLayout: [
+          {
+            name: 'personal',
+            header: '인적정보 (이름/이메일/전화)',
+            hideChildHeaders: true,
+            items: ['name', 'email', 'phone'],
+          },
+          {
+            name: 'work',
+            header: '업무정보 (부서/직급/급여)',
+            hideChildHeaders: true,
+            items: ['department', 'position', 'salary'],
+          },
+          'hireDate',
+          'age',
+        ],
+      }
+    );
+
+    // ============================================
+    // Demo 4: 동적 레이아웃 전환
+    // ============================================
+    const grid4 = new VeloxGrid.VeloxGrid(
+      document.getElementById('grid4'),
+      {
+        columns: columns,
+        data: data,
+        height: 400,
+        headerHeight: 70,
+        sortable: true,
+        columnLayout: [
+          {
+            name: 'personal',
+            header: '인적정보',
+            items: ['name', 'email', 'phone'],
+          },
+          {
+            name: 'work',
+            header: '업무정보',
+            items: ['department', 'position', 'salary'],
+          },
+          'hireDate',
+          'age',
+        ],
+      }
+    );
+
+    function updateButtons(activeId) {
+      document.querySelectorAll('#btn-layout1, #btn-layout2, #btn-layout3').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      if (activeId) document.getElementById(activeId).classList.add('active');
+    }
+
+    function setLayout1() {
+      grid4.setColumnLayout([
+        { name: 'personal', header: '인적정보', items: ['name', 'email', 'phone'] },
+        { name: 'work', header: '업무정보', items: ['department', 'position', 'salary'] },
+        'hireDate', 'age',
+      ]);
+      updateButtons('btn-layout1');
+    }
+
+    function setLayout2() {
+      grid4.setColumnLayout([
+        {
+          name: 'personal', header: '인적정보',
+          items: [
+            'name',
+            { name: 'contact', header: '연락처', items: ['email', 'phone'] },
+          ],
+        },
+        {
+          name: 'work', header: '업무정보',
+          items: [
+            'department',
+            { name: 'career', header: '경력', items: ['position', 'hireDate'] },
+          ],
+        },
+        'salary', 'age',
+      ]);
+      updateButtons('btn-layout2');
+    }
+
+    function setLayout3() {
+      grid4.setColumnLayout([
+        { name: 'personal', header: '인적정보 (이름/이메일/전화)', hideChildHeaders: true, items: ['name', 'email', 'phone'] },
+        { name: 'work', header: '업무정보 (부서/직급/급여)', hideChildHeaders: true, items: ['department', 'position', 'salary'] },
+        'hireDate', 'age',
+      ]);
+      updateButtons('btn-layout3');
+    }
+
+    function clearLayout() {
+      grid4.clearColumnLayout();
+      updateButtons(null);
+    }
+
+    // ============================================
+    // Demo 5: Fixed Columns + Column Group
+    // ============================================
+    const grid5 = new VeloxGrid.VeloxGrid(
+      document.getElementById('grid5'),
+      {
+        columns: columns,
+        data: data,
+        height: 400,
+        headerHeight: 70,
+        sortable: true,
+        showRowNumbers: true,
+        fixedOptions: {
+          colCount: 1, // 이름 컬럼 고정
+        },
+        columnLayout: [
+          {
+            name: 'contact',
+            header: '연락처',
+            items: ['email', 'phone'],
+          },
+          {
+            name: 'work',
+            header: '업무정보',
+            items: ['department', 'position', 'salary'],
+          },
+          'hireDate',
+          'age',
+        ],
+      }
+    );
+  </script>
+</body>
+</html>

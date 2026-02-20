@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid - Phase 14: Fixed Columns Demo</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #1976d2;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    .demo-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .demo-section h2 {
+      margin-top: 0;
+      color: #333;
+      border-bottom: 2px solid #1976d2;
+      padding-bottom: 10px;
+    }
+    .demo-section p {
+      color: #666;
+      margin-bottom: 15px;
+    }
+    .grid-container {
+      height: 400px;
+      margin-top: 20px;
+    }
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #1976d2;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .info-box h3 {
+      margin-top: 0;
+      color: #1976d2;
+    }
+    .info-box ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    .info-box li {
+      margin: 5px 0;
+      color: #555;
+    }
+    .controls {
+      margin-bottom: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      padding: 8px 16px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .controls button:hover {
+      background: #1565c0;
+    }
+    .controls button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔒 VeloxGrid Phase 14: Fixed Columns</h1>
+    <p class="subtitle">RealGrid 스타일의 Fixed Columns 기능 (fixedOptions)</p>
+
+    <div class="info-box">
+      <h3>📌 Phase 14 주요 기능</h3>
+      <ul>
+        <li><strong>fixedOptions.colCount</strong>: 왼쪽에서부터 N개 컬럼 고정</li>
+        <li><strong>fixedOptions.rightCount</strong>: 오른쪽에서부터 N개 컬럼 고정</li>
+        <li><strong>특수 컬럼 처리</strong>: CheckBar, RowNumbers, DragHandle은 항상 왼쪽 고정</li>
+        <li><strong>스크롤 동기화</strong>: Fixed 영역과 Scrollable 영역의 세로 스크롤 동기화</li>
+        <li><strong>API</strong>: setFixedOptions(), getFixedOptions()</li>
+      </ul>
+    </div>
+
+    <!-- Demo 1: Left Fixed -->
+    <div class="demo-section">
+      <h2>1️⃣ Left Fixed (colCount: 2)</h2>
+      <p>처음 2개 데이터 컬럼을 왼쪽에 고정합니다.</p>
+      <div class="controls">
+        <button onclick="updateLeftFixed(0)">고정 해제 (0개)</button>
+        <button onclick="updateLeftFixed(1)">1개 고정</button>
+        <button onclick="updateLeftFixed(2)">2개 고정</button>
+        <button onclick="updateLeftFixed(3)">3개 고정</button>
+      </div>
+      <div id="grid1" class="grid-container"></div>
+    </div>
+
+    <!-- Demo 2: Right Fixed -->
+    <div class="demo-section">
+      <h2>2️⃣ Right Fixed (rightCount: 1)</h2>
+      <p>마지막 1개 컬럼을 오른쪽에 고정합니다.</p>
+      <div class="controls">
+        <button onclick="updateRightFixed(0)">고정 해제 (0개)</button>
+        <button onclick="updateRightFixed(1)">1개 고정</button>
+        <button onclick="updateRightFixed(2)">2개 고정</button>
+      </div>
+      <div id="grid2" class="grid-container"></div>
+    </div>
+
+    <!-- Demo 3: Both Fixed -->
+    <div class="demo-section">
+      <h2>3️⃣ Both Fixed (colCount: 2, rightCount: 1)</h2>
+      <p>왼쪽 2개, 오른쪽 1개 컬럼을 고정합니다.</p>
+      <div class="controls">
+        <button onclick="updateBothFixed(0, 0)">전체 해제</button>
+        <button onclick="updateBothFixed(1, 1)">Left:1, Right:1</button>
+        <button onclick="updateBothFixed(2, 1)">Left:2, Right:1</button>
+        <button onclick="updateBothFixed(2, 2)">Left:2, Right:2</button>
+      </div>
+      <div id="grid3" class="grid-container"></div>
+    </div>
+
+    <!-- Demo 4: With Special Columns -->
+    <div class="demo-section">
+      <h2>4️⃣ With Special Columns (CheckBar + RowNumbers + Fixed)</h2>
+      <p>특수 컬럼과 함께 사용하는 경우입니다.</p>
+      <div class="controls">
+        <button onclick="updateSpecialFixed(0, 0)">고정 해제</button>
+        <button onclick="updateSpecialFixed(1, 0)">Left:1</button>
+        <button onclick="updateSpecialFixed(1, 1)">Left:1, Right:1</button>
+        <button onclick="updateSpecialFixed(2, 1)">Left:2, Right:1</button>
+      </div>
+      <div id="grid4" class="grid-container"></div>
+    </div>
+  </div>
+
+  <script src="../dist/velox-grid.iife.js"></script>
+  <script>
+    const VeloxGridClass = VeloxGrid.VeloxGrid;
+
+    // 샘플 데이터 생성 (100행)
+    const sampleData = Array.from({ length: 100 }, (_, i) => ({
+      id: i + 1,
+      name: `사용자 ${i + 1}`,
+      email: `user${i + 1}@example.com`,
+      age: 20 + (i % 50),
+      city: ['서울', '부산', '대구', '인천', '광주'][i % 5],
+      department: ['개발', '디자인', '기획', '마케팅', '영업'][i % 5],
+      position: ['사원', '대리', '과장', '차장', '부장'][i % 5],
+      salary: 3000 + (i % 10) * 500,
+      joinDate: `202${i % 5}-0${(i % 9) + 1}-01`,
+      status: i % 3 === 0 ? '재직' : '휴가',
+    }));
+
+    // 컬럼 정의
+    const columns = [
+      { field: 'id', header: 'ID', width: 80, align: 'center' },
+      { field: 'name', header: '이름', width: 120 },
+      { field: 'email', header: '이메일', width: 200 },
+      { field: 'age', header: '나이', width: 80, align: 'center' },
+      { field: 'city', header: '도시', width: 100 },
+      { field: 'department', header: '부서', width: 100 },
+      { field: 'position', header: '직급', width: 100 },
+      { field: 'salary', header: '급여', width: 100, align: 'right', formatter: (value) => `${value}만원` },
+      { field: 'joinDate', header: '입사일', width: 120, align: 'center' },
+      { field: 'status', header: '상태', width: 80, align: 'center' },
+    ];
+
+    // Demo 1: Left Fixed
+    const grid1 = new VeloxGridClass('#grid1', {
+      columns: columns,
+      data: sampleData,
+      width: '100%',
+      height: '100%',
+      virtualScroll: true,
+      fixedOptions: {
+        colCount: 2,
+        rightCount: 0
+      }
+    });
+
+    function updateLeftFixed(count) {
+      grid1.setFixedOptions({ colCount: count, rightCount: 0 });
+      console.log('Left Fixed 업데이트:', grid1.getFixedOptions());
+    }
+
+    // Demo 2: Right Fixed
+    const grid2 = new VeloxGridClass('#grid2', {
+      columns: columns,
+      data: sampleData,
+      width: '100%',
+      height: '100%',
+      virtualScroll: true,
+      fixedOptions: {
+        colCount: 0,
+        rightCount: 1
+      }
+    });
+
+    function updateRightFixed(count) {
+      grid2.setFixedOptions({ colCount: 0, rightCount: count });
+      console.log('Right Fixed 업데이트:', grid2.getFixedOptions());
+    }
+
+    // Demo 3: Both Fixed
+    const grid3 = new VeloxGridClass('#grid3', {
+      columns: columns,
+      data: sampleData,
+      width: '100%',
+      height: '100%',
+      virtualScroll: true,
+      fixedOptions: {
+        colCount: 2,
+        rightCount: 1
+      }
+    });
+
+    function updateBothFixed(left, right) {
+      grid3.setFixedOptions({ colCount: left, rightCount: right });
+      console.log('Both Fixed 업데이트:', grid3.getFixedOptions());
+    }
+
+    // Demo 4: With Special Columns
+    const grid4 = new VeloxGridClass('#grid4', {
+      columns: columns,
+      data: sampleData,
+      width: '100%',
+      height: '100%',
+      virtualScroll: true,
+      rowDraggable: { enabled: true, displayOrder: 3 },  // DragHandle last
+      showRowNumbers: { visible: true, displayOrder: 1 },  // RowNumbers second
+      checkBar: { visible: true, showAll: true, displayOrder: 2 },  // CheckBar first
+      fixedOptions: {
+        colCount: 1,
+        rightCount: 1
+      }
+    });
+
+    function updateSpecialFixed(left, right) {
+      grid4.setFixedOptions({ colCount: left, rightCount: right });
+      console.log('Special Fixed 업데이트:', grid4.getFixedOptions());
+    }
+
+    console.log('✅ Phase 14 데모 초기화 완료');
+    console.log('Grid 1 (Left Fixed):', grid1.getFixedOptions());
+    console.log('Grid 2 (Right Fixed):', grid2.getFixedOptions());
+    console.log('Grid 3 (Both Fixed):', grid3.getFixedOptions());
+    console.log('Grid 4 (Special + Fixed):', grid4.getFixedOptions());
+  </script>
+</body>
+</html>

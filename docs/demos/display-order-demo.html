@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid - Phase 14.1: Special Column Display Order Demo</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .demo-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .demo-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .demo-description {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 15px;
+      line-height: 1.6;
+    }
+    .demo-description code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    #grid1, #grid2, #grid3, #grid4 {
+      height: 400px;
+      margin-bottom: 15px;
+    }
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 12px 15px;
+      margin-top: 15px;
+      border-radius: 4px;
+    }
+    .info-box strong {
+      color: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 VeloxGrid Phase 14.1: Special Column Display Order</h1>
+    <p class="subtitle">
+      displayOrder를 사용하여 특수 컬럼(CheckBar, RowNumbers, DragHandle)의 표시 순서를 제어합니다.
+    </p>
+
+    <!-- Scenario 1: Default Order -->
+    <div class="demo-section">
+      <div class="demo-title">1️⃣ Default Order (displayOrder 미설정)</div>
+      <div class="demo-description">
+        <strong>설정:</strong> 모든 특수 컬럼 활성화, displayOrder 미지정<br>
+        <strong>결과:</strong> 기본 순서 - DragHandle (0) → CheckBar (10) → RowNumbers (20)<br>
+        <code>[ ☰ ][ ✓ ][ # ][ 데이터 컬럼들... ]</code>
+      </div>
+      <div id="grid1"></div>
+      <div class="info-box">
+        <strong>💡 기본 displayOrder:</strong> DragHandle = 0, CheckBar = 10, RowNumbers = 20
+      </div>
+    </div>
+
+    <!-- Scenario 2: Custom Order 1 -->
+    <div class="demo-section">
+      <div class="demo-title">2️⃣ Custom Order: CheckBar 먼저</div>
+      <div class="demo-description">
+        <strong>설정:</strong> CheckBar(0) → RowNumbers(10) → DragHandle(20)<br>
+        <strong>결과:</strong> CheckBar가 가장 왼쪽에 배치<br>
+        <code>[ ✓ ][ # ][ ☰ ][ 데이터 컬럼들... ]</code>
+      </div>
+      <div id="grid2"></div>
+      <div class="info-box">
+        <strong>코드:</strong> <code>checkBar: { visible: true, displayOrder: 0 }</code>
+      </div>
+    </div>
+
+    <!-- Scenario 3: Custom Order 2 -->
+    <div class="demo-section">
+      <div class="demo-title">3️⃣ Custom Order: RowNumbers 먼저</div>
+      <div class="demo-description">
+        <strong>설정:</strong> RowNumbers(0) → DragHandle(10) → CheckBar(20)<br>
+        <strong>결과:</strong> RowNumbers가 가장 왼쪽에 배치<br>
+        <code>[ # ][ ☰ ][ ✓ ][ 데이터 컬럼들... ]</code>
+      </div>
+      <div id="grid3"></div>
+      <div class="info-box">
+        <strong>코드:</strong> <code>showRowNumbers: { visible: true, displayOrder: 0 }</code>
+      </div>
+    </div>
+
+    <!-- Scenario 4: Negative Order -->
+    <div class="demo-section">
+      <div class="demo-title">4️⃣ Negative Order: 역순 배치</div>
+      <div class="demo-description">
+        <strong>설정:</strong> RowNumbers(20) → CheckBar(10) → DragHandle(0) (음수 사용 가능)<br>
+        <strong>결과:</strong> 기본 순서의 정확한 반대<br>
+        <code>[ # ][ ✓ ][ ☰ ][ 데이터 컬럼들... ]</code>
+      </div>
+      <div id="grid4"></div>
+      <div class="info-box">
+        <strong>💡 TIP:</strong> displayOrder는 음수, 0, 양수 모두 사용 가능하며, 작은 숫자가 왼쪽에 배치됩니다.
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { VeloxGrid } from '../dist/velox-grid.esm.js';
+
+    // Generate sample data
+    function generateData(count) {
+      const data = [];
+      for (let i = 0; i < count; i++) {
+        data.push({
+          id: i + 1,
+          name: `사용자 ${i + 1}`,
+          email: `user${i + 1}@example.com`,
+          department: ['영업', '개발', '마케팅', '인사'][i % 4],
+          age: 25 + (i % 15),
+          salary: 3000 + (i * 100),
+        });
+      }
+      return data;
+    }
+
+    const sampleData = generateData(20);
+
+    const baseColumns = [
+      { field: 'id', header: 'ID', width: 80 },
+      { field: 'name', header: '이름', width: 120 },
+      { field: 'email', header: '이메일', width: 200 },
+      { field: 'department', header: '부서', width: 100 },
+      { field: 'age', header: '나이', width: 80 },
+      { field: 'salary', header: '급여', width: 120 },
+    ];
+
+    // Scenario 1: Default Order
+    new VeloxGrid('#grid1', {
+      columns: baseColumns,
+      data: sampleData,
+      height: 400,
+      rowDraggable: true,  // displayOrder: 0 (default)
+      checkBar: { visible: true },  // displayOrder: 10 (default)
+      showRowNumbers: true,  // displayOrder: 20 (default)
+      fixedOptions: { colCount: 2 },  // Fixed left to show special columns
+    });
+
+    // Scenario 2: CheckBar First
+    new VeloxGrid('#grid2', {
+      columns: baseColumns,
+      data: sampleData,
+      height: 400,
+      checkBar: { visible: true, displayOrder: 0 },  // CheckBar first
+      showRowNumbers: { visible: true, displayOrder: 10 },  // RowNumbers second
+      rowDraggable: { enabled: true, displayOrder: 20 },  // DragHandle last
+      fixedOptions: { colCount: 2 },
+    });
+
+    // Scenario 3: RowNumbers First
+    new VeloxGrid('#grid3', {
+      columns: baseColumns,
+      data: sampleData,
+      height: 400,
+      showRowNumbers: { visible: true, displayOrder: 0 },  // RowNumbers first
+      rowDraggable: { enabled: true, displayOrder: 10 },  // DragHandle second
+      checkBar: { visible: true, displayOrder: 20 },  // CheckBar last
+      fixedOptions: { colCount: 2 },
+    });
+
+    // Scenario 4: Reverse Order (using same numbers)
+    new VeloxGrid('#grid4', {
+      columns: baseColumns,
+      data: sampleData,
+      height: 400,
+      showRowNumbers: { visible: true, displayOrder: 20 },  // Highest number
+      checkBar: { visible: true, displayOrder: 10 },  // Middle
+      rowDraggable: { enabled: true, displayOrder: 0 },  // Lowest number (leftmost)
+      fixedOptions: { colCount: 2 },
+    });
+  </script>
+</body>
+</html>

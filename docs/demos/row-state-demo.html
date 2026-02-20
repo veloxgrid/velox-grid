@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid - Phase 15: Row State Tracking Demo</title>
+  <link rel="stylesheet" href="../dist/velox-grid.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-align: center;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .subtitle {
+      color: rgba(255,255,255,0.9);
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 1.1rem;
+    }
+
+    .demo-section {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    .demo-section h2 {
+      color: #333;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+    }
+
+    .description {
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-success {
+      background: #48bb78;
+      color: white;
+    }
+
+    .btn-warning {
+      background: #ed8936;
+      color: white;
+    }
+
+    .btn-danger {
+      background: #f56565;
+      color: white;
+    }
+
+    .btn-info {
+      background: #4299e1;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #718096;
+      color: white;
+    }
+
+    .state-info {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .state-info h3 {
+      color: #2d3748;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+    }
+
+    .state-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .state-card {
+      background: white;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .state-card.created {
+      border-left-color: #48bb78;
+    }
+
+    .state-card.updated {
+      border-left-color: #ed8936;
+    }
+
+    .state-card.deleted {
+      border-left-color: #f56565;
+    }
+
+    .state-card h4 {
+      color: #2d3748;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .state-card .count {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .state-card.created .count {
+      color: #48bb78;
+    }
+
+    .state-card.updated .count {
+      color: #ed8936;
+    }
+
+    .state-card.deleted .count {
+      color: #f56565;
+    }
+
+    .state-card .items {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: #718096;
+      max-height: 100px;
+      overflow-y: auto;
+    }
+
+    .state-card .items div {
+      padding: 4px 0;
+      border-bottom: 1px solid #f7fafc;
+    }
+
+    .grid-wrapper {
+      margin-top: 20px;
+    }
+
+    code {
+      background: #f7fafc;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.9em;
+      color: #e53e3e;
+    }
+
+    .note {
+      background: #fff5e6;
+      border-left: 4px solid #ed8936;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 6px;
+    }
+
+    .note strong {
+      color: #c05621;
+    }
+
+    /* Row State Styling */
+    .velox-grid .velox-row[data-row-state="created"] {
+      background-color: #f0fff4 !important;
+    }
+
+    .velox-grid .velox-row[data-row-state="updated"] {
+      background-color: #fffaf0 !important;
+    }
+
+    .velox-grid .velox-row[data-row-state="deleted"] {
+      background-color: #fff5f5 !important;
+      opacity: 0.6;
+      text-decoration: line-through;
+    }
+
+    .velox-grid .velox-row[data-row-state="createAndDeleted"] {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 Phase 15: Row State Tracking</h1>
+    <p class="subtitle">RealGrid 스타일의 행 상태 추적 기능 - CRUD 변경사항 관리</p>
+
+    <!-- Demo 1: Basic Row State Operations -->
+    <div class="demo-section">
+      <h2>Demo 1: 기본 Row State 작업</h2>
+      <p class="description">
+        행을 추가, 수정, 삭제하면 자동으로 상태가 추적됩니다. 
+        각 행은 <code>none</code>, <code>created</code>, <code>updated</code>, <code>deleted</code>, <code>createAndDeleted</code> 상태를 가질 수 있습니다.
+      </p>
+
+      <div class="controls">
+        <button class="btn btn-success" onclick="demo1_addRow()">➕ 행 추가 (created)</button>
+        <button class="btn btn-warning" onclick="demo1_updateSelected()">✏️ 선택 행 수정 (updated)</button>
+        <button class="btn btn-danger" onclick="demo1_deleteSelected()">🗑️ 선택 행 삭제 (deleted)</button>
+        <button class="btn btn-info" onclick="demo1_showChanges()">📊 변경사항 조회</button>
+        <button class="btn btn-secondary" onclick="demo1_commit()">✅ Commit (확정)</button>
+        <button class="btn btn-secondary" onclick="demo1_clearStates()">🔄 상태 초기화</button>
+      </div>
+
+      <div class="grid-wrapper">
+        <div id="grid1" style="height: 400px;"></div>
+      </div>
+
+      <div class="state-info">
+        <h3>현재 변경사항</h3>
+        <div class="state-list">
+          <div class="state-card created">
+            <h4>Created</h4>
+            <div class="count" id="demo1-created-count">0</div>
+            <div class="items" id="demo1-created-items"></div>
+          </div>
+          <div class="state-card updated">
+            <h4>Updated</h4>
+            <div class="count" id="demo1-updated-count">0</div>
+            <div class="items" id="demo1-updated-items"></div>
+          </div>
+          <div class="state-card deleted">
+            <h4>Deleted</h4>
+            <div class="count" id="demo1-deleted-count">0</div>
+            <div class="items" id="demo1-deleted-items"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>💡 Tip:</strong> 행의 배경색으로 상태를 구분할 수 있습니다.
+        <ul style="margin-top: 10px; margin-left: 20px;">
+          <li>🟢 초록색 배경: Created (새로 추가된 행)</li>
+          <li>🟠 주황색 배경: Updated (수정된 행)</li>
+          <li>🔴 빨간색 배경: Deleted (삭제된 행, 취소선)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Demo 2: Server Sync Workflow -->
+    <div class="demo-section">
+      <h2>Demo 2: 서버 동기화 워크플로우</h2>
+      <p class="description">
+        실제 애플리케이션에서의 사용 시나리오: 변경사항을 수집하여 서버로 전송하고, 성공 시 commit하여 상태를 초기화합니다.
+      </p>
+
+      <div class="controls">
+        <button class="btn btn-success" onclick="demo2_addRow()">➕ 행 추가</button>
+        <button class="btn btn-warning" onclick="demo2_updateRandom()">✏️ 랜덤 행 수정</button>
+        <button class="btn btn-danger" onclick="demo2_deleteRandom()">🗑️ 랜덤 행 삭제</button>
+        <button class="btn btn-primary" onclick="demo2_syncToServer()">☁️ 서버 동기화 (시뮬레이션)</button>
+      </div>
+
+      <div class="grid-wrapper">
+        <div id="grid2" style="height: 400px;"></div>
+      </div>
+
+      <div class="state-info">
+        <h3>서버 동기화 상태</h3>
+        <div id="demo2-sync-status" style="padding: 15px; background: white; border-radius: 6px; font-family: monospace; white-space: pre-wrap;"></div>
+      </div>
+    </div>
+
+    <!-- Demo 3: Create and Delete Behavior -->
+    <div class="demo-section">
+      <h2>Demo 3: Created → Deleted 동작</h2>
+      <p class="description">
+        새로 추가한 행(<code>created</code>)을 삭제하면 <code>createAndDeleted</code> 상태가 되어 서버 동기화 시 무시됩니다.
+        이는 서버에 존재하지 않는 데이터이므로 DELETE 요청이 불필요하기 때문입니다.
+      </p>
+
+      <div class="controls">
+        <button class="btn btn-success" onclick="demo3_addMultiple()">➕ 3개 행 추가</button>
+        <button class="btn btn-danger" onclick="demo3_deleteFirst()">🗑️ 첫 번째 행 삭제</button>
+        <button class="btn btn-info" onclick="demo3_showStates()">📋 상태 확인</button>
+      </div>
+
+      <div class="grid-wrapper">
+        <div id="grid3" style="height: 300px;"></div>
+      </div>
+
+      <div class="state-info">
+        <div id="demo3-state-display" style="padding: 15px; background: white; border-radius: 6px; font-family: monospace;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../dist/velox-grid.iife.js"></script>
+  <script>
+    const VeloxGridClass = VeloxGrid.VeloxGrid;
+    // Demo 1: Basic Row State Operations
+    let grid1;
+    let nextId = 100;
+
+    function initDemo1() {
+      const initialData = [
+        { id: 1, name: 'Alice', age: 28, department: 'Engineering', salary: 75000 },
+        { id: 2, name: 'Bob', age: 35, department: 'Marketing', salary: 65000 },
+        { id: 3, name: 'Charlie', age: 42, department: 'Sales', salary: 80000 },
+        { id: 4, name: 'Diana', age: 31, department: 'HR', salary: 60000 },
+        { id: 5, name: 'Eve', age: 29, department: 'Engineering', salary: 72000 },
+      ];
+
+      grid1 = new VeloxGridClass('#grid1', {
+        columns: [
+          { field: 'id', header: 'ID', width: 80 },
+          { field: 'name', header: 'Name', width: 150, editable: true },
+          { field: 'age', header: 'Age', width: 100, editable: true },
+          { field: 'department', header: 'Department', width: 150, editable: true },
+          { field: 'salary', header: 'Salary', width: 120, editable: true },
+        ],
+        data: initialData,
+        rowHeight: 40,
+        editable: true,
+        selectable: true,
+        selectionMode: 'multiple',
+        checkBar: { visible: true },
+      });
+
+      // Custom renderer to show row state
+      updateDemo1Display();
+    }
+
+    function demo1_addRow() {
+      grid1.addRow({
+        id: nextId++,
+        name: 'New Employee',
+        age: 25,
+        department: 'Engineering',
+        salary: 50000
+      });
+      updateDemo1Display();
+    }
+
+    function demo1_updateSelected() {
+      const selected = grid1.getSelectedRows();
+      if (selected.length === 0) {
+        alert('Please select rows to update');
+        return;
+      }
+
+      selected.forEach(index => {
+        const row = grid1.getRow(index);
+        grid1.updateRow(index, {
+          ...row,
+          salary: (row.salary || 0) + 5000
+        });
+      });
+      updateDemo1Display();
+    }
+
+    function demo1_deleteSelected() {
+      const selected = grid1.getSelectedRows();
+      if (selected.length === 0) {
+        alert('Please select rows to delete');
+        return;
+      }
+
+      // Delete from highest index to lowest to avoid index shifting
+      selected.sort((a, b) => b - a).forEach(index => {
+        grid1.removeRow(index);
+      });
+      updateDemo1Display();
+    }
+
+    function demo1_showChanges() {
+      const changes = grid1.getChanges();
+      console.log('Changes:', changes);
+      alert(`Changes:\n\nCreated: ${changes.created.length} rows\nUpdated: ${changes.updated.length} rows\nDeleted: ${changes.deleted.length} rows`);
+    }
+
+    function demo1_commit() {
+      if (confirm('Commit all changes? This will mark all rows as "none" state.')) {
+        grid1.commit();
+        updateDemo1Display();
+        alert('Changes committed!');
+      }
+    }
+
+    function demo1_clearStates() {
+      if (confirm('Clear all row states? This will reset all states to "none".')) {
+        grid1.clearRowStates();
+        updateDemo1Display();
+      }
+    }
+
+    function updateDemo1Display() {
+      const changes = grid1.getChanges();
+      
+      document.getElementById('demo1-created-count').textContent = changes.created.length;
+      document.getElementById('demo1-updated-count').textContent = changes.updated.length;
+      document.getElementById('demo1-deleted-count').textContent = changes.deleted.length;
+
+      document.getElementById('demo1-created-items').innerHTML = 
+        changes.created.map(r => `<div>${r.name} (ID: ${r.id})</div>`).join('') || '<div style="color: #a0aec0;">None</div>';
+      
+      document.getElementById('demo1-updated-items').innerHTML = 
+        changes.updated.map(r => `<div>${r.name} (ID: ${r.id})</div>`).join('') || '<div style="color: #a0aec0;">None</div>';
+      
+      document.getElementById('demo1-deleted-items').innerHTML = 
+        changes.deleted.map(r => `<div>${r.name} (ID: ${r.id})</div>`).join('') || '<div style="color: #a0aec0;">None</div>';
+
+      // Add data-row-state attribute for CSS styling
+      setTimeout(() => {
+        const displayData = grid1.getDisplayData();
+        displayData.forEach((row, index) => {
+          const state = grid1.getRowState(index);
+          const rowElement = document.querySelector(`#grid1 .velox-row[data-row-index="${index}"]`);
+          if (rowElement) {
+            rowElement.setAttribute('data-row-state', state);
+          }
+        });
+      }, 100);
+    }
+
+    // Demo 2: Server Sync Workflow
+    let grid2;
+    let demo2NextId = 200;
+
+    function initDemo2() {
+      const initialData = [
+        { id: 1, product: 'Laptop', price: 1200, stock: 15 },
+        { id: 2, product: 'Mouse', price: 25, stock: 50 },
+        { id: 3, product: 'Keyboard', price: 80, stock: 30 },
+        { id: 4, product: 'Monitor', price: 350, stock: 12 },
+      ];
+
+      grid2 = new VeloxGridClass('#grid2', {
+        columns: [
+          { field: 'id', header: 'ID', width: 80 },
+          { field: 'product', header: 'Product', width: 200, editable: true },
+          { field: 'price', header: 'Price', width: 120, editable: true },
+          { field: 'stock', header: 'Stock', width: 120, editable: true },
+        ],
+        data: initialData,
+        rowHeight: 40,
+        editable: true,
+        selectable: true,
+      });
+
+      updateDemo2Status('Ready');
+    }
+
+    function demo2_addRow() {
+      grid2.addRow({
+        id: demo2NextId++,
+        product: 'New Product',
+        price: 100,
+        stock: 10
+      });
+      updateDemo2Status('Row added (state: created)');
+    }
+
+    function demo2_updateRandom() {
+      const data = grid2.getDisplayData();
+      if (data.length === 0) return;
+      
+      const randomIndex = Math.floor(Math.random() * data.length);
+      const row = grid2.getRow(randomIndex);
+      grid2.updateRow(randomIndex, {
+        ...row,
+        price: (row.price || 0) + 10
+      });
+      updateDemo2Status(`Row ${randomIndex} updated (state: ${grid2.getRowState(randomIndex)})`);
+    }
+
+    function demo2_deleteRandom() {
+      const data = grid2.getDisplayData();
+      if (data.length === 0) return;
+      
+      const randomIndex = Math.floor(Math.random() * data.length);
+      grid2.removeRow(randomIndex);
+      updateDemo2Status(`Row ${randomIndex} deleted`);
+    }
+
+    function demo2_syncToServer() {
+      const changes = grid2.getChanges();
+      
+      updateDemo2Status('Syncing to server...');
+      
+      // Simulate server request
+      setTimeout(() => {
+        const log = [];
+        log.push('=== Server Sync Started ===\n');
+        
+        if (changes.created.length > 0) {
+          log.push(`POST /api/products (${changes.created.length} items):`);
+          changes.created.forEach(row => {
+            log.push(`  - ${row.product} ($${row.price})`);
+          });
+          log.push('');
+        }
+        
+        if (changes.updated.length > 0) {
+          log.push(`PUT /api/products (${changes.updated.length} items):`);
+          changes.updated.forEach(row => {
+            log.push(`  - ID ${row.id}: ${row.product}`);
+          });
+          log.push('');
+        }
+        
+        if (changes.deleted.length > 0) {
+          log.push(`DELETE /api/products (${changes.deleted.length} items):`);
+          changes.deleted.forEach(row => {
+            log.push(`  - ID ${row.id}: ${row.product}`);
+          });
+          log.push('');
+        }
+        
+        if (changes.created.length === 0 && changes.updated.length === 0 && changes.deleted.length === 0) {
+          log.push('No changes to sync.\n');
+        } else {
+          log.push('✅ Sync successful!\n');
+          log.push('Committing changes...');
+          grid2.commit();
+          log.push('✅ All changes committed.');
+        }
+        
+        updateDemo2Status(log.join('\n'));
+      }, 1000);
+    }
+
+    function updateDemo2Status(message) {
+      document.getElementById('demo2-sync-status').textContent = message;
+      
+      // Add data-row-state attribute
+      setTimeout(() => {
+        const displayData = grid2.getDisplayData();
+        displayData.forEach((row, index) => {
+          const state = grid2.getRowState(index);
+          const rowElement = document.querySelector(`#grid2 .velox-row[data-row-index="${index}"]`);
+          if (rowElement) {
+            rowElement.setAttribute('data-row-state', state);
+          }
+        });
+      }, 100);
+    }
+
+    // Demo 3: Create and Delete Behavior
+    let grid3;
+    let demo3NextId = 300;
+
+    function initDemo3() {
+      grid3 = new VeloxGridClass('#grid3', {
+        columns: [
+          { field: 'id', header: 'ID', width: 100 },
+          { field: 'item', header: 'Item', width: 200 },
+          { field: 'quantity', header: 'Quantity', width: 150 },
+        ],
+        data: [],
+        rowHeight: 40,
+      });
+
+      demo3_showStates();
+    }
+
+    function demo3_addMultiple() {
+      for (let i = 0; i < 3; i++) {
+        grid3.addRow({
+          id: demo3NextId++,
+          item: `Item ${demo3NextId - 1}`,
+          quantity: Math.floor(Math.random() * 100) + 1
+        });
+      }
+      demo3_showStates();
+    }
+
+    function demo3_deleteFirst() {
+      const data = grid3.getDisplayData();
+      if (data.length === 0) {
+        alert('No rows to delete');
+        return;
+      }
+      grid3.removeRow(0);
+      demo3_showStates();
+    }
+
+    function demo3_showStates() {
+      const data = grid3.getDisplayData();
+      const changes = grid3.getChanges();
+      
+      const lines = [];
+      lines.push('=== All Rows and Their States ===\n');
+      
+      data.forEach((row, index) => {
+        const state = grid3.getRowState(index);
+        lines.push(`Row ${index}: ${row.item} - State: ${state}`);
+      });
+      
+      if (data.length === 0) {
+        lines.push('(No rows)');
+      }
+      
+      lines.push('\n=== Changes Summary ===');
+      lines.push(`Created: ${changes.created.length}`);
+      lines.push(`Updated: ${changes.updated.length}`);
+      lines.push(`Deleted: ${changes.deleted.length}`);
+      
+      lines.push('\n💡 Note: "createAndDeleted" rows are hidden');
+      lines.push('   (they don\'t need server sync)');
+      
+      document.getElementById('demo3-state-display').textContent = lines.join('\n');
+
+      // Add data-row-state attribute
+      setTimeout(() => {
+        const displayData = grid3.getDisplayData();
+        displayData.forEach((row, index) => {
+          const state = grid3.getRowState(index);
+          const rowElement = document.querySelector(`#grid3 .velox-row[data-row-index="${index}"]`);
+          if (rowElement) {
+            rowElement.setAttribute('data-row-state', state);
+          }
+        });
+      }, 100);
+    }
+
+    // Initialize all demos
+    window.addEventListener('DOMContentLoaded', () => {
+      initDemo1();
+      initDemo2();
+      initDemo3();
+    });
+  </script>
+</body>
+</html>

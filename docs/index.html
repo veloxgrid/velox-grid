@@ -1,460 +1,628 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VeloxGrid - Fast & Lightweight Data Grid Library</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VeloxGrid — Fast &amp; Lightweight Data Grid</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cyan:    #00d4ff;
+      --violet:  #8b5cf6;
+      --blue:    #3b82f6;
+      --bg:      #080b12;
+      --surface: #0e1420;
+      --border:  rgba(0,212,255,0.15);
+      --text:    #c8d6e8;
+      --muted:   #556070;
+      --grad: linear-gradient(135deg, var(--cyan), var(--violet));
+    }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-        header {
-            text-align: center;
-            color: white;
-            padding: 60px 0;
-        }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
 
-        header h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
+    body::after {
+      content: '';
+      position: fixed;
+      top: -20%; left: -10%;
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      animation: orb-drift 18s ease-in-out infinite alternate;
+    }
 
-        header p {
-            font-size: 1.3rem;
-            opacity: 0.95;
-            margin-bottom: 10px;
-        }
+    @keyframes orb-drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(120px, 80px) scale(1.15); }
+    }
 
-        .version {
-            display: inline-block;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            margin-top: 10px;
-        }
+    .orb2 {
+      position: fixed;
+      bottom: -10%; right: -5%;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,212,255,0.10) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      animation: orb-drift 22s ease-in-out infinite alternate-reverse;
+    }
 
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 30px;
-            flex-wrap: wrap;
-        }
+    .wrap { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
-        .stat-item {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(10px);
-            padding: 15px 30px;
-            border-radius: 10px;
-            text-align: center;
-        }
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,11,18,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px; max-width: 1200px; margin: 0 auto; padding: 0 24px;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { width: 32px; height: 32px; border-radius: 7px; }
+    .nav-logo span {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem; font-weight: 700;
+      background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a {
+      font-size: 0.85rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none; transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--cyan); }
+    .nav-cta {
+      padding: 8px 20px; border-radius: 6px; font-size: 0.82rem; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase; text-decoration: none;
+      background: transparent; border: 1px solid var(--cyan); color: var(--cyan);
+      transition: all .25s; font-family: 'Rajdhani', sans-serif;
+    }
+    .nav-cta:hover { background: var(--cyan); color: var(--bg); }
 
-        .stat-item strong {
-            display: block;
-            font-size: 1.8rem;
-            margin-bottom: 5px;
-        }
+    /* HERO */
+    .hero {
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; padding: 100px 24px 80px;
+      position: relative; z-index: 1;
+    }
 
-        .stat-item span {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 99px; margin-bottom: 32px;
+      border: 1px solid var(--border);
+      background: rgba(0,212,255,0.06);
+      font-size: 0.78rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--cyan);
+      animation: fade-down .6s ease both;
+    }
+    .hero-badge::before {
+      content: ''; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--cyan); box-shadow: 0 0 8px var(--cyan);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 40px 0;
-        }
+    .hero-logo {
+      width: 120px; height: 120px;
+      border-radius: 24px;
+      box-shadow: 0 0 60px rgba(0,212,255,0.25), 0 0 120px rgba(139,92,246,0.15);
+      margin-bottom: 36px;
+      animation: logo-in .8s cubic-bezier(.16,1,.3,1) .1s both;
+    }
+    @keyframes logo-in {
+      from { opacity:0; transform: translateY(20px) scale(.9); }
+      to   { opacity:1; transform: translateY(0) scale(1); }
+    }
 
-        .feature-card {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
+    .hero-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      font-weight: 900; line-height: 1.1; letter-spacing: -.01em;
+      margin-bottom: 12px;
+      animation: fade-up .8s ease .2s both;
+    }
+    .hero-title .velox { color: #e8f4ff; }
+    .hero-title .grid-word {
+      background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
 
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
-        }
+    .hero-sub {
+      font-size: 1.15rem; font-weight: 300; line-height: 1.7;
+      color: var(--muted); max-width: 540px; margin-bottom: 48px;
+      animation: fade-up .8s ease .35s both;
+    }
 
-        .feature-card h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.3rem;
-        }
+    .hero-stats {
+      display: flex; gap: 0; margin-bottom: 48px;
+      border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+      animation: fade-up .8s ease .45s both;
+    }
+    .stat {
+      padding: 20px 36px; text-align: center;
+      border-right: 1px solid var(--border);
+      background: rgba(14,20,32,0.6);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-val {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.5rem; font-weight: 700;
+      background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-lbl { font-size: 0.75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
 
-        .feature-card ul {
-            list-style: none;
-            padding-left: 0;
-        }
+    .hero-actions {
+      display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+      animation: fade-up .8s ease .55s both;
+    }
 
-        .feature-card li {
-            padding: 8px 0;
-            padding-left: 20px;
-            position: relative;
-        }
+    @keyframes fade-up   { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:none} }
+    @keyframes fade-down { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:none} }
 
-        .feature-card li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #667eea;
-            font-weight: bold;
-        }
+    /* BUTTONS */
+    .btn-primary {
+      padding: 14px 32px; border-radius: 8px; font-family: 'Rajdhani', sans-serif;
+      font-size: 0.9rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+      text-decoration: none; cursor: pointer; border: none;
+      background: var(--grad); color: #fff;
+      box-shadow: 0 0 24px rgba(0,212,255,0.3), 0 0 48px rgba(139,92,246,0.15);
+      transition: all .25s; position: relative; overflow: hidden;
+    }
+    .btn-primary:hover { box-shadow: 0 0 36px rgba(0,212,255,0.5), 0 0 72px rgba(139,92,246,0.25); transform: translateY(-2px); }
+    .btn-ghost {
+      padding: 13px 32px; border-radius: 8px; font-family: 'Rajdhani', sans-serif;
+      font-size: 0.9rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+      text-decoration: none;
+      background: transparent; color: var(--text); border: 1px solid var(--border);
+      transition: all .25s;
+    }
+    .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(0,212,255,0.05); }
 
-        .demos-section {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin: 40px 0;
-        }
+    /* SECTION */
+    section { position: relative; z-index: 1; padding: 80px 0; }
 
-        .demos-section h2 {
-            color: #667eea;
-            margin-bottom: 30px;
-            font-size: 2rem;
-            text-align: center;
-        }
+    .section-label {
+      display: inline-block; font-size: 0.72rem; font-weight: 600;
+      letter-spacing: .18em; text-transform: uppercase; color: var(--cyan);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 700; color: #e8f4ff;
+      margin-bottom: 14px;
+    }
+    .section-desc { font-size: 1rem; color: var(--muted); max-width: 560px; line-height: 1.7; }
+    .section-head { margin-bottom: 48px; }
+    .section-head.center { text-align: center; }
+    .section-head.center .section-desc { margin: 0 auto; }
 
-        .demo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
+    .divider {
+      height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 24px;
+    }
 
-        .demo-card {
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 25px;
-            transition: all 0.3s;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-            display: block;
-        }
+    /* FEATURES */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px;
+      border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+      background: var(--border);
+    }
+    .feat {
+      padding: 32px 28px;
+      background: var(--surface);
+      transition: background .2s;
+      position: relative; overflow: hidden;
+    }
+    .feat::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,212,255,0.05) 0%, transparent 60%);
+      opacity: 0; transition: opacity .3s;
+    }
+    .feat:hover::before { opacity: 1; }
+    .feat-icon {
+      width: 42px; height: 42px; border-radius: 10px; margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+      background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2);
+    }
+    .feat h3 {
+      font-family: 'Orbitron', sans-serif; font-size: 0.78rem; font-weight: 700;
+      letter-spacing: .06em; color: #e8f4ff; margin-bottom: 12px;
+    }
+    .feat ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .feat li { font-size: 0.9rem; color: var(--muted); padding-left: 14px; position: relative; line-height: 1.5; }
+    .feat li::before { content:'›'; position:absolute; left:0; color: var(--cyan); }
 
-        .demo-card:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-            transform: translateX(5px);
-        }
+    /* DEMOS */
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
+    }
+    .demo-card {
+      display: block; text-decoration: none;
+      padding: 24px 26px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: all .25s;
+      position: relative; overflow: hidden;
+    }
+    .demo-card::after {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: var(--grad); opacity: 0; transition: opacity .25s;
+    }
+    .demo-card:hover { border-color: rgba(0,212,255,0.35); transform: translateX(4px); }
+    .demo-card:hover::after { opacity: 1; }
+    .demo-card h3 {
+      font-family: 'Orbitron', sans-serif; font-size: 0.76rem; font-weight: 700;
+      letter-spacing: .04em; color: #e8f4ff; margin-bottom: 8px;
+    }
+    .demo-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+    .demo-badge {
+      display: inline-block; margin-top: 12px;
+      padding: 3px 10px; border-radius: 99px;
+      font-size: 0.7rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+      background: rgba(0,212,255,0.1); color: var(--cyan);
+      border: 1px solid rgba(0,212,255,0.2);
+    }
 
-        .demo-card h3 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 1.2rem;
-        }
+    /* CODE */
+    .code-section {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    }
+    .code-tabs { display: flex; padding: 0 20px; border-bottom: 1px solid var(--border); }
+    .code-tab {
+      padding: 14px 16px; font-size: 0.78rem; font-weight: 600;
+      letter-spacing: .08em; text-transform: uppercase; color: var(--cyan);
+      border-bottom: 2px solid var(--cyan);
+    }
+    .code-body { padding: 32px; font-family: 'Courier New', monospace; font-size: 0.85rem; line-height: 1.9; }
+    .code-body code { color: #a8d8ff; }
+    .cm-kw  { color: #c792ea; }
+    .cm-str { color: #c3e88d; }
+    .cm-fn  { color: #82aaff; }
+    .cm-cmt { color: var(--muted); font-style: italic; }
+    .cm-var { color: var(--cyan); }
+    .cm-prop{ color: #f07178; }
+    .cm-num { color: #f78c6c; }
 
-        .demo-card p {
-            color: #666;
-            font-size: 0.95rem;
-            line-height: 1.5;
-        }
+    /* CTA */
+    .cta-box {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+      padding: 64px 40px; text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-box::before {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 400px; height: 200px;
+      background: radial-gradient(ellipse, rgba(0,212,255,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
 
-        .demo-badge {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            margin-top: 10px;
-            font-weight: 500;
-        }
+    /* FOOTER */
+    footer {
+      position: relative; z-index: 1; border-top: 1px solid var(--border);
+      padding: 40px 24px; text-align: center;
+    }
+    .footer-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
+    .footer-logo img { width: 28px; border-radius: 6px; }
+    .footer-logo span {
+      font-family: 'Orbitron', sans-serif; font-size: 0.9rem; font-weight: 700;
+      background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 20px; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.82rem; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .footer-links a:hover { color: var(--cyan); }
+    .footer-copy { font-size: 0.78rem; color: var(--muted); }
 
-        .cta-section {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            text-align: center;
-            margin: 40px 0;
-        }
+    /* REVEAL */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
 
-        .cta-section h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-
-        .cta-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 30px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 15px 40px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-        }
-
-        .btn-secondary:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        footer {
-            text-align: center;
-            color: white;
-            padding: 40px 0;
-            margin-top: 40px;
-            opacity: 0.9;
-        }
-
-        footer a {
-            color: white;
-            text-decoration: underline;
-        }
-
-        code {
-            background: #f4f4f4;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        .code-block {
-            background: #2d2d2d;
-            color: #f8f8f2;
-            padding: 20px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 20px 0;
-        }
-
-        .code-block code {
-            background: none;
-            color: inherit;
-        }
-    </style>
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .hero-stats { flex-direction: column; }
+      .stat { border-right: none; border-bottom: 1px solid var(--border); }
+      .stat:last-child { border-bottom: none; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🚀 VeloxGrid</h1>
-            <p>빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리</p>
-            <p>Fast & Lightweight Data Grid Library</p>
-            <div class="version">v0.7.1</div>
-            
-            <div class="stats">
-                <div class="stat-item">
-                    <strong>75.4 KB</strong>
-                    <span>Bundle Size (gzip: 19.4 KB)</span>
-                </div>
-                <div class="stat-item">
-                    <strong>100,000+</strong>
-                    <span>Rows Support</span>
-                </div>
-                <div class="stat-item">
-                    <strong>0</strong>
-                    <span>Dependencies</span>
-                </div>
-            </div>
-        </header>
+<div class="orb2"></div>
 
-        <div class="features">
-            <div class="feature-card">
-                <h3>⚡ 핵심 기능</h3>
-                <ul>
-                    <li>가상 스크롤링 (Virtual Scroll)</li>
-                    <li>셀/행/블록 선택</li>
-                    <li>인라인 편집 (Inline Edit)</li>
-                    <li>정렬 & 필터링</li>
-                    <li>컬럼 고정 (Fixed Columns)</li>
-                </ul>
-            </div>
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">
+      <img src="./img/VeloxGrid.png" alt="VeloxGrid">
+      <span>VeloxGrid</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#demos">Demos</a></li>
+      <li><a href="#start">Quick Start</a></li>
+    </ul>
+    <a class="nav-cta" href="https://github.com/veloxgrid/velox-grid" target="_blank">GitHub →</a>
+  </div>
+</nav>
 
-            <div class="feature-card">
-                <h3>🎨 고급 기능</h3>
-                <ul>
-                    <li>체크박스 선택 (CheckBar)</li>
-                    <li>키보드 네비게이션</li>
-                    <li>Undo/Redo (Ctrl+Z/Y)</li>
-                    <li>클립보드 지원</li>
-                    <li>커스텀 셀 에디터</li>
-                </ul>
-            </div>
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">v0.12.0 &nbsp;·&nbsp; Now Available</div>
+  <img class="hero-logo" src="./img/VeloxGrid.png" alt="VeloxGrid Logo">
+  <h1 class="hero-title"><span class="velox">Velox</span><span class="grid-word">Grid</span></h1>
+  <p class="hero-sub">의존성 제로. 프레임워크 무관. 100,000+ 행을 가상 스크롤로 처리하는 고성능 데이터 그리드 라이브러리.</p>
 
-            <div class="feature-card">
-                <h3>📊 데이터 관리</h3>
-                <ul>
-                    <li>Excel/CSV/JSON Export</li>
-                    <li>Excel/CSV Import</li>
-                    <li>셀 검증 (Validation)</li>
-                    <li>Summary/Aggregation</li>
-                    <li>데이터 바인딩</li>
-                </ul>
-            </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-val">117KB</div><div class="stat-lbl">Bundle Size</div></div>
+    <div class="stat"><div class="stat-val">100K+</div><div class="stat-lbl">Rows Support</div></div>
+    <div class="stat"><div class="stat-val">0</div><div class="stat-lbl">Dependencies</div></div>
+    <div class="stat"><div class="stat-val">19</div><div class="stat-lbl">Phases</div></div>
+  </div>
 
-            <div class="feature-card">
-                <h3>🔧 컬럼 관리</h3>
-                <ul>
-                    <li>컬럼 재정렬 (Drag & Drop)</li>
-                    <li>컬럼 메뉴</li>
-                    <li>컬럼 크기 조정</li>
-                    <li>자동 너비 맞춤</li>
-                    <li>컬럼 고정/해제</li>
-                </ul>
-            </div>
+  <div class="hero-actions">
+    <a class="btn-primary" href="#start">빠른 시작</a>
+    <a class="btn-ghost" href="https://github.com/veloxgrid/velox-grid" target="_blank">GitHub Repository</a>
+  </div>
+</div>
 
-            <div class="feature-card">
-                <h3>🎯 행 관리</h3>
-                <ul>
-                    <li>행 드래그 앤 드롭</li>
-                    <li>행 추가/삭제</li>
-                    <li>행 선택</li>
-                    <li>체크박스 전용 컬럼</li>
-                    <li>배타적 체크 모드</li>
-                </ul>
-            </div>
+<div class="divider"></div>
 
-            <div class="feature-card">
-                <h3>💡 사용자 경험</h3>
-                <ul>
-                    <li>셀 툴팁</li>
-                    <li>반응형 디자인</li>
-                    <li>다크 모드 지원 (예정)</li>
-                    <li>커스터마이징 가능</li>
-                    <li>Framework Agnostic</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="demos-section">
-            <h2>📱 Live Demos</h2>
-            <div class="demo-grid">
-                <a href="./demos/selection-demo.html" class="demo-card">
-                    <h3>Selection & Navigation</h3>
-                    <p>셀/행/블록 선택, 키보드 네비게이션, CheckBar를 통한 체크박스 선택 기능을 체험해보세요.</p>
-                    <span class="demo-badge">Phase 7</span>
-                </a>
-
-                <a href="./demos/excel-demo.html" class="demo-card">
-                    <h3>Excel Export/Import</h3>
-                    <p>Excel, CSV, JSON 형식으로 데이터를 내보내고 가져오는 기능을 테스트해보세요.</p>
-                    <span class="demo-badge">Phase 8</span>
-                </a>
-
-                <a href="./demos/keyboard-demo.html" class="demo-card">
-                    <h3>Keyboard & Undo/Redo</h3>
-                    <p>Enter/Tab 이동, Delete 키, Ctrl+Z/Y를 이용한 Undo/Redo 기능을 사용해보세요.</p>
-                    <span class="demo-badge">Phase 9</span>
-                </a>
-
-                <a href="./demos/column-menu-demo.html" class="demo-card">
-                    <h3>Column Management</h3>
-                    <p>컬럼 재정렬(드래그), 컬럼 메뉴, 고정/해제 기능을 체험해보세요.</p>
-                    <span class="demo-badge">Phase 10</span>
-                </a>
-
-                <a href="./demos/row-drag-demo.html" class="demo-card">
-                    <h3>Row Drag & Drop</h3>
-                    <p>행을 드래그하여 순서를 변경하고, 행 추가/삭제 기능을 테스트해보세요.</p>
-                    <span class="demo-badge">Phase 11</span>
-                </a>
-
-                <a href="./demos/validation-demo.html" class="demo-card">
-                    <h3>Validation & Custom Editor</h3>
-                    <p>셀 검증, 커스텀 에디터, 툴팁 기능을 확인해보세요.</p>
-                    <span class="demo-badge">Phase 12</span>
-                </a>
-
-                <a href="./demos/summary-demo.html" class="demo-card">
-                    <h3>Summary & Aggregation</h3>
-                    <p>Footer Summary로 데이터 집계(sum, avg, count, min, max)를 확인해보세요.</p>
-                    <span class="demo-badge">Phase 13</span>
-                </a>
-            </div>
-        </div>
-
-        <div class="cta-section">
-            <h2>시작하기</h2>
-            <p>VeloxGrid를 프로젝트에 추가하고 강력한 데이터 그리드를 구현하세요.</p>
-            
-            <div class="code-block">
-                <code>npm install velox-grid</code>
-            </div>
-
-            <div class="code-block">
-                <code>import VeloxGrid from 'velox-grid';
-import 'velox-grid/dist/velox-grid.css';
-
-const grid = new VeloxGrid({
-  container: document.getElementById('grid'),
-  columns: [
-    { field: 'name', header: 'Name', width: 150 },
-    { field: 'age', header: 'Age', width: 100 }
-  ],
-  data: [
-    { name: 'John', age: 30 },
-    { name: 'Jane', age: 25 }
-  ]
-});</code>
-            </div>
-
-            <div class="cta-buttons">
-                <a href="https://github.com/bart-idea/velox-grid" class="btn btn-primary" target="_blank">
-                    GitHub Repository
-                </a>
-                <a href="https://github.com/bart-idea/velox-grid#readme" class="btn btn-secondary" target="_blank">
-                    Documentation
-                </a>
-            </div>
-        </div>
-
-        <footer>
-            <p>Made with ❤️ by <a href="https://github.com/bart-idea" target="_blank">bart</a></p>
-            <p>MIT License | © 2025 VeloxGrid</p>
-        </footer>
+<!-- FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <div class="section-label">Capabilities</div>
+      <div class="section-title">강력한 기능 세트</div>
+      <p class="section-desc">엔터프라이즈급 데이터 그리드에 필요한 모든 기능을 단일 라이브러리로</p>
     </div>
+    <div class="feature-grid reveal">
+      <div class="feat">
+        <div class="feat-icon">⚡</div>
+        <h3>핵심 기능</h3>
+        <ul>
+          <li>가상 스크롤링 (Virtual Scroll)</li>
+          <li>셀 / 행 / 블록 선택</li>
+          <li>인라인 편집 (Inline Edit)</li>
+          <li>정렬 &amp; 필터링</li>
+          <li>컬럼 고정 (Fixed Columns)</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🎨</div>
+        <h3>고급 기능</h3>
+        <ul>
+          <li>CheckBar 체크박스 선택</li>
+          <li>키보드 전체 네비게이션</li>
+          <li>Undo / Redo (Ctrl+Z/Y)</li>
+          <li>클립보드 복사 / 붙여넣기</li>
+          <li>커스텀 셀 에디터</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">📊</div>
+        <h3>데이터 관리</h3>
+        <ul>
+          <li>Excel / CSV / JSON Export</li>
+          <li>Excel / CSV Import</li>
+          <li>셀 검증 (Validation)</li>
+          <li>Summary / Aggregation</li>
+          <li>Row State 추적</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🔧</div>
+        <h3>컬럼 관리</h3>
+        <ul>
+          <li>컬럼 Drag &amp; Drop 재정렬</li>
+          <li>컬럼 메뉴 / 컨텍스트</li>
+          <li>컬럼 크기 조정</li>
+          <li>자동 너비 맞춤</li>
+          <li>다단계 그룹 헤더</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🎯</div>
+        <h3>행 관리</h3>
+        <ul>
+          <li>행 Drag &amp; Drop 순서 변경</li>
+          <li>행 추가 / 삭제</li>
+          <li>배타적 체크 모드</li>
+          <li>페이지네이션 / Infinite Scroll</li>
+          <li>서버 사이드 정렬 / 필터</li>
+        </ul>
+      </div>
+      <div class="feat">
+        <div class="feat-icon">🔗</div>
+        <h3>프레임워크 통합</h3>
+        <ul>
+          <li>React 컴포넌트 / Hooks</li>
+          <li>Vue 3 컴포넌트 / Composable</li>
+          <li>Framework Agnostic 코어</li>
+          <li>TypeScript 타입 정의</li>
+          <li>Zero Dependencies</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DEMOS -->
+<section id="demos">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <div class="section-label">Live Demos</div>
+      <div class="section-title">직접 체험하기</div>
+      <p class="section-desc">각 기능 단계별 인터랙티브 데모를 바로 실행해보세요</p>
+    </div>
+    <div class="demo-grid">
+      <a href="./demos/selection-demo.html" class="demo-card reveal">
+        <h3>Selection &amp; Navigation</h3>
+        <p>셀/행/블록 선택, 키보드 네비게이션, CheckBar 체크박스 선택</p>
+        <span class="demo-badge">Phase 7</span>
+      </a>
+      <a href="./demos/excel-demo.html" class="demo-card reveal">
+        <h3>Excel Export / Import</h3>
+        <p>Excel, CSV, JSON 형식으로 데이터를 내보내고 가져오기</p>
+        <span class="demo-badge">Phase 8</span>
+      </a>
+      <a href="./demos/keyboard-demo.html" class="demo-card reveal">
+        <h3>Keyboard &amp; Undo/Redo</h3>
+        <p>Enter/Tab 이동, Delete 키, Ctrl+Z/Y Undo/Redo</p>
+        <span class="demo-badge">Phase 9</span>
+      </a>
+      <a href="./demos/column-menu-demo.html" class="demo-card reveal">
+        <h3>Column &amp; Row Management</h3>
+        <p>컬럼 드래그 재정렬, 컬럼 메뉴, 고정/해제, 행 드래그</p>
+        <span class="demo-badge">Phase 10-11</span>
+      </a>
+      <a href="./demos/validation-demo.html" class="demo-card reveal">
+        <h3>Validation &amp; Custom Editor</h3>
+        <p>셀 검증, 커스텀 에디터, 툴팁</p>
+        <span class="demo-badge">Phase 12</span>
+      </a>
+      <a href="./demos/summary-demo.html" class="demo-card reveal">
+        <h3>Summary &amp; Aggregation</h3>
+        <p>Footer Summary — sum, avg, count, min, max 집계</p>
+        <span class="demo-badge">Phase 13</span>
+      </a>
+      <a href="./demos/fixed-columns-demo.html" class="demo-card reveal">
+        <h3>Fixed Columns</h3>
+        <p>좌/우 컬럼 고정 및 특수 컬럼 통합</p>
+        <span class="demo-badge">Phase 14</span>
+      </a>
+      <a href="./demos/display-order-demo.html" class="demo-card reveal">
+        <h3>Special Column Display Order</h3>
+        <p>CheckBar, RowNumbers, DragHandle 표시 순서 조정</p>
+        <span class="demo-badge">Phase 14.1</span>
+      </a>
+      <a href="./demos/row-state-demo.html" class="demo-card reveal">
+        <h3>Row State Management</h3>
+        <p>행 추가/수정/삭제 상태 추적, getChanges(), commit()</p>
+        <span class="demo-badge">Phase 15</span>
+      </a>
+      <a href="./demos/keyboard-enhanced-demo.html" class="demo-card reveal">
+        <h3>Keyboard Enhancement</h3>
+        <p>Quick Edit, Enter/Tab 네비게이션, 에디터 키보드 동작</p>
+        <span class="demo-badge">Phase 15.1</span>
+      </a>
+      <a href="./demos/framework-wrappers-demo.html" class="demo-card reveal">
+        <h3>React &amp; Vue Wrappers</h3>
+        <p>React 컴포넌트/훅, Vue 3 컴포넌트/컴포저블 통합</p>
+        <span class="demo-badge">Phase 17</span>
+      </a>
+      <a href="./demos/pagination-demo.html" class="demo-card reveal">
+        <h3>Pagination &amp; Server-Side</h3>
+        <p>로컬/원격 페이지네이션, Infinite Scroll, 서버 사이드</p>
+        <span class="demo-badge">Phase 18</span>
+      </a>
+      <a href="./demos/column-group-demo.html" class="demo-card reveal">
+        <h3>Column Group (다단계 헤더)</h3>
+        <p>2~3단계 그룹 헤더, 그룹 드래그 이동, Fixed Columns 통합</p>
+        <span class="demo-badge">Phase 19</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- GET STARTED -->
+<section id="start">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="section-label">Quick Start</div>
+      <div class="section-title">5분 안에 시작하기</div>
+      <p class="section-desc">npm 한 줄로 설치하고 즉시 사용 가능합니다</p>
+    </div>
+    <div class="code-section reveal">
+      <div class="code-tabs">
+        <div class="code-tab">Install &amp; Usage</div>
+      </div>
+      <div class="code-body">
+        <code>
+<span class="cm-cmt"># 패키지 설치</span><br>
+<span class="cm-var">npm</span> install velox-grid<br><br>
+<span class="cm-kw">import</span> <span class="cm-fn">VeloxGrid</span> <span class="cm-kw">from</span> <span class="cm-str">'velox-grid'</span>;<br>
+<span class="cm-kw">import</span> <span class="cm-str">'velox-grid/dist/velox-grid.css'</span>;<br><br>
+<span class="cm-kw">const</span> <span class="cm-var">grid</span> = <span class="cm-kw">new</span> <span class="cm-fn">VeloxGrid</span>({<br>
+&nbsp;&nbsp;<span class="cm-prop">container</span>: document.<span class="cm-fn">getElementById</span>(<span class="cm-str">'grid'</span>),<br>
+&nbsp;&nbsp;<span class="cm-prop">columns</span>: [<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="cm-prop">field</span>: <span class="cm-str">'name'</span>, <span class="cm-prop">header</span>: <span class="cm-str">'Name'</span>, <span class="cm-prop">width</span>: <span class="cm-num">150</span> },<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="cm-prop">field</span>: <span class="cm-str">'age'</span>,  <span class="cm-prop">header</span>: <span class="cm-str">'Age'</span>,  <span class="cm-prop">width</span>: <span class="cm-num">100</span> },<br>
+&nbsp;&nbsp;],<br>
+&nbsp;&nbsp;<span class="cm-prop">data</span>: [<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="cm-prop">name</span>: <span class="cm-str">'Alice'</span>, <span class="cm-prop">age</span>: <span class="cm-num">30</span> },<br>
+&nbsp;&nbsp;&nbsp;&nbsp;{ <span class="cm-prop">name</span>: <span class="cm-str">'Bob'</span>,   <span class="cm-prop">age</span>: <span class="cm-num">25</span> },<br>
+&nbsp;&nbsp;],<br>
+});
+        </code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<section>
+  <div class="wrap">
+    <div class="cta-box reveal">
+      <div class="section-label">Open Source</div>
+      <div class="section-title" style="margin-top:8px">GitHub에서 시작하기</div>
+      <p style="color:var(--muted);margin:16px auto 36px;max-width:460px;font-size:1rem;line-height:1.7">
+        MIT 라이선스 오픈소스 프로젝트입니다.<br>Star, Issue, PR 모두 환영합니다.
+      </p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <a class="btn-primary" href="https://github.com/veloxgrid/velox-grid" target="_blank">⭐ Star on GitHub</a>
+        <a class="btn-ghost" href="https://github.com/veloxgrid/velox-grid/issues" target="_blank">Report an Issue</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <img src="./img/VeloxGrid.png" alt="VeloxGrid">
+    <span>VeloxGrid</span>
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/veloxgrid/velox-grid" target="_blank">GitHub</a>
+    <a href="https://github.com/veloxgrid/velox-grid#readme" target="_blank">Docs</a>
+    <a href="https://github.com/veloxgrid/velox-grid/issues" target="_blank">Issues</a>
+    <a href="https://github.com/veloxgrid/velox-grid/discussions" target="_blank">Discussions</a>
+  </div>
+  <div class="footer-copy">MIT License &nbsp;·&nbsp; © 2025 VeloxGrid &nbsp;·&nbsp; Made with ❤️ by <a href="https://github.com/veloxgrid" style="color:var(--cyan);text-decoration:none">veloxgrid</a></div>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
 </body>
 </html>

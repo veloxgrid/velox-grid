@@ -67,8 +67,8 @@
     "zero-dependencies"
   ],
   "author": {
-    "name": "bart",
-    "email": "ki89.choi@samsung.com"
+    "name": "veloxgrid",
+    "email": "veloxgrid@gmail.com"
   },
   "license": "MIT",
   "peerDependencies": {
@@ -108,12 +108,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bart-idea/velox-grid.git"
+    "url": "git+https://github.com/veloxgrid/velox-grid.git"
   },
   "bugs": {
-    "url": "https://github.com/bart-idea/velox-grid/issues"
+    "url": "https://github.com/veloxgrid/velox-grid/issues"
   },
-  "homepage": "https://github.com/bart-idea/velox-grid#readme",
+  "homepage": "https://github.com/veloxgrid/velox-grid#readme",
   "engines": {
     "node": ">=16.0.0"
   }

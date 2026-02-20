@@ -5,8 +5,8 @@
 ## 📁 프로젝트 정보
 
 - **프로젝트 경로**: `D:\Dev\git\velox-grid`
-- **GitHub**: https://github.com/bart-idea/velox-grid
-- **작성자**: bart (ki89.choi@samsung.com)
+- **GitHub**: https://github.com/veloxgrid/velox-grid
+- **작성자**: veloxgrid (veloxgrid@gmail.com)
 - **OS**: Windows
 - **현재 버전**: v0.7.1
 
@@ -18,8 +18,8 @@
 - ✅ **모든 문서는 한글로 작성**
 - ✅ 기술 용어는 영어 유지 (예: API, TypeScript, Git)
 - ✅ 코드 예제는 영어로 작성 (변수명, 주석 제외)
-- ✅ GitHub 경로: https://github.com/bart-idea/velox-grid
-- ✅ 작성자: bart
+- ✅ GitHub 경로: https://github.com/veloxgrid/velox-grid
+- ✅ 작성자: veloxgrid
 
 ### 주요 문서
 | 파일 | 언어 | 용도 |

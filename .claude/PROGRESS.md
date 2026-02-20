@@ -11,7 +11,7 @@
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
 - **현재 버전**: v0.12.0
 - **라이선스**: MIT
-- **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
+- **🌐 Live Demo**: https://veloxgrid.github.io/velox-grid/
 
 ### 빌드 정보
 - **번들 크기**: IIFE 117.12KB (gzip 28.36KB), ESM 164.20KB (gzip 37.04KB)
@@ -1261,7 +1261,7 @@ refreshSummary(): void
 
 ### 📦 GitHub Pages 배포 설정 (2025-02-02)
 
-**Live Demo**: https://bart-idea.github.io/velox-grid/
+**Live Demo**: https://veloxgrid.github.io/velox-grid/
 
 **구현 내용**:
 1. 메인 랜딩 페이지 (`docs/index.html`)

@@ -10,7 +10,7 @@
 
 ## 🌐 Live Demo
 
-**[👉 https://bart-idea.github.io/velox-grid/](https://bart-idea.github.io/velox-grid/)**
+**[👉 https://veloxgrid.github.io/velox-grid/](https://veloxgrid.github.io/velox-grid/)**
 
 다양한 기능을 직접 체험해보세요:
 - Selection & Navigation
@@ -785,20 +785,20 @@ velox-grid/
 
 ## 📝 라이선스
 
-MIT © [bart](https://github.com/bart-idea)
+MIT © [veloxgrid](https://github.com/veloxgrid)
 
 ## 🔗 링크
 
-- [GitHub 저장소](https://github.com/bart-idea/velox-grid)
+- [GitHub 저장소](https://github.com/veloxgrid/velox-grid)
 - [NPM 패키지](https://www.npmjs.com/package/velox-grid)
-- [데모](https://bart-idea.github.io/velox-grid/)
-- [문서](https://github.com/bart-idea/velox-grid/wiki)
+- [데모](https://veloxgrid.github.io/velox-grid/)
+- [문서](https://github.com/veloxgrid/velox-grid/wiki)
 
 ## 💬 지원
 
-- [이슈](https://github.com/bart-idea/velox-grid/issues)
-- [토론](https://github.com/bart-idea/velox-grid/discussions)
+- [이슈](https://github.com/veloxgrid/velox-grid/issues)
+- [토론](https://github.com/veloxgrid/velox-grid/discussions)
 
 ---
 
-**bart가 ❤️ 를 담아 만들었습니다**
+**veloxgrid가 ❤️ 를 담아 만들었습니다**

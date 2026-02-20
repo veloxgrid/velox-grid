@@ -35,10 +35,12 @@ export function parseColumnLayout(
         return null;
       }
       usedFields.add(item);
+      const col = columnMap.get(item)!;
+      if (col.visible === false) return null;
       return {
         type: 'column',
         field: item,
-        visible: columnMap.get(item)?.visible !== false,
+        visible: true,
       };
     }
     
@@ -56,11 +58,13 @@ export function parseColumnLayout(
         return null;
       }
       usedFields.add(config.column);
+      const col = columnMap.get(config.column)!;
+      if (col.visible === false) return null;
       return {
         type: 'column',
         field: config.column,
         widthOverride: config.width,
-        visible: columnMap.get(config.column)?.visible !== false,
+        visible: true,
       };
     }
     

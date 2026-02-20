@@ -2135,6 +2135,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     const column = this.state.columns.find(c => c.field === field);
     if (column) {
       column.visible = true;
+      this.columnLayout.invalidate();
       this.invalidateColumnCache();
       this.render();
     }
@@ -2144,6 +2145,7 @@ export class VeloxGrid implements VeloxGridInstance, GridContext {
     const column = this.state.columns.find(c => c.field === field);
     if (column) {
       column.visible = false;
+      this.columnLayout.invalidate();
       this.invalidateColumnCache();
       this.render();
     }

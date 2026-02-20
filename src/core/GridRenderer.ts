@@ -12,6 +12,9 @@ import { createElement, addClass } from '../utils/dom';
 import { formatValue } from '../utils/data';
 
 export class GridRenderer {
+  /** 그룹 헤더 CSS Grid의 총 너비 (바디 동기화용) */
+  private groupedHeaderTotalWidth: number = 0;
+
   constructor(private ctx: GridContext) {}
 
   /**
@@ -23,6 +26,7 @@ export class GridRenderer {
     this.renderHeader();
     this.renderBody();
     this.renderFooter();
+    this.syncHeaderScrollbarPadding();
     this.updateLoadingState();
     console.log('🎨 GridRenderer.render() completed', { editing: state.edit.editing });
   }
@@ -39,6 +43,9 @@ export class GridRenderer {
       this.renderGroupedHeader(headerMatrix);
       return;
     }
+
+    // 그룹 헤더가 아닌 경우 총 너비 리셋
+    this.groupedHeaderTotalWidth = 0;
 
     // 1. Fixed left header (only when colCount > 0)
     if (ctx.fixedLeftHeader) {
@@ -134,6 +141,8 @@ export class GridRenderer {
     // CSS Grid template 문자열
     const gridTemplateCols = colWidths.map(w => `${w}px`).join(' ');
     const gridTemplateRows = Array(maxDepth).fill(`${rowHeight}px`).join(' ');
+    const totalWidth = colWidths.reduce((sum, w) => sum + w, 0);
+    this.groupedHeaderTotalWidth = totalWidth;
 
     // === 1. Fixed Left 헤더 (높이를 scrollable 영역과 맞춤) ===
     if (ctx.fixedLeftHeader) {
@@ -168,6 +177,7 @@ export class GridRenderer {
     gridContainer.style.gridTemplateColumns = gridTemplateCols;
     gridContainer.style.gridTemplateRows = gridTemplateRows;
     gridContainer.style.height = `${headerHeight}px`;
+    gridContainer.style.minWidth = `${totalWidth}px`;
 
     // 매트릭스의 각 셀을 CSS Grid 아이템으로 배치
     for (let rowIdx = 0; rowIdx < headerMatrix.length; rowIdx++) {
@@ -287,7 +297,7 @@ export class GridRenderer {
     }
 
     // 정렬
-    const align = column.headerAlign || column.align || 'left';
+    const align = column.headerAlign || 'center';
     addClass(el, `velox-header-cell--align-${align}`);
     if (column.headerClass) addClass(el, column.headerClass);
 
@@ -414,7 +424,7 @@ export class GridRenderer {
     const cell = createElement('div', 'velox-header-cell');
     cell.dataset.field = column.field;
     
-    const align = column.headerAlign || column.align || 'left';
+    const align = column.headerAlign || 'center';
     addClass(cell, `velox-header-cell--align-${align}`);
 
     if (column.width) {
@@ -550,6 +560,13 @@ export class GridRenderer {
       ctx.bodyInner.style.position = '';
     }
 
+    // 그룹 헤더 사용 시 바디 영역의 min-width를 헤더 총 너비에 맞춤
+    if (this.groupedHeaderTotalWidth > 0) {
+      ctx.bodyInner.style.minWidth = `${this.groupedHeaderTotalWidth}px`;
+    } else {
+      ctx.bodyInner.style.minWidth = '';
+    }
+
     if (visibleRows.length === 0) {
       const emptyDiv = createElement('div', 'velox-empty');
       emptyDiv.textContent = options.emptyMessage || '데이터가 없습니다.';
@@ -641,6 +658,17 @@ export class GridRenderer {
     // Calculate scrollbar width: offsetWidth - clientWidth
     const scrollbarWidth = element.offsetWidth - element.clientWidth;
     return scrollbarWidth;
+  }
+
+  /**
+   * 헤더에 바디 세로 스크롤바 너비만큼 padding-right 보정
+   * 바디에 세로 스크롤바가 나타나면 헤더보다 clientWidth가 줄어들어
+   * 가로 스크롤 끝에서 헤더/바디가 어긋나는 문제 해결
+   */
+  private syncHeaderScrollbarPadding(): void {
+    const ctx = this.ctx;
+    const scrollbarWidth = this.getScrollbarWidth(ctx.bodyElement);
+    ctx.headerElement.style.paddingRight = scrollbarWidth > 0 ? `${scrollbarWidth}px` : '';
   }
 
   /**

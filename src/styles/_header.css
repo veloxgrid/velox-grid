@@ -61,6 +61,10 @@
 .velox-header-cell--align-center { justify-content: center; }
 .velox-header-cell--align-right { justify-content: flex-end; }
 
+.velox-header-cell--align-left .velox-header-content { justify-content: flex-start; }
+.velox-header-cell--align-center .velox-header-content { justify-content: center; }
+.velox-header-cell--align-right .velox-header-content { justify-content: flex-end; }
+
 /* Sort button - Heroicons SVG */
 .velox-sort-btn {
   display: flex; 

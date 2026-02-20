@@ -28,7 +28,7 @@
 - 🎨 **커스터마이징 가능** - CSS Variables를 통한 쉬운 테마 커스터마이징
 - 📝 **TypeScript** - 완벽한 타입 지원
 - ⚛️ **React/Vue 래퍼** - 공식 React 컴포넌트 & Vue 3 컴포넌트 제공 (v0.11.0)
-- ⚡ **경량화** - ~113KB minified (~27KB gzipped)
+- ⚡ **경량화** - ~117KB minified (~28KB gzipped)
 
 ### 핵심 기능
 
@@ -76,7 +76,7 @@ npm install velox-grid react react-dom
 // package.json
 {
   "dependencies": {
-    "velox-grid": "^0.11.0",
+    "velox-grid": "^0.12.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }
@@ -92,7 +92,7 @@ npm install velox-grid vue
 // package.json
 {
   "dependencies": {
-    "velox-grid": "^0.11.0",
+    "velox-grid": "^0.12.0",
     "vue": "^3.4.0"
   }
 }
@@ -105,8 +105,8 @@ npm install velox-grid vue
 ### CDN (브라우저)
 
 ```html
-<link rel="stylesheet" href="https://unpkg.com/velox-grid@0.11.0/dist/velox-grid.css">
-<script src="https://unpkg.com/velox-grid@0.11.0/dist/velox-grid.iife.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/velox-grid@0.12.0/dist/velox-grid.css">
+<script src="https://unpkg.com/velox-grid@0.12.0/dist/velox-grid.iife.js"></script>
 
 <div id="grid"></div>
 
@@ -714,21 +714,17 @@ interface GridEvents {
 velox-grid/
 ├── src/
 │   ├── core/
-│   │   ├── VeloxGrid.ts         # Facade 클래스 (2,044줄)
-│   │   ├── GridRenderer.ts      # 렌더링 담당 (482줄)
-│   │   ├── GridFilterPopup.ts   # 필터 팝업 UI (191줄)
-│   │   ├── GridColumnMenu.ts    # 컬럼 메뉴 UI (188줄)
-│   │   ├── GridDragManager.ts   # 드래그 & 리사이즈 (364줄)
+│   │   ├── VeloxGrid.ts         # Facade 클래스
+│   │   ├── GridRenderer.ts      # 렌더링 담당
+│   │   ├── GridFilterPopup.ts   # 필터 팝업 UI
+│   │   ├── GridColumnMenu.ts    # 컬럼 메뉴 UI
+│   │   ├── GridDragManager.ts   # 드래그 & 리사이즈
+│   │   ├── GridColumnLayout.ts  # 다단계 헤더 레이아웃 (v0.12.0)
 │   │   ├── GridHistory.ts       # Undo/Redo 관리
-│   │   ├── GridSelection.ts     # 선택 관리
-│   │   ├── GridVirtualScroll.ts # 가상 스크롤
-│   │   ├── GridEditor.ts        # 편집 관리
 │   │   ├── GridEditorFactory.ts # 에디터 생성
-│   │   ├── GridKeyboard.ts      # 키보드 핸들링
-│   │   ├── GridColumnManager.ts # 컬럼 관리
-│   │   ├── GridDataManager.ts   # 데이터 관리
 │   │   ├── GridValidator.ts     # 셀 검증
 │   │   ├── GridTooltip.ts       # 툴팁
+│   │   ├── GridSummary.ts       # 집계/요약
 │   │   └── index.ts
 │   ├── styles/
 │   │   ├── velox-grid.css       # 메인 (@import)
@@ -739,9 +735,12 @@ velox-grid/
 │   │   ├── _selection.css       # 선택 스타일
 │   │   ├── _filter.css          # 필터 팝업
 │   │   ├── _column-menu.css     # 컬럼 메뉴
+│   │   ├── _column-group.css    # 다단계 헤더 (v0.12.0)
 │   │   ├── _drag.css            # 드래그 앤 드롭
 │   │   ├── _editor.css          # 에디터
 │   │   ├── _tooltip.css         # 툴팁
+│   │   ├── _pagination.css      # 페이지네이션
+│   │   ├── _footer.css          # 푸터 요약
 │   │   └── _loading.css         # 로딩
 │   ├── types/
 │   │   └── index.ts
@@ -760,8 +759,9 @@ velox-grid/
 
 ## 📊 번들 크기
 
-| 버전 | UMD | Gzipped |
+| 버전 | IIFE | Gzipped |
 |---------|-----|---------|
+| v0.12.0 | 117.12 KB | 28.36 KB |
 | v0.10.0 | 100.20 KB | 24.69 KB |
 | v0.7.0 | 71.35 KB | 18.23 KB |
 | v0.6.0 | 58.94 KB | 14.92 KB |
@@ -772,8 +772,7 @@ velox-grid/
 
 ### 예정된 기능
 
-- **v0.8.0**: 푸터 요약, 그룹 요약
-- **v0.9.0**: React 래퍼 컴포넌트
+- **v0.13.0**: Cell Merge (셀 병합)
 - **v1.0.0**: 안정적인 API, 접근성, 테마 시스템
 
 ## 📄 변경 이력

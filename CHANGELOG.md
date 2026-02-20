@@ -10,7 +10,7 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 ### Added - Phase 19: Column Group (다단계 헤더)
 
 #### 핵심 기능
-- **GridColumnLayout 모듈 신규**: 레이아웃 파싱, 정규화, 헤더 매트릭스 생성 (565줄)
+- **GridColumnLayout 모듈 신규**: 레이아웃 파싱, 정규화, 헤더 매트릭스 생성 (630줄)
 - **CSS Grid 기반 다단계 헤더**: 2단, 3단 이상 중첩 그룹 지원
 - **hideChildHeaders**: 자식 컬럼 헤더 숨김 옵션
 - **setColumnLayout / getColumnLayout / clearColumnLayout API**: 동적 레이아웃 변경
@@ -23,6 +23,12 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
 - **정렬/필터/컬럼 메뉴**: leaf 컬럼 헤더에서 기존과 동일하게 동작
 - **React/Vue 래퍼**: 새 API 3개 노출 (setColumnLayout, getColumnLayout, clearColumnLayout)
 
+#### 드래그 UX 개선
+- **헤더 셀 직접 드래그**: 드래그 핸들(⋮⋮) 제거, 헤더 셀 자체를 드래그하여 컬럼 이동
+- **임계값 기반 드래그 판별**: 5px 이상 이동 시 드래그 시작, 미만이면 클릭으로 처리
+- **그룹 헤더 드래그**: 그룹 헤더 드래그 시 그룹 전체가 최상위 레벨에서 이동
+- **최상위 레벨 순서 변경**: 독립 컬럼 ↔ 그룹, 그룹 ↔ 그룹 간 순서 변경 지원
+
 #### 데모
 - `examples/phase19-column-group-demo.html`: 5개 시나리오
   1. 기본 2단 헤더
@@ -31,10 +37,17 @@ VeloxGrid의 모든 주요 변경사항은 이 파일에 문서화됩니다.
   4. 동적 레이아웃 전환
   5. Fixed Columns + Column Group
 
+### Fixed
+- **헤더 정렬**: headerAlign 기본값을 column.align fallback 없이 `center`로 고정
+- **헤더 정렬 렌더링**: flex:1 header-content 내부 justify-content가 align 클래스에 맞게 동작하도록 수정
+- **그룹 헤더 padding**: grouped 헤더 셀의 padding을 일반 헤더와 동일하게 통일 (`0 4px` → `var(--velox-cell-padding)`)
+- **컬럼 숨기기 헤더 미반영**: hideColumn/showColumn 시 columnLayout.invalidate() 호출 추가, parseColumnLayout에서 visible:false 컬럼을 노드 트리에서 제외
+- **헤더/바디 가로 스크롤 어긋남**: 바디 세로 스크롤바 너비만큼 헤더 콘텐츠에 margin-right 보정
+
 ### Bundle Size
-- UMD: 112.82 KB (gzip: 27.49 KB) — +12.62 KB
-- ESM: 158.01 KB (gzip: 35.62 KB) — +18.34 KB
-- CSS: 23.47 KB (gzip: 4.12 KB) — +1.86 KB
+- IIFE: 117.12 KB (gzip: 28.36 KB)
+- ESM: 164.20 KB (gzip: 37.04 KB)
+- CSS: 23.60 KB (gzip: 4.13 KB)
 
 ## [0.11.0] - 2025-02-12
 
@@ -499,6 +512,7 @@ fixedOptions: {
 
 ### [0.13.0] - 계획됨
 - Cell Merge (셀 병합)
+- Row Grouping (행 그룹화)
 
 ### [1.0.0] - 계획됨
 - 안정적인 API

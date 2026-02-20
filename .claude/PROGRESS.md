@@ -1,6 +1,6 @@
 # VeloxGrid 작업 진행 상황
 
-> 마지막 업데이트: 2025-02-19 (Phase 19 완료)
+> 마지막 업데이트: 2025-02-20 (Phase 19 완료 + 버그 수정)
 
 ---
 
@@ -9,15 +9,16 @@
 ### 기본 정보
 - **프로젝트명**: VeloxGrid
 - **설명**: 빠르고 가벼운 Framework Agnostic 데이터 그리드 라이브러리
-- **현재 버전**: v0.11.0
+- **현재 버전**: v0.12.0
 - **라이선스**: MIT
 - **🌐 Live Demo**: https://bart-idea.github.io/velox-grid/
 
 ### 빌드 정보
-- **번들 크기**: 112.82KB (gzip 27.49KB)
-- **VeloxGrid.ts**: ~3,200줄
+- **번들 크기**: IIFE 117.12KB (gzip 28.36KB), ESM 164.20KB (gzip 37.04KB)
+- **CSS**: 23.60KB (gzip 4.13KB)
+- **VeloxGrid.ts**: ~3,500줄
 - **Core 모듈**: 12개
-- **CSS 모듈**: 13개
+- **CSS 모듈**: 14개
 
 ### 프로젝트 구조
 ```
@@ -38,7 +39,7 @@ velox-grid/
     ├── core/          # 핵심 모듈 (12개)
     ├── react/         # React 래퍼 (Phase 17)
     ├── vue/           # Vue 3 래퍼 (Phase 17)
-    ├── styles/        # CSS 모듈 (13개)
+    ├── styles/        # CSS 모듈 (14개)
     ├── types/         # TypeScript 타입
     └── utils/         # 유틸리티
 ```
@@ -145,7 +146,7 @@ velox-grid/
 
 #### Phase 19: Column Group — 다단계 헤더 (v0.12.0)
 - ✅ ColumnLayoutItem, ColumnGroupHeader, NormalizedLayoutNode 타입 정의
-- ✅ GridColumnLayout 모듈 (파싱, 정규화, 매트릭스 생성)
+- ✅ GridColumnLayout 모듈 (파싱, 정규화, 매트릭스 생성, 630줄)
 - ✅ CSS Grid 기반 다단계 헤더 렌더링 (2단, 3단 중첩)
 - ✅ hideChildHeaders 옵션 (자식 헤더 숨김)
 - ✅ setColumnLayout / getColumnLayout / clearColumnLayout API
@@ -154,6 +155,12 @@ velox-grid/
 - ✅ 같은 그룹 내 컬럼 이동 제한 + 레이아웃 순서 동기화
 - ✅ 정렬/필터/컬럼 메뉴 leaf 컬럼에서 기존 동작 유지
 - ✅ React/Vue 래퍼 API 노출
+- ✅ 헤더 셀 직접 드래그 (드래그 핸들 제거, 임계값 5px 기반 드래그/클릭 판별)
+- ✅ 그룹 헤더 드래그로 그룹 전체 최상위 레벨 이동
+- ✅ 최상위 독립 컬럼 ↔ 그룹 간 순서 변경 지원
+- ✅ headerAlign 기본값 center (column.align 무관)
+- ✅ 컬럼 숨기기 시 헤더 영역 동기화 (visible:false 노드 트리 제외)
+- ✅ 헤더/바디 가로 스크롤 동기화 (세로 스크롤바 너비 보정)
 - ✅ 데모 페이지 (5개 시나리오)
 
 ### 계획된 기능 (Phase 16~25)
@@ -196,6 +203,11 @@ velox-grid/
 - [x] 그룹 헤더 리사이즈 (그룹 내 마지막 leaf 컬럼)
 - [x] Fixed Columns 통합 (헤더 높이 동기화)
 - [x] 같은 그룹 내 컬럼 이동 제한 + 레이아웃 순서 동기화
+- [x] 헤더 셀 직접 드래그 (드래그 핸들 제거, 임계값 기반 판별)
+- [x] 그룹 헤더 드래그 (그룹 전체 최상위 레벨 이동)
+- [x] 최상위 레벨 순서 변경 (독립 컬럼 ↔ 그룹)
+- [x] headerAlign 기본값 center, 컬럼 숨기기 헤더 동기화
+- [x] 헤더/바디 가로 스크롤 동기화 (스크롤바 너비 보정)
 - [x] React/Vue 래퍼 API 노출
 - [x] 데모 페이지 (5개 시나리오)
 
@@ -303,18 +315,25 @@ velox-grid/
 
 ## 📋 최근 작업 이력 (최신순)
 
-### ✨ Phase 19: Column Group (다단계 헤더) 완료 (2025-02-19)
+### ✨ Phase 19: Column Group (다단계 헤더) 완료 (2025-02-19 ~ 2025-02-20)
 
-**번들 크기**: UMD 112.82 KB (gzip: 27.49 KB), ESM 158.01 KB, CSS 23.47 KB
+**번들 크기**: IIFE 117.12 KB (gzip: 28.36 KB), ESM 164.20 KB, CSS 23.60 KB
 
 #### 구현 내용
 
 **핵심 기능**:
-- GridColumnLayout 모듈 신규 (565줄): 레이아웃 파싱, 정규화, 헤더 매트릭스 생성
+- GridColumnLayout 모듈 신규 (630줄): 레이아웃 파싱, 정규화, 헤더 매트릭스 생성
 - CSS Grid 기반 다단계 헤더 렌더링 (2단, 3단 중첩 지원)
 - hideChildHeaders 옵션 (자식 헤더 숨김)
 - setColumnLayout / getColumnLayout / clearColumnLayout API
 - 레이아웃 미설정 시 기존 flexbox 헤더 유지 (하위 호환)
+
+**드래그 UX 개선 (2025-02-19)**:
+- 드래그 핸들(⋮⋮) 제거, 헤더 셀 자체를 직접 드래그
+- 임계값 기반 드래그 판별 (5px 이상 이동 → 드래그, 미만 → 클릭)
+- 그룹 헤더 드래그 시 그룹 전체가 최상위 레벨에서 이동
+- 최상위 독립 컬럼 ↔ 그룹, 그룹 ↔ 그룹 간 순서 변경 지원
+- reorderTopLevelLayout(): state.columns + 레이아웃 순서 동시 변경
 
 **기존 기능 통합**:
 - Fixed Columns: 스크롤 영역에만 그룹 헤더 적용, 헤더 높이 동기화
@@ -322,9 +341,16 @@ velox-grid/
 - 컬럼 이동: 같은 그룹 내에서만 이동 허용, 레이아웃 순서 동기화
 - 정렬/필터/컬럼 메뉴: leaf 컬럼에서 기존과 동일
 
+**버그 수정 (2025-02-20)**:
+- headerAlign 기본값을 column.align fallback 없이 'center'로 고정
+- header-content 내부 justify-content를 align 클래스에 맞게 적용
+- grouped 헤더 셀 padding을 일반 헤더와 동일하게 통일 (0 4px → var(--velox-cell-padding))
+- 컬럼 숨기기 시 헤더 미반영: parseColumnLayout에서 visible:false 컬럼 노드 트리 제외 + hideColumn/showColumn에서 columnLayout.invalidate() 호출
+- 가로 스크롤 시 헤더/바디 어긋남: 바디 세로 스크롤바 너비만큼 헤더 콘텐츠에 margin-right 보정
+
 #### 변경된 파일
 - 신규: `GridColumnLayout.ts`, `_column-group.css`, `phase19-column-group-demo.html`
-- 수정: `VeloxGrid.ts`, `GridRenderer.ts`, `GridDragManager.ts`, `types/index.ts`, React/Vue 래퍼
+- 수정: `VeloxGrid.ts`, `GridRenderer.ts`, `GridDragManager.ts`, `types/index.ts`, `_header.css`, `_drag.css`, `_column-menu.css`, React/Vue 래퍼
 
 #### 기술적 의사결정
 - CSS Grid 선택 (vs HTML Table, Absolute Position): colSpan/rowSpan 자연스러움, 정렬 쉽고 기존 flexbox와 분기 처리 가능
